@@ -1,0 +1,21 @@
+{
+  "name": "orbit",
+  "logo": "/icon.svg",
+  "colors": {
+    "background": "#030304",
+    "accent": "#b9c6ff"
+  },
+  "sound": {
+    "enabled": true,
+    "volume": 0.07
+  },
+  "sections": [
+    { "id": "library", "title": "Bibliothèque", "icon": "library", "active": true, "destination": "library" },
+    { "id": "films", "title": "Films & séries", "icon": "film", "active": true, "destination": "films" },
+    { "id": "orbit-play", "title": "Orbit Play", "icon": "launcher", "active": true, "destination": "launcher" },
+    { "id": "music", "title": "Musique", "icon": "music", "active": false, "destination": null },
+    { "id": "photos", "title": "Photos", "icon": "photos", "active": false, "destination": null },
+    { "id": "discover", "title": "Découvrir", "icon": "discover", "active": false, "destination": null },
+    { "id": "settings", "title": "Réglages", "icon": "settings", "active": false, "destination": null }
+  ]
+}

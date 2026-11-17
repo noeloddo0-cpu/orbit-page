@@ -1,0 +1,83 @@
+{
+  "id": "liquid-glass",
+  "name": "Liquid Glass",
+  "description": "Verre translucide, reflets et mouvement souple.",
+  "tokens": {
+    "--bg": "#07090d",
+    "--surface": "#131821",
+    "--surface-2": "#202938",
+    "--fg": "#f6f8ff",
+    "--muted": "#a6b1c2",
+    "--accent": "#a6c8ff",
+    "--line": "rgba(220,235,255,.16)",
+    "--glass": "rgba(29,39,54,.64)",
+    "--radius-card": "20px",
+    "--radius-panel": "20px",
+    "--radius-control": "10px",
+    "--shadow-card": "0 18px 44px rgba(0,0,0,.32)",
+    "--shadow-panel": "0 32px 90px rgba(0,0,0,.48)",
+    "--theme-blur": "blur(22px)",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "--font-weight": "500",
+    "--title-size": "clamp(38px,6vw,64px)",
+    "--tile-scale": "1.035",
+    "--focus-ring": "0 0 0 3px rgba(166,200,255,.78)"
+  },
+  "animations": {
+    "introStyle": "glass",
+    "introDurationMs": 2700,
+    "screenDurationMs": 340,
+    "hoverDurationMs": 280,
+    "hoverScale": 1.035,
+    "focusScale": 1.025,
+    "easing": "cubic-bezier(.2,.9,.25,1.18)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 150,
+      "endHz": 620,
+      "durationMs": 700,
+      "gain": 0.15
+    },
+    "click": {
+      "wave": "sine",
+      "startHz": 680,
+      "endHz": 920,
+      "durationMs": 95,
+      "gain": 0.09
+    },
+    "open": {
+      "wave": "triangle",
+      "startHz": 260,
+      "endHz": 780,
+      "durationMs": 210,
+      "gain": 0.13
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 520,
+      "endHz": 190,
+      "durationMs": 180,
+      "gain": 0.12
+    }
+  },
+  "typography": {
+    "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "weight": 500,
+    "titleSize": "clamp(38px,6vw,64px)",
+    "bodySize": "15px"
+  },
+  "effects": {
+    "backdropFilter": "blur(22px) saturate(1.35)",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": true,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

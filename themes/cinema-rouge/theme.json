@@ -1,0 +1,83 @@
+{
+  "id": "cinema-rouge",
+  "name": "Cinéma rouge",
+  "description": "Noir profond, rouge cinéma et titres affirmés.",
+  "tokens": {
+    "--bg": "#080506",
+    "--surface": "#190b0e",
+    "--surface-2": "#2a1015",
+    "--fg": "#fff7f7",
+    "--muted": "#d0aeb2",
+    "--accent": "#ff334f",
+    "--line": "rgba(255,75,92,.24)",
+    "--glass": "rgba(29,8,12,.86)",
+    "--radius-card": "18px",
+    "--radius-panel": "20px",
+    "--radius-control": "12px",
+    "--shadow-card": "0 20px 48px rgba(0,0,0,.52)",
+    "--shadow-panel": "0 36px 90px rgba(0,0,0,.68)",
+    "--theme-blur": "blur(14px)",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "'Arial', sans-serif",
+    "--font-weight": "700",
+    "--title-size": "clamp(40px,6.5vw,70px)",
+    "--tile-scale": "1.065",
+    "--focus-ring": "0 0 0 3px rgba(255,51,79,.85)"
+  },
+  "animations": {
+    "introStyle": "cinema",
+    "introDurationMs": 3000,
+    "screenDurationMs": 390,
+    "hoverDurationMs": 190,
+    "hoverScale": 1.065,
+    "focusScale": 1.045,
+    "easing": "cubic-bezier(.18,.85,.22,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 48,
+      "endHz": 115,
+      "durationMs": 1000,
+      "gain": 0.2
+    },
+    "click": {
+      "wave": "triangle",
+      "startHz": 420,
+      "endHz": 260,
+      "durationMs": 110,
+      "gain": 0.1
+    },
+    "open": {
+      "wave": "sine",
+      "startHz": 72,
+      "endHz": 380,
+      "durationMs": 280,
+      "gain": 0.17
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 360,
+      "endHz": 90,
+      "durationMs": 240,
+      "gain": 0.15
+    }
+  },
+  "typography": {
+    "family": "'Arial', sans-serif",
+    "weight": 700,
+    "titleSize": "clamp(40px,6.5vw,70px)",
+    "bodySize": "15px"
+  },
+  "effects": {
+    "backdropFilter": "blur(14px) saturate(1.1)",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

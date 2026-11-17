@@ -1,0 +1,60 @@
+{
+  "id": "steam-library",
+  "name": "Bibliothèque Steam",
+  "description": "Une bibliothèque de jeux en liste avec des fiches et un lancement Steam direct.",
+  "tokens": {
+    "--bg": "#111416",
+    "--surface": "#1b2022",
+    "--surface-2": "#252b2d",
+    "--fg": "#e7e9e6",
+    "--muted": "#a0a7a5",
+    "--accent": "#c58b50",
+    "--line": "rgba(220,228,224,.13)",
+    "--glass": "#1b2022",
+    "--radius-card": "6px",
+    "--radius-panel": "8px",
+    "--radius-control": "5px",
+    "--shadow-card": "none",
+    "--shadow-panel": "0 16px 40px rgba(0,0,0,.42)",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "Bahnschrift, 'Segoe UI', sans-serif",
+    "--font-weight": "500",
+    "--title-size": "clamp(30px,4vw,46px)",
+    "--tile-scale": "1",
+    "--focus-ring": "0 0 0 2px #c58b50"
+  },
+  "animations": {
+    "introStyle": "minimal",
+    "introDurationMs": 1200,
+    "screenDurationMs": 200,
+    "themeChangeMs": 260,
+    "hoverDurationMs": 140,
+    "hoverScale": 1,
+    "focusScale": 1,
+    "easing": "cubic-bezier(.2,.7,.2,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": { "wave": "sine", "startHz": 150, "endHz": 210, "durationMs": 180, "gain": 0.018 },
+    "click": { "wave": "sine", "startHz": 480, "endHz": 560, "durationMs": 40, "gain": 0.018 },
+    "open": { "wave": "triangle", "startHz": 190, "endHz": 260, "durationMs": 85, "gain": 0.022 },
+    "back": { "wave": "sine", "startHz": 300, "endHz": 210, "durationMs": 70, "gain": 0.018 }
+  },
+  "typography": {
+    "family": "Bahnschrift, 'Segoe UI', sans-serif",
+    "weight": 500,
+    "titleSize": "clamp(30px,4vw,46px)",
+    "bodySize": "14px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

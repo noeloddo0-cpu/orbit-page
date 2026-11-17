@@ -1,0 +1,83 @@
+{
+  "id": "minimal-clair",
+  "name": "Minimal clair",
+  "description": "Clair, net et rapide, sans effets décoratifs.",
+  "tokens": {
+    "--bg": "#f3f4f7",
+    "--surface": "#ffffff",
+    "--surface-2": "#e7e9ee",
+    "--fg": "#202124",
+    "--muted": "#555b66",
+    "--accent": "#2349b7",
+    "--line": "rgba(32,33,36,.14)",
+    "--glass": "rgba(255,255,255,.92)",
+    "--radius-card": "16px",
+    "--radius-panel": "22px",
+    "--radius-control": "10px",
+    "--shadow-card": "0 8px 24px rgba(24,32,50,.1)",
+    "--shadow-panel": "0 22px 54px rgba(24,32,50,.16)",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "--font-weight": "500",
+    "--title-size": "clamp(36px,5.5vw,60px)",
+    "--tile-scale": "1.015",
+    "--focus-ring": "0 0 0 3px rgba(35,73,183,.45)"
+  },
+  "animations": {
+    "introStyle": "minimal",
+    "introDurationMs": 1600,
+    "screenDurationMs": 250,
+    "hoverDurationMs": 120,
+    "hoverScale": 1.015,
+    "focusScale": 1.01,
+    "easing": "cubic-bezier(.2,.7,.2,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 200,
+      "endHz": 360,
+      "durationMs": 250,
+      "gain": 0.035
+    },
+    "click": {
+      "wave": "sine",
+      "startHz": 600,
+      "endHz": 740,
+      "durationMs": 45,
+      "gain": 0.025
+    },
+    "open": {
+      "wave": "sine",
+      "startHz": 260,
+      "endHz": 440,
+      "durationMs": 85,
+      "gain": 0.04
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 420,
+      "endHz": 230,
+      "durationMs": 75,
+      "gain": 0.035
+    }
+  },
+  "typography": {
+    "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "weight": 500,
+    "titleSize": "clamp(36px,5.5vw,60px)",
+    "bodySize": "15px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "light"
+  }
+}

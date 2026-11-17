@@ -1,0 +1,86 @@
+:root[data-orbit-shell="apple-tv"] #section-cards {
+  --section-card-width: clamp(220px, 26vw, 320px);
+  display: flex; justify-content: flex-start; gap: 20px;
+  overflow-x: auto; overflow-y: visible;
+  padding: 22px max(24px, calc((100% - var(--section-card-width)) / 2)) 30px 0;
+  scroll-padding-inline: max(24px, calc((100% - var(--section-card-width)) / 2));
+  scroll-snap-type: x mandatory; overscroll-behavior-inline: contain;
+}
+:root[data-orbit-shell="apple-tv"] #section-cards .section-card {
+  position: relative; isolation: isolate; overflow: hidden;
+  flex: 0 0 var(--section-card-width); min-height: 220px;
+  scroll-snap-align: center; scroll-snap-stop: always;
+  border: 1px solid rgba(230,235,245,.12); border-radius: 12px;
+  background: #15171c; box-shadow: 0 5px 8px rgba(0,0,0,.28);
+  transform-style: preserve-3d;
+  transition: transform 220ms cubic-bezier(.2,.75,.25,1), opacity 220ms ease-out;
+}
+:root[data-orbit-shell="apple-tv"] #section-cards .section-card[data-active="true"] { background: #1b1f27; border-color: rgba(193,211,248,.24); }:root[data-orbit-shell="apple-tv"] #section-cards .section-card::before,
+:root[data-orbit-shell="apple-tv"] #section-cards .section-card::after,
+:root[data-orbit-shell="apple-tv"] .tile::before { display: none; content: none; }
+:root[data-orbit-shell="apple-tv"] #section-cards .section-card[data-active="true"].apple-tv-hover,
+:root[data-orbit-shell="apple-tv"] #section-cards .section-card[data-active="true"]:focus-visible {
+  transform: perspective(900px) translateY(-3px) rotateX(var(--atv-rotate-x,0deg)) rotateY(var(--atv-rotate-y,0deg)) scale(1.025);
+}
+:root[data-orbit-shell="apple-tv"] #section-cards .section-card[data-active="false"] { opacity: .58; }
+:root[data-orbit-shell="apple-tv"] #section-cards .section-icon,
+:root[data-orbit-shell="apple-tv"] #section-cards .section-name,
+:root[data-orbit-shell="apple-tv"] #section-cards .section-state { transition: transform 220ms cubic-bezier(.2,.75,.25,1); }
+:root[data-orbit-shell="apple-tv"] #section-cards .section-card > :not(.apple-tv-reflection) { position: relative; z-index: 3; }
+:root[data-orbit-shell="apple-tv"] .apple-tv-reflection {
+  position: absolute; z-index: 2; inset: 0; border: 1px solid rgba(255,255,255,.08);
+  border-radius: inherit; pointer-events: none; opacity: 0;
+  background: radial-gradient(ellipse 62% 72% at var(--atv-x,50%) var(--atv-y,16%), rgba(255,255,255,.18), transparent 72%);
+  transition: opacity 180ms ease-out;
+}
+:root[data-orbit-shell="apple-tv"] .apple-tv-hover > .apple-tv-reflection { opacity: 1; }
+:root[data-orbit-shell="apple-tv"] #grid .shell-grid,
+:root[data-orbit-shell="apple-tv"] #resume {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-min,205px),1fr)); gap: 18px;
+}
+:root[data-orbit-shell="apple-tv"] .tile {
+  position: relative; overflow: hidden; isolation: isolate; aspect-ratio: 16 / 9;
+  border: 1px solid rgba(230,235,245,.12); border-radius: 12px;
+  background: #15171c; box-shadow: 0 5px 8px rgba(0,0,0,.3);
+  transform-style: preserve-3d;
+  transition: transform 200ms cubic-bezier(.2,.75,.25,1), opacity 200ms ease-out;
+}
+:root[data-orbit-shell="apple-tv"] .tile.apple-tv-hover,
+:root[data-orbit-shell="apple-tv"] .tile:focus-visible {
+  transform: perspective(900px) translateY(-3px) rotateX(var(--atv-rotate-x,0deg)) rotateY(var(--atv-rotate-y,0deg)) scale(1.025);
+}
+:root[data-orbit-shell="apple-tv"] .tile:active { transform: scale(.985); }
+:root[data-orbit-shell="apple-tv"] .tile .cv { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; transition: transform 220ms cubic-bezier(.2,.75,.25,1), opacity 180ms ease-out; }
+:root[data-orbit-shell="apple-tv"] .tile .shade { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(0,0,0,.02) 28%, rgba(0,0,0,.12) 55%, rgba(0,0,0,.78) 100%); pointer-events: none; }
+:root[data-orbit-shell="apple-tv"] .tile .in { position: relative; z-index: 4; transform-style: preserve-3d; transition: transform 220ms cubic-bezier(.2,.75,.25,1); }
+:root[data-orbit-shell="apple-tv"] .tile .nm { max-width: 82%; font-size: 15px; letter-spacing: -.02em; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+:root[data-orbit-shell="apple-tv"] .tile .hr { font-size: 11px; font-variant-numeric: tabular-nums; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+:root[data-orbit-shell="apple-tv"] .tile .dot { z-index: 5; }
+:root[data-orbit-shell="apple-tv"] .tile .apple-tv-reflection { z-index: 3; }
+:root[data-orbit-shell="apple-tv"] .tile.live { border-color: rgba(48,209,88,.55); }
+:root[data-orbit-shell="apple-tv"] .bar,
+:root[data-orbit-shell="apple-tv"] #panel,
+:root[data-orbit-shell="apple-tv"] #settings-drawer { -webkit-backdrop-filter:var(--theme-backdrop,none); backdrop-filter:var(--theme-backdrop,none); }
+:root[data-orbit-shell="apple-tv"] #panel { background: rgba(17,18,22,.96); border-radius: 12px; }
+:root[data-orbit-shell="apple-tv"] #settings-drawer { background: rgba(17,18,22,.98); }
+:root[data-orbit-shell="apple-tv"] .settings-launcher { border-radius: 12px; }
+:root[data-orbit-shell="apple-tv"] .theme-preview-art[data-skin="apple-tv"] { background: #15171c; }
+@media (max-width: 700px) {
+  :root[data-orbit-shell="apple-tv"] #section-cards { --section-card-width: 76vw; gap: 14px; }
+  :root[data-orbit-shell="apple-tv"] #section-cards .section-card { min-height: 172px; }
+  :root[data-orbit-shell="apple-tv"] #grid .shell-grid,
+  :root[data-orbit-shell="apple-tv"] #resume { grid-template-columns: repeat(auto-fill,minmax(min(100%,180px),1fr)); gap: 13px; }
+  :root[data-orbit-shell="apple-tv"] .tile { border-radius: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-orbit-shell="apple-tv"] .tile,
+  :root[data-orbit-shell="apple-tv"] .tile .cv,
+  :root[data-orbit-shell="apple-tv"] .tile .in,
+  :root[data-orbit-shell="apple-tv"] .section-card,
+  :root[data-orbit-shell="apple-tv"] .section-icon,
+  :root[data-orbit-shell="apple-tv"] .section-name,
+  :root[data-orbit-shell="apple-tv"] .section-state,
+  :root[data-orbit-shell="apple-tv"] .apple-tv-reflection { transition: none !important; }
+  :root[data-orbit-shell="apple-tv"] .tile:hover,
+  :root[data-orbit-shell="apple-tv"] .section-card:hover { transform: none; }
+}

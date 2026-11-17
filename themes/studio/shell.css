@@ -1,0 +1,151 @@
+/* Studio: traitement mat et discret, sans halo, verre ou déformation. */
+:root[data-orbit-shell="studio"] body {
+  background: var(--bg);
+}
+:root[data-orbit-shell="studio"] .bh,
+:root[data-orbit-shell="studio"] body::before,
+:root[data-orbit-shell="studio"] body::after {
+  display: none !important;
+}
+:root[data-orbit-shell="studio"] #section-cards {
+  --section-card-width: clamp(225px, 25vw, 300px);
+  display: flex;
+  justify-content: flex-start;
+  gap: 18px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 16px max(22px, calc((100% - var(--section-card-width)) / 2)) 28px 0;
+  scroll-padding-inline: max(22px, calc((100% - var(--section-card-width)) / 2));
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
+}
+:root[data-orbit-shell="studio"] #section-cards .section-card {
+  flex: 0 0 var(--section-card-width);
+  min-height: 204px;
+  padding: 22px;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transform: none;
+  transition: transform var(--anim-hover-ms) var(--anim-easing), background-color var(--anim-hover-ms), border-color var(--anim-hover-ms), box-shadow var(--anim-hover-ms);
+}
+:root[data-orbit-shell="studio"] #section-cards .section-card::before,
+:root[data-orbit-shell="studio"] #section-cards .section-card::after {
+  display: none;
+}
+:root[data-orbit-shell="studio"] #section-cards .section-card[data-active="true"] {
+  background: #252a26;
+  border-color: rgba(169,194,173,.42);
+}
+:root[data-orbit-shell="studio"] #section-cards .section-card[data-active="true"]:hover,
+:root[data-orbit-shell="studio"] #section-cards .section-card[data-active="true"]:focus-visible {
+  transform: translateY(-2px) scale(var(--anim-hover-scale));
+  box-shadow: 0 12px 28px rgba(0,0,0,.28);
+}
+:root[data-orbit-shell="studio"] #section-cards .section-card[data-active="false"] {
+  opacity: .55;
+}
+:root[data-orbit-shell="studio"] .section-icon {
+  color: var(--accent);
+}
+:root[data-orbit-shell="studio"] #grid .shell-grid,
+:root[data-orbit-shell="studio"] #resume {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile-min, 205px), 1fr));
+  gap: 18px;
+}
+:root[data-orbit-shell="studio"] .tile {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid rgba(226,232,225,.14);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-card);
+  transform: none;
+  transition: transform var(--anim-hover-ms) var(--anim-easing), border-color var(--anim-hover-ms), box-shadow var(--anim-hover-ms);
+}
+:root[data-orbit-shell="studio"] .tile::before {
+  display: none;
+}
+:root[data-orbit-shell="studio"] .tile:hover,
+:root[data-orbit-shell="studio"] .tile:focus-visible {
+  transform: translateY(-2px) scale(var(--anim-hover-scale));
+  border-color: rgba(226,232,225,.36);
+  box-shadow: 0 14px 28px rgba(0,0,0,.3);
+}
+:root[data-orbit-shell="studio"] .tile:active {
+  transform: scale(.99);
+}
+:root[data-orbit-shell="studio"] .tile .cv {
+  transition: opacity var(--duration-normal) ease-out;
+}
+:root[data-orbit-shell="studio"] .tile .in,
+:root[data-orbit-shell="studio"] .tile .dot {
+  text-shadow: 0 1px 4px rgba(0,0,0,.7);
+}
+:root[data-orbit-shell="studio"] .bar {
+  color: var(--fg);
+  background: rgba(32,35,33,.96);
+  border-color: var(--line);
+  box-shadow: 0 6px 18px rgba(0,0,0,.16);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-orbit-shell="studio"] #panel,
+:root[data-orbit-shell="studio"] #settings-drawer {
+  color: var(--fg);
+  background: #202321;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-orbit-shell="studio"] .btn,
+:root[data-orbit-shell="studio"] .field,
+:root[data-orbit-shell="studio"] .settings-launcher,
+:root[data-orbit-shell="studio"] .theme-card {
+  color: var(--fg);
+  background: #292d2a;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  box-shadow: none;
+}
+:root[data-orbit-shell="studio"] .btn:hover,
+:root[data-orbit-shell="studio"] .settings-launcher:hover {
+  background: #333834;
+  border-color: rgba(169,194,173,.45);
+  transform: translateY(-1px);
+}
+:root[data-orbit-shell="studio"] .tile:focus-visible,
+:root[data-orbit-shell="studio"] .section-card:focus-visible,
+:root[data-orbit-shell="studio"] .btn:focus-visible,
+:root[data-orbit-shell="studio"] .field:focus-visible,
+:root[data-orbit-shell="studio"] .settings-launcher:focus-visible,
+:root[data-orbit-shell="studio"] .theme-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+:root[data-orbit-shell="studio"] .theme-card[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+@media (max-width: 700px) {
+  :root[data-orbit-shell="studio"] #section-cards { --section-card-width: 76vw; gap: 14px; }
+  :root[data-orbit-shell="studio"] #section-cards .section-card { min-height: 170px; }
+  :root[data-orbit-shell="studio"] #grid .shell-grid,
+  :root[data-orbit-shell="studio"] #resume { grid-template-columns: repeat(auto-fill,minmax(min(100%,185px),1fr)); gap: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-orbit-shell="studio"] *,
+  :root[data-orbit-shell="studio"] *::before,
+  :root[data-orbit-shell="studio"] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}

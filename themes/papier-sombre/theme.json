@@ -1,0 +1,84 @@
+{
+  "id": "papier-sombre",
+  "name": "Papier sombre",
+  "description": "Le catalogue éditorial Papier, décliné sur des surfaces sombres.",
+  "tokens": {
+    "--bg": "#1c1a17",
+    "--surface": "#26231f",
+    "--surface-2": "#322e28",
+    "--fg": "#f0e9dd",
+    "--muted": "#b5ac9f",
+    "--accent": "#cc7754",
+    "--line": "rgba(240,233,221,.14)",
+    "--glass": "#26231f",
+    "--radius-card": "8px",
+    "--radius-panel": "10px",
+    "--radius-control": "6px",
+    "--shadow-card": "0 1px 3px rgba(0,0,0,.24)",
+    "--shadow-panel": "0 8px 24px rgba(0,0,0,.34)",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "Georgia, 'Times New Roman', serif",
+    "--font-weight": "500",
+    "--title-size": "clamp(34px,5vw,56px)",
+    "--tile-scale": "1.012",
+    "--focus-ring": "0 0 0 2px #cc7754"
+  },
+  "animations": {
+    "introStyle": "minimal",
+    "introDurationMs": 1500,
+    "screenDurationMs": 220,
+    "themeChangeMs": 300,
+    "hoverDurationMs": 150,
+    "hoverScale": 1.012,
+    "focusScale": 1.008,
+    "easing": "cubic-bezier(.2,.7,.2,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 160,
+      "endHz": 240,
+      "durationMs": 240,
+      "gain": 0.025
+    },
+    "click": {
+      "wave": "sine",
+      "startHz": 520,
+      "endHz": 620,
+      "durationMs": 45,
+      "gain": 0.022
+    },
+    "open": {
+      "wave": "triangle",
+      "startHz": 200,
+      "endHz": 300,
+      "durationMs": 110,
+      "gain": 0.03
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 330,
+      "endHz": 210,
+      "durationMs": 85,
+      "gain": 0.025
+    }
+  },
+  "typography": {
+    "family": "Georgia, 'Times New Roman', serif",
+    "weight": 500,
+    "titleSize": "clamp(34px,5vw,56px)",
+    "bodySize": "14px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

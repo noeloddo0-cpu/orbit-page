@@ -1,0 +1,83 @@
+{
+  "id": "retro-console",
+  "name": "Rétro console",
+  "description": "Couleurs arcade, police pixel et mouvements en paliers.",
+  "tokens": {
+    "--bg": "#101009",
+    "--surface": "#1c1b12",
+    "--surface-2": "#2b2918",
+    "--fg": "#fff8c8",
+    "--muted": "#cec68d",
+    "--accent": "#f6d84a",
+    "--line": "rgba(246,216,74,.3)",
+    "--glass": "rgba(27,26,17,.94)",
+    "--radius-card": "4px",
+    "--radius-panel": "6px",
+    "--radius-control": "4px",
+    "--shadow-card": "4px 4px 0 rgba(0,0,0,.45)",
+    "--shadow-panel": "6px 6px 0 rgba(0,0,0,.5)",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "'Courier New', monospace",
+    "--font-weight": "700",
+    "--title-size": "clamp(32px,5vw,54px)",
+    "--tile-scale": "1.04",
+    "--focus-ring": "0 0 0 3px #f6d84a"
+  },
+  "animations": {
+    "introStyle": "retro",
+    "introDurationMs": 2100,
+    "screenDurationMs": 280,
+    "hoverDurationMs": 150,
+    "hoverScale": 1.04,
+    "focusScale": 1.03,
+    "easing": "steps(5,end)",
+    "stepped": true
+  },
+  "sounds": {
+    "intro": {
+      "wave": "square",
+      "startHz": 110,
+      "endHz": 440,
+      "durationMs": 400,
+      "gain": 0.09
+    },
+    "click": {
+      "wave": "square",
+      "startHz": 660,
+      "endHz": 880,
+      "durationMs": 65,
+      "gain": 0.08
+    },
+    "open": {
+      "wave": "square",
+      "startHz": 220,
+      "endHz": 660,
+      "durationMs": 180,
+      "gain": 0.1
+    },
+    "back": {
+      "wave": "square",
+      "startHz": 440,
+      "endHz": 110,
+      "durationMs": 140,
+      "gain": 0.09
+    }
+  },
+  "typography": {
+    "family": "'Courier New', monospace",
+    "weight": 700,
+    "titleSize": "clamp(32px,5vw,54px)",
+    "bodySize": "14px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": false,
+    "contrast": "dark"
+  }
+}

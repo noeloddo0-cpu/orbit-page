@@ -1,0 +1,83 @@
+{
+  "id": "neon",
+  "name": "Néon",
+  "description": "Contrastes vifs, lueurs et lignes lumineuses.",
+  "tokens": {
+    "--bg": "#050711",
+    "--surface": "#0c1020",
+    "--surface-2": "#151a30",
+    "--fg": "#f1fbff",
+    "--muted": "#a4b5ca",
+    "--accent": "#48f5e5",
+    "--line": "rgba(72,245,229,.3)",
+    "--glass": "rgba(8,14,30,.86)",
+    "--radius-card": "12px",
+    "--radius-panel": "18px",
+    "--radius-control": "8px",
+    "--shadow-card": "0 0 22px rgba(72,245,229,.2)",
+    "--shadow-panel": "0 0 44px rgba(72,245,229,.22)",
+    "--theme-blur": "blur(10px)",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "'Segoe UI', sans-serif",
+    "--font-weight": "600",
+    "--title-size": "clamp(36px,6vw,62px)",
+    "--tile-scale": "1.035",
+    "--focus-ring": "0 0 0 2px #48f5e5, 0 0 18px rgba(72,245,229,.55)"
+  },
+  "animations": {
+    "introStyle": "neon",
+    "introDurationMs": 2400,
+    "screenDurationMs": 300,
+    "hoverDurationMs": 170,
+    "hoverScale": 1.035,
+    "focusScale": 1.025,
+    "easing": "cubic-bezier(.2,.8,.2,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sawtooth",
+      "startHz": 90,
+      "endHz": 700,
+      "durationMs": 560,
+      "gain": 0.1
+    },
+    "click": {
+      "wave": "square",
+      "startHz": 780,
+      "endHz": 1120,
+      "durationMs": 55,
+      "gain": 0.07
+    },
+    "open": {
+      "wave": "triangle",
+      "startHz": 240,
+      "endHz": 920,
+      "durationMs": 160,
+      "gain": 0.1
+    },
+    "back": {
+      "wave": "sawtooth",
+      "startHz": 680,
+      "endHz": 180,
+      "durationMs": 130,
+      "gain": 0.08
+    }
+  },
+  "typography": {
+    "family": "'Segoe UI', sans-serif",
+    "weight": 600,
+    "titleSize": "clamp(36px,6vw,62px)",
+    "bodySize": "15px"
+  },
+  "effects": {
+    "backdropFilter": "blur(10px) saturate(1.35)",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": true,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

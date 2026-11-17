@@ -1,0 +1,84 @@
+{
+  "id": "apple-tv-3d",
+  "name": "Apple TV (Parallaxe)",
+  "description": "Cartes larges, relief et parallaxe inspirés de l’écran d’accueil Apple TV expérimental.",
+  "tokens": {
+    "--bg": "#08090d",
+    "--surface": "#141720",
+    "--surface-2": "#202633",
+    "--fg": "#f7f8fc",
+    "--muted": "#a2a9b8",
+    "--accent": "#a9c5ff",
+    "--line": "rgba(232,239,255,.15)",
+    "--glass": "rgba(24,30,42,.82)",
+    "--radius-card": "22px",
+    "--radius-panel": "20px",
+    "--radius-control": "14px",
+    "--shadow-card": "0 18px 44px rgba(0,0,0,.4)",
+    "--shadow-panel": "0 34px 90px rgba(0,0,0,.65)",
+    "--theme-blur": "blur(16px)",
+    "--theme-glow": "0 22px 48px rgba(88,133,223,.22)",
+    "--space-unit": "8px",
+    "--font-family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "--font-weight": "560",
+    "--title-size": "clamp(36px,5.5vw,60px)",
+    "--tile-scale": "1.045",
+    "--focus-ring": "0 0 0 3px rgba(169,197,255,.85)"
+  },
+  "animations": {
+    "introStyle": "cinema",
+    "introDurationMs": 2700,
+    "screenDurationMs": 380,
+    "themeChangeMs": 360,
+    "hoverDurationMs": 220,
+    "hoverScale": 1.045,
+    "focusScale": 1.035,
+    "easing": "cubic-bezier(.2,.78,.24,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 125,
+      "endHz": 440,
+      "durationMs": 560,
+      "gain": 0.09
+    },
+    "click": {
+      "wave": "sine",
+      "startHz": 570,
+      "endHz": 760,
+      "durationMs": 80,
+      "gain": 0.055
+    },
+    "open": {
+      "wave": "triangle",
+      "startHz": 230,
+      "endHz": 650,
+      "durationMs": 200,
+      "gain": 0.085
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 440,
+      "endHz": 210,
+      "durationMs": 160,
+      "gain": 0.075
+    }
+  },
+  "typography": {
+    "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "weight": 560,
+    "titleSize": "clamp(36px,5.5vw,60px)",
+    "bodySize": "15px"
+  },
+  "effects": {
+    "backdropFilter": "blur(16px) saturate(1.15)",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": true,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

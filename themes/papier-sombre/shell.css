@@ -1,0 +1,208 @@
+/* Papier: catalogue imprimé, surfaces mates, encre chaude et un seul accent terre cuite. */
+:root[data-orbit-shell="papier-sombre"] body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+:root[data-orbit-shell="papier-sombre"] .bh,
+:root[data-orbit-shell="papier-sombre"] body::before,
+:root[data-orbit-shell="papier-sombre"] body::after {
+  display: none !important;
+}
+:root[data-orbit-shell="papier-sombre"] #home-screen,
+:root[data-orbit-shell="papier-sombre"] #library-screen,
+:root[data-orbit-shell="papier-sombre"] #films-screen {
+  color: var(--fg);
+}
+:root[data-orbit-shell="papier-sombre"] #section-cards {
+  --section-card-width: clamp(230px, 26vw, 320px);
+  display: flex;
+  justify-content: flex-start;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 12px max(24px, calc((100% - var(--section-card-width)) / 2)) 24px 0;
+  scroll-padding-inline: max(24px, calc((100% - var(--section-card-width)) / 2));
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
+}
+:root[data-orbit-shell="papier-sombre"] #section-cards .section-card {
+  flex: 0 0 var(--section-card-width);
+  min-height: 208px;
+  padding: 20px;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transform: none;
+  transition: transform 150ms ease-out, border-color 150ms ease-out;
+}
+:root[data-orbit-shell="papier-sombre"] #section-cards .section-card::before,
+:root[data-orbit-shell="papier-sombre"] #section-cards .section-card::after {
+  display: none;
+}
+:root[data-orbit-shell="papier-sombre"] #section-cards .section-card[data-active="true"] {
+  border-bottom: 3px solid var(--accent);
+}
+:root[data-orbit-shell="papier-sombre"] #section-cards .section-card[data-active="true"]:hover,
+:root[data-orbit-shell="papier-sombre"] #section-cards .section-card[data-active="true"]:focus-visible {
+  transform: translateY(-2px);
+}
+:root[data-orbit-shell="papier-sombre"] #section-cards .section-card[data-active="false"] {
+  color: var(--muted);
+  background: var(--surface-2);
+  box-shadow: none;
+}
+:root[data-orbit-shell="papier-sombre"] .section-icon,
+:root[data-orbit-shell="papier-sombre"] .film-filter[aria-pressed="true"],
+:root[data-orbit-shell="papier-sombre"] .orbit-kicker {
+  color: var(--accent);
+}
+:root[data-orbit-shell="papier-sombre"] .section-name,
+:root[data-orbit-shell="papier-sombre"] .orbit-title,
+:root[data-orbit-shell="papier-sombre"] #library-screen h1,
+:root[data-orbit-shell="papier-sombre"] #films-screen h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -.035em;
+}
+:root[data-orbit-shell="papier-sombre"] #grid .shell-grid,
+:root[data-orbit-shell="papier-sombre"] #resume {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile-min, 205px), 1fr));
+  gap: 16px;
+}
+:root[data-orbit-shell="papier-sombre"] .tile {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid rgba(36,37,33,.16);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-card);
+  transform: none;
+  transition: transform 150ms ease-out, border-color 150ms ease-out;
+}
+:root[data-orbit-shell="papier-sombre"] .tile::before {
+  display: none;
+}
+:root[data-orbit-shell="papier-sombre"] .tile:hover,
+:root[data-orbit-shell="papier-sombre"] .tile:focus-visible {
+  transform: translateY(-2px) scale(1.012);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-card);
+}
+:root[data-orbit-shell="papier-sombre"] .bar {
+  color: var(--fg);
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 1px 3px rgba(35,32,26,.08);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-orbit-shell="papier-sombre"] #panel,
+:root[data-orbit-shell="papier-sombre"] #settings-drawer {
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-orbit-shell="papier-sombre"] .btn,
+:root[data-orbit-shell="papier-sombre"] .field,
+:root[data-orbit-shell="papier-sombre"] .settings-launcher,
+:root[data-orbit-shell="papier-sombre"] .theme-card {
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  box-shadow: none;
+}
+:root[data-orbit-shell="papier-sombre"] .btn:hover,
+:root[data-orbit-shell="papier-sombre"] .settings-launcher:hover {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+:root[data-orbit-shell="papier-sombre"] .tile:focus-visible,
+:root[data-orbit-shell="papier-sombre"] .section-card:focus-visible,
+:root[data-orbit-shell="papier-sombre"] .btn:focus-visible,
+:root[data-orbit-shell="papier-sombre"] .field:focus-visible,
+:root[data-orbit-shell="papier-sombre"] .settings-launcher:focus-visible,
+:root[data-orbit-shell="papier-sombre"] .theme-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+:root[data-orbit-shell="papier-sombre"] .theme-card[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+' :root[data-orbit-shell="papier-sombre"] #films-screen {
+  --film-bg: #f1eee6;
+  --film-surface: #faf8f2;
+  --film-line: rgba(36,37,33,.16);
+  --film-text: #242521;
+  --film-muted: #5f605a;
+  --film-green: #9c4f32;
+  background: var(--film-bg);
+}
+:root[data-orbit-shell="papier-sombre"] #films-screen .film-search-sort .field,
+:root[data-orbit-shell="papier-sombre"] #film-editor .field {
+  color: var(--fg);
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root[data-orbit-shell="papier-sombre"] #film-add {
+  color: var(--bg) !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+:root[data-orbit-shell="papier-sombre"] #film-editor::backdrop {
+  background: rgba(36,37,33,.42);
+}
+':root[data-orbit-shell="papier-sombre"] #film-editor {
+  color: var(--fg);
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 8px 24px rgba(35,32,26,.18);
+}
+:root[data-orbit-shell="papier-sombre"] .film-poster {
+  background: var(--surface-2);
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+:root[data-orbit-shell="papier-sombre"] .film-placeholder {
+  color: var(--fg);
+  background: var(--surface-2);
+}
+:root[data-orbit-shell="papier-sombre"] .film-tmdb-result {
+  color: var(--fg);
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root[data-orbit-shell="papier-sombre"] .film-tmdb-result:hover,
+:root[data-orbit-shell="papier-sombre"] .film-tmdb-result:focus-visible {
+  border-color: var(--accent);
+}
+@media (max-width: 700px) {
+  :root[data-orbit-shell="papier-sombre"] #section-cards { --section-card-width: 76vw; gap: 12px; }
+  :root[data-orbit-shell="papier-sombre"] #section-cards .section-card { min-height: 176px; }
+  :root[data-orbit-shell="papier-sombre"] #grid .shell-grid,
+  :root[data-orbit-shell="papier-sombre"] #resume { grid-template-columns: repeat(auto-fill,minmax(min(100%,180px),1fr)); gap: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-orbit-shell="papier-sombre"] *,
+  :root[data-orbit-shell="papier-sombre"] *::before,
+  :root[data-orbit-shell="papier-sombre"] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}
+

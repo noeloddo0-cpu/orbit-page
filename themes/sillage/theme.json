@@ -1,0 +1,60 @@
+{
+  "id": "sillage",
+  "name": "Sillage",
+  "description": "Un espace de collection sombre, éditorial et construit autour des jaquettes.",
+  "tokens": {
+    "--bg": "#151714",
+    "--surface": "#1d201c",
+    "--surface-2": "#282b25",
+    "--fg": "#eeece4",
+    "--muted": "#aaa99e",
+    "--accent": "#ce7656",
+    "--line": "rgba(238,236,228,.14)",
+    "--glass": "#1d201c",
+    "--radius-card": "8px",
+    "--radius-panel": "10px",
+    "--radius-control": "6px",
+    "--shadow-card": "0 2px 8px rgba(0,0,0,.22)",
+    "--shadow-panel": "0 14px 38px rgba(0,0,0,.42)",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "Barlow Semi Condensed, Segoe UI, sans-serif",
+    "--font-weight": "400",
+    "--title-size": "clamp(38px,5vw,64px)",
+    "--tile-scale": "1.012",
+    "--focus-ring": "0 0 0 2px #ce7656"
+  },
+  "animations": {
+    "introStyle": "cinema",
+    "introDurationMs": 1900,
+    "screenDurationMs": 260,
+    "themeChangeMs": 340,
+    "hoverDurationMs": 160,
+    "hoverScale": 1.012,
+    "focusScale": 1.008,
+    "easing": "cubic-bezier(.2,.72,.24,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": { "wave": "triangle", "startHz": 130, "endHz": 245, "durationMs": 360, "gain": 0.024 },
+    "click": { "wave": "sine", "startHz": 430, "endHz": 510, "durationMs": 42, "gain": 0.019 },
+    "open": { "wave": "triangle", "startHz": 170, "endHz": 255, "durationMs": 105, "gain": 0.025 },
+    "back": { "wave": "sine", "startHz": 275, "endHz": 190, "durationMs": 80, "gain": 0.019 }
+  },
+  "typography": {
+    "family": "Barlow Semi Condensed, Segoe UI, sans-serif",
+    "weight": 400,
+    "titleSize": "clamp(38px,5vw,64px)",
+    "bodySize": "15px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

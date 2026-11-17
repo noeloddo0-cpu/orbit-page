@@ -1,0 +1,8 @@
+:root[data-orbit-shell="auto"] #section-cards { display:flex;flex-direction:column;gap:8px;max-width:650px;margin-inline:auto; }
+:root[data-orbit-shell="auto"] #section-cards .section-card { min-height:64px;padding:14px 18px;border-radius:var(--radius-control);transform:none!important;box-shadow:none; }
+:root[data-orbit-shell="auto"] #grid .shell-list { display:flex;flex-direction:column;gap:6px; }
+:root[data-orbit-shell="auto"] #grid .shell-list .tile-wrap { width:100%; }
+:root[data-orbit-shell="auto"] #grid .shell-list .tile { height:76px;aspect-ratio:auto;display:flex;align-items:center;border-radius:var(--radius-control);box-shadow:none; }
+:root[data-orbit-shell="auto"] .shell-nav { display:none; }
+:root[data-orbit-shell="auto"] .theme-changing * { transition-duration:var(--theme-change-ms,320ms); }
+@media(prefers-reduced-motion:reduce) { :root[data-orbit-shell="auto"] * { scroll-behavior:auto!important; } }

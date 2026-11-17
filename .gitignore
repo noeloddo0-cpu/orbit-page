@@ -1,0 +1,46 @@
+# Dépendances, compilations et installateurs
+node_modules/
+dist/
+dist-*/
+release/
+out/
+electron-runtime/
+*.exe
+*.blockmap
+*.asar
+*.log
+*.tmp
+*.bak
+*.backup
+
+# Configuration et données privées de l'application
+.env
+.env.*
+!.env.example
+.npmrc
+config.json
+discord-env-path.txt
+tmdb-api-key.txt
+library.json
+games.json
+meta.json
+recap.json
+cinema.json
+settings.json
+ui-preferences.json
+covers/
+backups/
+data/
+*before-*.json
+*backup*.json
+*.csv
+*.zip
+*.pfx
+*.pem
+*.key
+
+# Fichiers locaux
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

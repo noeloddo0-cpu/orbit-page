@@ -1,0 +1,84 @@
+{
+  "name": "orbit",
+  "version": "1.0.31",
+  "description": "Carnet personnel de jeux, films et séries pour Windows.",
+  "private": true,
+  "type": "module",
+  "main": "desktop-main.js",
+  "scripts": {
+    "start": "node bridge.js",
+    "app": "electron .",
+    "dist:portable": "electron-builder --win portable --x64",
+    "dist:installer": "electron-builder --win nsis --x64 --publish never",
+    "test": "node --test scripts/smoke.test.mjs"
+  },
+  "dependencies": {
+    "discord.js": "^14",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "fr.noelo.orbit",
+    "productName": "Orbit",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "desktop-main.js",
+      "desktop-preload.cjs",
+      "setup.html",
+      "bridge.js",
+      "bibliotheque.html",
+      "launcher.css",
+      "launcher.js",
+      "og-image.png",
+      "confidentialite.html",
+      "mentions-legales.html",
+      "app-config.json",
+      "icon.svg",
+      "sw.js",
+      "package.json",
+      "node_modules/**",
+      "steam-local.mjs",
+      "orbit-updates.mjs",
+      "themes/**/*.{js,css,json,woff2}",
+      "themes/**/LICENSE*",
+      "themes/**/*OFL.txt",
+      "THIRD_PARTY.md"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Orbit-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Orbit",
+      "language": "1036",
+      "artifactName": "Orbit-Setup-${version}.${ext}"
+    }
+  },
+  "author": "noeloddo0-cpu",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noeloddo0-cpu/orbit-page.git"
+  },
+  "homepage": "https://github.com/noeloddo0-cpu/orbit-page",
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
