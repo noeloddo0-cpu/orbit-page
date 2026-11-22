@@ -99,12 +99,12 @@ class TileRefraction {
 }
 
 export function mountLiquidGlass(context) {
-  const root = context.root, reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const quality = () => document.documentElement.dataset.glassQuality || "balanced";
+  const root = context.root, motion = matchMedia("(prefers-reduced-motion: reduce)");
+  const quality = () => root.dataset.effectsQuality === "light" ? "light" : root.dataset.glassQuality || "balanced";
   const refractions = new Map();
-  const eligible = element => element?.matches?.(".section-card,.tile") && root.contains(element);
+  const eligible = element => element?.matches?.(".section-card[data-active='true'],.tile") && root.contains(element);
   const bind = element => {
-    if (!eligible(element) || element.hasAttribute("data-glass-bound") || quality() === "light" || reduceMotion) return;
+    if (!eligible(element) || element.hasAttribute("data-glass-bound") || quality() === "light" || motion.matches) return;
     element.dataset.glassBound = "true";
     const effect = new TileRefraction(element, quality()); refractions.set(element, effect);
   };
@@ -128,6 +128,9 @@ export function mountLiquidGlass(context) {
     root.querySelectorAll(".section-card:hover,.tile:hover,.section-card:focus-within,.tile:focus-within").forEach(bind);
   };
   root.addEventListener("orbit:glass-quality", qualityChanged);
+  const effectsObserver = new MutationObserver(qualityChanged);
+  effectsObserver.observe(root, { attributes: true, attributeFilter: ["data-effects-quality"] });
+  motion.addEventListener("change", qualityChanged);
   let start = 0, frames = 0, lowWindows = 0, active = true, raf = 0;
   const monitor = now => {
     if (!active || root.dataset.theme !== "liquid-glass") return;
@@ -149,6 +152,8 @@ export function mountLiquidGlass(context) {
   };
   window.addEventListener("keydown", fallbackKey);
   return () => {
+    effectsObserver.disconnect();
+    motion.removeEventListener("change", qualityChanged);
     active = false; cancelAnimationFrame(raf); cleanupRemoved.disconnect(); root.removeEventListener("orbit:glass-quality", qualityChanged); window.removeEventListener("keydown", fallbackKey);
     root.removeEventListener("pointerover", activate); root.removeEventListener("pointerout", deactivate); root.removeEventListener("focusin", activate); root.removeEventListener("focusout", deactivate);
     refractions.forEach(effect => effect.destroy()); refractions.clear();

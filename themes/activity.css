@@ -1,0 +1,15 @@
+#activity-tools { grid-column:1/-1; order:5; display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+#activity-tools button,.activity-mode { padding:7px 12px; background:var(--surface); color:var(--fg); border:1px solid var(--line); border-radius:6px; font:inherit; cursor:pointer; }
+#activity-dialog { box-sizing:border-box; width:min(560px,calc(100vw - 24px)); max-height:82dvh; overflow:auto; padding:20px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--fg); }
+#activity-dialog::backdrop { background:rgba(0,0,0,.58); }
+#activity-dialog header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+#activity-dialog h2,#activity-dialog h3 { margin:8px 0; }
+#activity-dialog h3 { font-size:15px; }
+#activity-dialog input { box-sizing:border-box; width:100%; margin:12px 0; }
+.activity-entry { display:block; width:100%; text-align:left; padding:10px 2px; background:transparent; color:inherit; border:0; border-bottom:1px solid var(--line); font:inherit; }
+button.activity-entry { cursor:pointer; }
+.activity-entry small { display:block; color:var(--muted); }
+#time-audit { color:var(--fg); padding:10px 0; border-block:1px solid var(--line); font-size:14px; }
+#time-audit p { margin:5px 0; }
+#op-coop { width:100%; padding:8px; background:var(--op-panel); color:var(--op-text); border:1px solid var(--op-line); }
+#op-coop-note { font-size:12px; color:var(--op-muted); }

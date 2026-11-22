@@ -1,94 +1,57 @@
-/* Liquid Glass. Every selector is limited to the dedicated root attribute. */
-:root[data-theme="liquid-glass"] {
-  --lg-edge: rgba(226, 239, 255, .24);
-  --lg-highlight: rgba(255, 255, 255, .2);
-  --lg-shadow: 0 18px 46px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .16);
-  --lg-blur: 13px;
-  --lg-saturation: 175%;
-  color-scheme: dark;
-}
-:root[data-theme="liquid-glass"] body {
-  background: radial-gradient(ellipse at 12% 18%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 38%),
-    radial-gradient(ellipse at 86% 76%, rgba(128, 105, 210, .11), transparent 34%), var(--bg);
-}
-:root[data-theme="liquid-glass"] body::before {
-  content: ""; position: fixed; z-index: 0; inset: -24%; pointer-events: none;
-  background: radial-gradient(ellipse at 25% 35%, rgba(103, 164, 255, .14), transparent 38%),
-    radial-gradient(ellipse at 72% 55%, rgba(173, 128, 255, .12), transparent 42%);
-  opacity: .8; animation: lg-drift 32s ease-in-out infinite alternate;
-}
-:root[data-theme="liquid-glass"] .section-card,
-:root[data-theme="liquid-glass"] .tile,
-:root[data-theme="liquid-glass"] .bar,
-:root[data-theme="liquid-glass"] #panel,
-:root[data-theme="liquid-glass"] #settings-drawer,
-:root[data-theme="liquid-glass"] .btn,
-:root[data-theme="liquid-glass"] .field,
-:root[data-theme="liquid-glass"] .settings-launcher,
-:root[data-theme="liquid-glass"] .tile-favorite,
-:root[data-theme="liquid-glass"] .theme-card {
-  border-color: var(--lg-edge);
-  box-shadow: var(--lg-shadow);
-  -webkit-backdrop-filter:var(--theme-backdrop,none);
-  backdrop-filter:var(--theme-backdrop,none);
-}
-:root[data-theme="liquid-glass"] .section-card,
-:root[data-theme="liquid-glass"] .tile,
-:root[data-theme="liquid-glass"] #panel,
-:root[data-theme="liquid-glass"] #settings-drawer,
-:root[data-theme="liquid-glass"] .theme-card {
-  background-image: linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.025) 54%, rgba(255,255,255,.065));
-}
-:root[data-theme="liquid-glass"] .section-card,
-:root[data-theme="liquid-glass"] .tile { position: relative; overflow: hidden; isolation: isolate; }
-:root[data-theme="liquid-glass"] .section-card::after,
-:root[data-theme="liquid-glass"] .tile::after {
-  content: ""; position: absolute; z-index: 1; inset: 0; pointer-events: none; border-radius: inherit;
-  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 20%), rgba(255,255,255,.24), transparent 72%),
-    linear-gradient(135deg, rgba(255,255,255,.16), transparent 32% 72%, rgba(188,220,255,.08));
-  opacity: .46;
-}
-:root[data-theme="liquid-glass"] .tile::after { z-index: 1; }
-:root[data-theme="liquid-glass"] .lg-refraction-layer {
-  position: absolute; z-index: 2; inset: 0; pointer-events: none; border-radius: inherit;
-  -webkit-backdrop-filter: var(--lg-filter, none) blur(var(--lg-blur)) saturate(var(--lg-saturation));
-  backdrop-filter: var(--lg-filter, none) blur(var(--lg-blur)) saturate(var(--lg-saturation));
-}
-:root[data-theme="liquid-glass"] .tile:hover,
-:root[data-theme="liquid-glass"] .tile:focus-visible,
-:root[data-theme="liquid-glass"] .section-card[data-active="true"]:hover,
-:root[data-theme="liquid-glass"] .section-card[data-active="true"]:focus-visible {
-  transform: translateY(-4px) scale(1.025);
-}
-:root[data-theme="liquid-glass"] .tile:active,
-:root[data-theme="liquid-glass"] .section-card[data-active="true"]:active,
-:root[data-theme="liquid-glass"] .btn:active { transform: scale(.975); }
-:root[data-theme="liquid-glass"] .section-card > *,
-:root[data-theme="liquid-glass"] .tile .in,
-:root[data-theme="liquid-glass"] .tile .dot { position: relative; z-index: 4; }
-:root[data-theme="liquid-glass"] .tile .cv { z-index: 0; }
-:root[data-theme="liquid-glass"] .bar,
-:root[data-theme="liquid-glass"] .field,
-:root[data-theme="liquid-glass"] .btn,
-:root[data-theme="liquid-glass"] .settings-launcher { background-color: rgba(35, 46, 63, .62); }
-:root[data-theme="liquid-glass"] #panel,
-:root[data-theme="liquid-glass"] #settings-drawer { background-color: rgba(15, 20, 29, .82); }
-:root[data-theme="liquid-glass"] .settings-launcher { border-radius: 50%; }
-:root[data-theme="liquid-glass"] .field:focus-visible,
-:root[data-theme="liquid-glass"] .btn:focus-visible,
-:root[data-theme="liquid-glass"] .tile:focus-visible,
-:root[data-theme="liquid-glass"] .section-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-:root[data-theme="liquid-glass"] .lg-filter-defs { position: fixed; width: 0; height: 0; overflow: hidden; pointer-events: none; }
-:root[data-theme="liquid-glass"] #glass-quality-line[hidden] { display: none; }
-@keyframes lg-drift { to { transform: translate3d(2%, -1.5%, 0) scale(1.04); } }
-@media(prefers-reduced-motion:reduce) {
-  :root[data-theme="liquid-glass"] body::before { animation: none; }
-  :root[data-theme="liquid-glass"] .tile,
-  :root[data-theme="liquid-glass"] .section-card,
-  :root[data-theme="liquid-glass"] .btn { transition-duration: 1ms !important; }
-  :root[data-theme="liquid-glass"] .tile:hover,
-  :root[data-theme="liquid-glass"] .section-card:hover { transform: none; }
-}
-@media(max-width:700px) {
-  :root[data-theme="liquid-glass"] { --lg-blur: 9px; --lg-saturation: 155%; }
+/* La réfraction reste sur la tranche. Le centre laisse lire les jaquettes. */
+:root[data-orbit-shell="liquid-glass"] {
+  --lg-line:rgba(185,232,222,.26);
+  --lg-pane:rgba(14,37,39,.82);
+  --lg-rim:inset 0 1px 0 rgba(231,255,250,.24),0 3px 7px rgba(0,12,16,.22);
+  --lg-refraction:blur(8px) saturate(150%);
+  color-scheme:dark;
+  & body, & #app, & #library-screen { background:var(--bg); color:var(--fg); }
+  & #home-screen { padding:clamp(22px,5vh,76px) clamp(20px,6vw,105px); overflow:auto;
+    background:linear-gradient(0deg,rgba(3,16,19,.92),transparent 56%),url("/themes/liquid-glass/prisme.webp") center 52%/cover,var(--bg); }
+  & #home-screen .orbit-home { margin:auto; width:min(100%,1480px); }
+  & #home-screen .orbit-top { margin:0 0 clamp(48px,11vh,130px); }
+  & #home-screen .orbit-brand { color:#ecfff8; font-weight:600; }
+  & #home-screen .orbit-title { max-width:12ch; font-size:clamp(52px,7vw,110px); font-weight:600; line-height:.96; letter-spacing:-.063em; text-shadow:none; }
+  & #home-screen .orbit-lead { margin-top:14px; font-size:clamp(15px,1.35vw,20px); color:#bfdcd4; }
+  & #home-screen #section-cards { --section-card-width:clamp(224px,25vw,355px); margin:clamp(20px,5vh,58px) 0 0; gap:16px; padding:8px 4px 14px; }
+  & #home-screen #section-cards .section-card { flex:0 0 var(--section-card-width); min-height:clamp(152px,20vh,210px); padding:17px; display:flex; justify-content:space-between; align-items:flex-start; border-radius:17px; border:1px solid var(--lg-line); color:var(--fg); background:var(--lg-pane); box-shadow:var(--lg-rim); backdrop-filter:var(--lg-refraction); }
+  & #home-screen #section-cards .section-card::before, & #section-cards .section-card::after { display:none; }
+  & #home-screen #section-cards .collection-art { position:absolute; inset:5px; border-radius:12px; }
+  & #section-cards .collection-art:has(img.ready)::after { content:""; position:absolute; inset:0; background:linear-gradient(0deg,rgba(5,19,23,.98),rgba(5,19,23,.12) 80%); }
+  & #section-cards .section-card[aria-disabled="true"] { background:rgba(12,31,33,.72); color:var(--muted); }
+  & #home-screen #section-cards .section-name { font-size:clamp(21px,2vw,32px); color:inherit; letter-spacing:-.035em; }
+  & #section-cards .section-icon { color:#e6fff9; background:rgba(6,26,29,.84); padding:5px; border-radius:8px; width:32px; height:32px; }
+  & #section-cards .section-icon svg { width:21px; height:21px; }
+  & #home-screen .orbit-footer, & #home-screen .orbit-footer a { color:#b2cac4; }
+  & .lg-filter-defs { position:fixed; width:0; height:0; overflow:hidden; pointer-events:none; }
+  & :is(#section-cards .section-card, .tile) > .lg-refraction-layer {
+    position:absolute; z-index:2; inset:0; padding:3px; pointer-events:none; border-radius:inherit;
+    mask:linear-gradient(white,white) content-box,linear-gradient(white,white); mask-composite:exclude;
+    backdrop-filter:var(--lg-filter,none) var(--lg-refraction);
+  }
+  & .tile .dot { position:absolute; }
+  & #app header h1, & #films-screen .film-brand h1, & #launcher-screen .op-page-title { font-weight:600; letter-spacing:-.05em; }
+  & #app #stats, & #films-screen .film-overview { border-radius:12px; border:1px solid var(--lg-line); background:#10292b; padding:12px; }
+  & #stats .stat, & #films-screen .film-metric { background:transparent; border:0; border-inline-end:1px solid var(--lg-line); box-shadow:none; }
+  & #stats .stat:last-child, & #films-screen .film-metric:last-child { border-inline-end:0; }
+  & #app .bar { background:#0b2023; border-block:1px solid var(--lg-line); }
+  & #grid .tile, & #resume .tile, & #launcher-screen .op-card-button, & #films-screen .film-poster { border:1px solid var(--lg-line); border-radius:12px; background:var(--surface); box-shadow:var(--lg-rim); }
+  & .tile .shade { background:linear-gradient(0deg,rgba(3,15,19,.94),transparent 72%); }
+  & .tile .ini, & #films-screen .film-placeholder { color:#8db7ae; background:#183033; }
+  & :is(#settings-drawer,#panel,#film-editor,#play-editor,#add-dialog) { color:var(--fg); background:#102426; border:1px solid var(--lg-line); border-radius:16px; box-shadow:var(--lg-rim); }
+  & :is(.btn,.field,.settings-launcher,.p-stat,.setting-line,.history-empty) { color:var(--fg); background:var(--surface); border-color:var(--lg-line); box-shadow:none; }
+  & .theme-card[aria-pressed="true"] { outline:2px solid var(--accent); outline-offset:-2px; }
+  & #intro-screen { background:#07191c url("/themes/liquid-glass/prisme.webp") center/cover; }
+  & #intro-screen .intro-name { color:#e6fff8; text-shadow:none; }
+  & #section-cards .section-card[data-active="true"]:is(:hover,:focus-visible) { border-color:var(--accent); transform:translateY(-3px); }
+  & #section-cards .section-card[data-active="true"]:active { transform:scale(.986); }
+  &[data-glass-quality="light"], &[data-effects-quality="light"] { --lg-refraction:none; --lg-pane:#13292c; }
+  @media(max-width:700px) {
+    & #home-screen { background-position:60% center; }
+    & #home-screen .orbit-top { margin-bottom:clamp(36px,9vh,85px); }
+    & #home-screen .orbit-title { font-size:clamp(44px,12vw,68px); }
+  }
+  @media(prefers-reduced-motion:reduce) {
+    & #section-cards .section-card[data-active="true"]:is(:hover,:active,:focus-visible) { transform:none; }
+  }
 }

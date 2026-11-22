@@ -1,0 +1,84 @@
+{
+  "id": "chambre-noire",
+  "name": "Chambre noire",
+  "description": "Noir carbone, papier crème et repères vermillon.",
+  "tokens": {
+    "--bg": "#151412",
+    "--surface": "#201e1a",
+    "--surface-2": "#302c27",
+    "--fg": "#f4eee2",
+    "--muted": "#beb6a8",
+    "--accent": "#ff704e",
+    "--line": "#49443c",
+    "--glass": "#201e1a",
+    "--radius-card": "4px",
+    "--radius-panel": "6px",
+    "--radius-control": "4px",
+    "--shadow-card": "none",
+    "--shadow-panel": "none",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "Chambre Barlow, Segoe UI, sans-serif",
+    "--font-weight": "400",
+    "--title-size": "clamp(36px,5vw,70px)",
+    "--tile-scale": "1.012",
+    "--focus-ring": "0 0 0 2px #ff704e"
+  },
+  "animations": {
+    "introStyle": "cinema",
+    "introDurationMs": 1750,
+    "screenDurationMs": 250,
+    "themeChangeMs": 340,
+    "hoverDurationMs": 150,
+    "hoverScale": 1.012,
+    "focusScale": 1,
+    "easing": "cubic-bezier(.22,.68,.16,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 164,
+      "endHz": 220,
+      "durationMs": 280,
+      "gain": 0.018
+    },
+    "click": {
+      "wave": "triangle",
+      "startHz": 340,
+      "endHz": 230,
+      "durationMs": 28,
+      "gain": 0.019
+    },
+    "open": {
+      "wave": "sine",
+      "startHz": 196,
+      "endHz": 294,
+      "durationMs": 86,
+      "gain": 0.024
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 247,
+      "endHz": 185,
+      "durationMs": 76,
+      "gain": 0.018
+    }
+  },
+  "typography": {
+    "family": "Chambre Barlow, Segoe UI, sans-serif",
+    "weight": 400,
+    "titleSize": "clamp(36px,5vw,70px)",
+    "bodySize": "16px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

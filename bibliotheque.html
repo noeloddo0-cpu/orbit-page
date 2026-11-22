@@ -7,7 +7,14 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon.svg">
-<link rel="stylesheet" href="/launcher.css?v=1.0.30">
+<link rel="stylesheet" href="/launcher.css?v=play-hub-1">
+<link rel="stylesheet" href="/themes/collection-editions.css">
+<link rel="stylesheet" href="/themes/continue.css">
+<link rel="stylesheet" href="/themes/activity.css">
+<link rel="stylesheet" href="/themes/series-guide.css">
+<link rel="stylesheet" href="/themes/film-detail.css">
+<link rel="stylesheet" href="/themes/film-home.css">
+<link rel="stylesheet" href="/themes/statistics.css">
 <title>Orbit | Ma bibliothèque</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="Orbit | Ma bibliothèque">
@@ -104,6 +111,7 @@ select.field { appearance: none; cursor: pointer; padding-right: 14px; }
 .chip[aria-pressed="true"] b { color: rgba(255,255,255,.8); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
 .d-0 { background: var(--s-encours); } .d-1 { background: var(--s-pause); } .d-2 { background: var(--s-afaire); } .d-3 { background: var(--s-termine); } .d-4 { background: var(--s-abandon); }
+.d-5 { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
 #grid, #resume { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; padding-top: 28px; }
 .tile { position: relative; aspect-ratio: 16 / 10; display: flex; align-items: flex-end; text-align: left; padding: 18px; cursor: pointer;
   background: linear-gradient(180deg, #1c1c1e 0%, #141416 100%); border: 1px solid var(--line); border-radius: var(--radius-tile); min-width: 0;
@@ -123,6 +131,8 @@ select.field { appearance: none; cursor: pointer; padding-right: 14px; }
 .empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 72px 0; font-size: 17px; }
 .empty .btn { margin-top: 10px; }
 #veil { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; pointer-events: none; transition: opacity 300ms; z-index: 20; }
+#op-game-layer { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; }
+#op-game-layer::backdrop { background: rgb(0 0 0 / 60%); }
 #veil.on { opacity: 1; pointer-events: auto; }
 #panel { position: fixed; inset: 0; margin: auto; height: fit-content; max-height: calc(100% - 24px); width: min(520px, calc(100% - 24px)); background: var(--glass);
   border: 1px solid rgba(255,255,255,.1); border-radius:20px; z-index: 21; overflow-y: auto; box-shadow: 0 40px 100px rgba(0,0,0,.7); visibility: hidden;
@@ -241,7 +251,17 @@ select.field { appearance: none; cursor: pointer; padding-right: 14px; }
 .p-hero-copy { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px; color: #fff; font-size: 13px; font-weight: 600; }
 .p-hero-copy span { padding: 6px 10px; border-radius:8px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.16); }
 .read-stat { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
-.p-tags { display: flex; gap: 7px; margin-top: 8px; }
+.p-tags { margin-top: 6px; color: var(--muted); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+#panel .more-area[hidden], #p-overview[hidden], #p-tags:empty, #p-read[hidden], #p-stats:empty { display: none; }
+#panel .p-hero img { inset: 0; width: 100%; height: 100%; opacity: .9; filter: none; object-position: center 38%; }
+#panel .p-hero:has(img[hidden]) { min-height: 0; background: none; border: 0; }
+#panel .p-hero:has(img[hidden]) .p-hero-shade { display: none; }
+#panel .p-hero:has(img[hidden]) .p-hero-copy { padding: 0; color: inherit; }
+#panel .p-hero:has(img[hidden]) .p-hero-copy span { background: none; border-color: currentColor; }
+#p-overview { margin: 0; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+#panel .game-activity-title { margin: 0; padding-top: 16px; border-top: 1px solid var(--line, currentColor); font-size: 18px; font-weight: 600; }
+#panel .p-stats { gap: 12px 20px; }
+#panel .p-stat { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
 .p-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .p-stat { min-width: 0; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08); }
 .p-stat b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
@@ -670,13 +690,18 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 <div id="settings-veil" hidden></div>
 <aside id="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" hidden><header class="settings-head"><div><div class="orbit-kicker">Personnalisation</div><h2 id="settings-title">Réglages</h2></div><button class="btn" id="settings-close" type="button" aria-label="Retour au menu précédent">← Retour</button></header><section class="settings-section"><div class="settings-section-title">Apparence</div><div class="theme-grid" id="theme-grid"></div><button class="btn theme-replay" id="replay-intro" type="button">↻ Rejouer l’intro</button></section><section class="settings-section"><label class="setting-line" for="sound-volume"><span><b>Volume du son</b><small>Petit son à l’ouverture de la bibliothèque</small></span><input id="sound-volume" type="range" min="0" max="100" value="7"></label><label class="setting-line" for="intro-toggle"><span><b>Intro Orbit</b><small>Afficher l’intro au lancement</small></span><input id="intro-toggle" type="checkbox" checked></label><label class="setting-line" for="accent-color"><span><b>Couleur d’accent</b><small>Personnalise la couleur principale</small></span><input id="accent-color" type="color" aria-label="Choisir la couleur d’accent"></label></section><section class="settings-section"><label class="setting-line" for="effects-quality"><span><b>Qualité des effets</b><small>Animations et flou</small></span><select id="effects-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label><label class="setting-line" id="glass-quality-line" for="glass-quality"><span><b>Qualité du verre</b><small>Réfraction des tuiles Liquid Glass</small></span><select id="glass-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label></section><section class="settings-section"><label class="setting-line" for="tile-size"><span><b>Taille des tuiles</b><small>Choisis leur taille dans la bibliothèque</small></span><select id="tile-size" class="field"><option value="small">Petite</option><option value="medium">Moyenne</option><option value="large">Grande</option></select></label></section><section class="settings-section"><div class="settings-section-title">Profils</div><div id="profile-settings-list" class="profile-settings-list"></div><p class="profile-hint">Les profils partagent la même bibliothèque et les mêmes heures.</p><div class="profile-add-row"><input id="profile-name-input" class="field" type="text" maxlength="60" placeholder="Nom du profil" aria-label="Nom du nouveau profil"><button id="profile-add" class="btn" type="button">Ajouter</button></div></section><section class="settings-section"><div class="settings-section-title">Informations</div><p class="profile-hint"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a></p></section><section class="settings-section"><div class="settings-section-title">Affiches de films</div><p class="profile-hint">Orbit cherche les affiches par titre dans TMDB. Ajoute une clé de lecture gratuite pour activer la recherche.</p><label class="setting-line" for="tmdb-key"><span><b>Clé API TMDB</b><small id="tmdb-key-status">Conservée uniquement sur cet appareil</small></span><input class="field" id="tmdb-key" type="password" autocomplete="off" placeholder="Clé de lecture TMDB" aria-label="Clé de lecture API TMDB"></label><div class="profile-add-row data-actions"><button class="btn" id="tmdb-key-save" type="button">Enregistrer la clé</button><button class="btn" id="tmdb-key-clear" type="button">Effacer</button><a class="btn" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Obtenir une clé</a></div></section><section class="settings-section"><div class="settings-section-title">Données et sauvegardes</div><p class="profile-hint">Une copie est créée au lancement et chaque jour sur cet ordinateur.</p><div class="profile-add-row data-actions"><button class="btn" id="data-export" type="button">Exporter</button><button class="btn" id="data-import" type="button">Importer</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-restore" type="button">Restaurer un backup</button><button class="btn" id="data-folder" type="button">Ouvrir le dossier</button></div><p class="profile-hint" id="data-message" role="status" aria-live="polite"></p></section><section id="orbit-update-settings" class="settings-section" hidden><div class="settings-section-title">Mises à jour</div><button type="button" class="btn" id="orbit-update-check">Vérifier les mises à jour</button><p class="profile-hint" role="status" id="orbit-update-status"></p></section><p class="settings-foot">Tes choix sont enregistrés sur cet ordinateur.</p></aside>
 <main id="home-screen" class="orbit-screen on" aria-label="Menu principal"><div class="orbit-home"><div class="orbit-top"><div class="orbit-brand"><img class="orbit-mark" data-app-logo src="/icon.svg" alt=""><span data-app-name>orbit</span></div><button class="btn" id="install-app" type="button" hidden>Installer</button></div><div class="orbit-kicker">Espace personnel</div><h1 class="orbit-title">Choisissez un espace</h1><p class="orbit-lead">Votre collection et vos prochaines découvertes.</p><div class="orbit-cards" id="section-cards"></div><div class="orbit-footer">D’autres sections arriveront ici.<br><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a></div></div></main>
-<main id="films-screen" aria-label="Films et séries"><div class="film-shell"><header class="film-top"><div class="film-brand"><h1>Films & séries</h1><span>Votre journal de visionnage</span></div><div class="film-actions"><button class="btn" id="films-back" type="button">← Menu</button><button class="btn" id="film-posters-auto" type="button">Affiches auto</button><button class="btn" id="film-add" type="button">＋ Ajouter</button></div></header><section class="film-overview" aria-label="Statistiques de visionnage"><div class="film-metric"><b id="film-count">0</b><span>Dans la collection</span></div><div class="film-metric"><b id="film-watchlist-count">0</b><span>À voir</span></div><div class="film-metric"><b id="film-watching-count">0</b><span>En cours</span></div><div class="film-metric"><b id="film-watched-count">0</b><span>Vus</span></div><div class="film-metric"><b id="film-average"> - </b><span>Note moyenne</span></div></section><div class="film-controls"><nav class="film-filters" id="film-filters" aria-label="Filtrer les films et séries"><button class="film-filter" type="button" data-film-filter="all" aria-pressed="true">Collection</button><button class="film-filter" type="button" data-film-filter="film" aria-pressed="false">Films</button><button class="film-filter" type="button" data-film-filter="series" aria-pressed="false">Séries</button><button class="film-filter" type="button" data-film-filter="watchlist" aria-pressed="false">Watchlist</button><button class="film-filter" type="button" data-film-filter="watching" aria-pressed="false">En cours</button><button class="film-filter" type="button" data-film-filter="watched" aria-pressed="false">Vus</button><button class="film-filter" type="button" data-film-filter="diary" aria-pressed="false">Journal</button></nav><div class="film-search-sort"><input class="field" id="film-search" type="search" placeholder="Rechercher un titre…" aria-label="Rechercher un film ou une série"><select class="field" id="film-sort" aria-label="Trier la collection"><option value="recent">Ajouts récents</option><option value="title">Titre</option><option value="year">Année</option><option value="rating">Note</option></select></div></div><div class="film-grid" id="film-grid" aria-live="polite"></div><p class="tmdb-credit">This product uses the TMDB API but is not endorsed or certified by TMDB. <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">The Movie Database</a></p></div></main>
-<dialog id="film-editor" aria-labelledby="film-editor-title"><form class="film-form" id="film-form"><div class="film-form-head"><h2 id="film-editor-title">Ajouter à la collection</h2><button class="btn" id="film-editor-close" type="button" aria-label="Fermer">Fermer</button></div><input id="film-id" type="hidden"><details class="film-manual-section" open><summary>Paramètres de la fiche · modifiables manuellement</summary><label for="film-title">Titre<input class="field" id="film-title" type="text" maxlength="200" required autocomplete="off"></label><div class="film-form-row"><label for="film-type">Type<select class="field" id="film-type"><option value="film">Film</option><option value="series">Série</option></select></label><label for="film-year">Année<input class="field" id="film-year" type="number" min="1870" max="2200" placeholder="Année de sortie"></label></div><label for="film-release-date">Date de sortie<input class="field" id="film-release-date" type="date"></label><label for="film-poster">Adresse de l’affiche<input class="field" id="film-poster" type="url" placeholder="https://…"></label></details><div class="film-tmdb-tools"><button class="btn" id="film-tmdb-search" type="button">Rechercher la fiche officielle</button><div class="film-tmdb-results" id="film-tmdb-results" aria-live="polite"></div><section class="film-tmdb-detail" id="film-tmdb-detail" hidden><b id="film-tmdb-original"></b><div id="film-tmdb-facts"></div><p id="film-tmdb-overview"></p></section></div><div class="film-form-row"><label for="film-status">État<select class="field" id="film-status"><option value="watchlist">À voir</option><option value="watching">En cours</option><option value="watched">Vu</option></select></label><label for="film-rating">Ta note<select class="field" id="film-rating"><option value="0">Pas de note</option><option value="0.5">0,5 / 5</option><option value="1">1 / 5</option><option value="1.5">1,5 / 5</option><option value="2">2 / 5</option><option value="2.5">2,5 / 5</option><option value="3">3 / 5</option><option value="3.5">3,5 / 5</option><option value="4">4 / 5</option><option value="4.5">4,5 / 5</option><option value="5">5 / 5</option></select></label></div><label for="film-watched-at">Date de visionnage<input class="field" id="film-watched-at" type="date"></label><div class="film-form-row film-progress" id="film-progress" hidden><label for="film-season">Saison suivie<input class="field" id="film-season" type="number" min="1" max="1000" placeholder="Ex. 4"></label><label for="film-episode">Dernier épisode (facultatif)<input class="field" id="film-episode" type="number" min="1" max="10000" placeholder="Ex. 9"></label></div><div class="film-form-actions"><button class="btn" id="film-delete" type="button" hidden>Supprimer</button><div class="right"><button class="btn" id="film-cancel" type="button">Annuler</button><button class="btn" id="film-save" type="submit">Enregistrer</button></div></div></form></dialog>
+<main id="films-screen" aria-label="Films et séries"><div class="film-shell"><header class="film-top"><div class="film-brand"><h1>Films & séries</h1><span>Votre journal de visionnage</span></div><div class="film-actions"><button class="btn" id="films-back" type="button">← Menu</button><button class="btn" id="film-posters-auto" type="button">Affiches auto</button><button class="btn" id="film-add" type="button">＋ Ajouter</button></div></header><div id="film-discord" hidden><p id="film-discord-title" role="status"></p><button class="btn" type="button" id="film-discord-action" hidden></button></div><section class="film-overview" hidden aria-label="Statistiques de visionnage"><div class="film-metric"><b id="film-count">0</b><span>Dans la collection</span></div><div class="film-metric"><b id="film-watchlist-count">0</b><span>À voir</span></div><div class="film-metric"><b id="film-watching-count">0</b><span>En cours</span></div><div class="film-metric"><b id="film-watched-count">0</b><span>Vus</span></div><div class="film-metric"><b id="film-average"> - </b><span>Note moyenne</span></div></section><div class="film-controls"><nav class="film-filters" id="film-filters" aria-label="Filtrer les films et séries"><button class="film-filter" type="button" data-film-filter="home" aria-pressed="true">Accueil</button><button class="film-filter" type="button" data-film-filter="all" aria-pressed="false">Collection</button><button class="film-filter" type="button" data-film-filter="film" aria-pressed="false">Films</button><button class="film-filter" type="button" data-film-filter="series" aria-pressed="false">Séries</button><button class="film-filter" type="button" data-film-filter="watchlist" aria-pressed="false">Watchlist</button><button class="film-filter" type="button" data-film-filter="watching" aria-pressed="false">En cours</button><button class="film-filter" type="button" data-film-filter="watched" aria-pressed="false">Vus</button><button class="film-filter" type="button" data-film-filter="diary" aria-pressed="false">Journal</button></nav><div class="film-search-sort" hidden><input class="field" id="film-search" type="search" placeholder="Rechercher un titre…" aria-label="Rechercher un film ou une série"><select class="field" id="film-sort" aria-label="Trier la collection"><option value="recent">Ajouts récents</option><option value="title">Titre</option><option value="year">Année</option><option value="rating">Note</option></select></div></div><div id="cinema-home">
+  <section aria-labelledby="fh-continue"><div class="fh-heading"><h2 id="fh-continue">Continuer</h2><button class="fh-action" data-all-watching type="button" hidden>Tout voir</button></div><div data-resume></div></section>
+  <section aria-labelledby="fh-picks"><div class="fh-heading"><h2 id="fh-picks">Au hasard dans ta watchlist</h2><button class="fh-action" data-shuffle type="button" hidden>Autre sélection</button><button class="fh-action" data-add type="button" hidden>Ajouter un titre</button></div><div data-picks></div><span data-feedback role="status"></span></section>
+</div><div class="film-grid" hidden id="film-grid" aria-live="polite"></div><p class="tmdb-credit">This product uses the TMDB API but is not endorsed or certified by TMDB. <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">The Movie Database</a></p></div></main>
+<dialog id="film-editor" aria-labelledby="film-editor-title"><form class="film-form" id="film-form"><div class="film-form-head"><h2 id="film-editor-title">Ajouter à la collection</h2><button class="btn" id="film-editor-close" type="button" aria-label="Fermer">Fermer</button></div><section id="film-series-guide" aria-label="Épisodes de la série" hidden></section><input id="film-id" type="hidden"><details class="film-manual-section" open><summary>Paramètres de la fiche · modifiables manuellement</summary><label for="film-title">Titre<input class="field" id="film-title" type="text" maxlength="200" required autocomplete="off"></label><div class="film-form-row"><label for="film-type">Type<select class="field" id="film-type"><option value="film">Film</option><option value="series">Série</option></select></label><label for="film-year">Année<input class="field" id="film-year" type="number" min="1870" max="2200" placeholder="Année de sortie"></label></div><label for="film-release-date">Date de sortie<input class="field" id="film-release-date" type="date"></label><label for="film-poster">Adresse de l’affiche<input class="field" id="film-poster" type="url" placeholder="https://…"></label></details><div class="film-tmdb-tools"><button class="btn" id="film-tmdb-search" type="button">Rechercher la fiche officielle</button><div class="film-tmdb-results" id="film-tmdb-results" aria-live="polite"></div><section class="film-tmdb-detail" id="film-tmdb-detail" hidden><b id="film-tmdb-original"></b><div id="film-tmdb-facts"></div><p id="film-tmdb-overview"></p></section></div><div class="film-form-row"><label for="film-status">État<select class="field" id="film-status"><option value="watchlist">À voir</option><option value="watching">En cours</option><option value="watched">Vu</option></select></label><label for="film-rating">Ta note<select class="field" id="film-rating"><option value="0">Pas de note</option><option value="0.5">0,5 / 5</option><option value="1">1 / 5</option><option value="1.5">1,5 / 5</option><option value="2">2 / 5</option><option value="2.5">2,5 / 5</option><option value="3">3 / 5</option><option value="3.5">3,5 / 5</option><option value="4">4 / 5</option><option value="4.5">4,5 / 5</option><option value="5">5 / 5</option></select></label></div><label for="film-watched-at">Date de visionnage<input class="field" id="film-watched-at" type="date"></label><div class="film-form-row film-progress" id="film-progress" hidden><label for="film-season">Saison suivie<input class="field" id="film-season" type="number" min="1" max="1000" placeholder="Ex. 4"></label><label for="film-episode">Dernier épisode (facultatif)<input class="field" id="film-episode" type="number" min="1" max="10000" placeholder="Ex. 9"></label></div><div class="film-form-actions"><button class="btn" id="film-delete" type="button" hidden>Supprimer</button><div class="right"><button class="btn" id="film-cancel" type="button">Annuler</button><button class="btn" id="film-save" type="submit">Enregistrer</button></div></div></form></dialog>
 <main id="launcher-screen" aria-label="Orbit Play" aria-hidden="true">
-  <header class="op-topbar"><div class="op-brand"><img data-app-logo src="/icon.svg" alt=""><span>Orbit Play</span></div><nav class="op-nav" aria-label="Navigation Orbit Play"><button type="button" data-op-tab="home" aria-current="page">Découvrir</button><button type="button" data-op-tab="library">Ma bibliothèque</button></nav><button class="op-return" id="op-return" type="button">← Retour</button></header>
-  <section class="op-main op-hidden" id="op-home-view"><p class="op-eyebrow">Ton espace de jeu</p><h1 class="op-page-title">Orbit Play</h1><p class="op-intro">Retrouve tes jeux, tes sessions et les prochaines parties au même endroit.</p><div id="op-hero"></div><div id="op-shelves"></div></section>
-  <section class="op-main" id="op-library-view"><div class="op-library-head"><h1 class="op-page-title">Bibliothèque</h1><button type="button" id="op-portrait-import" class="op-button">Jaquettes verticales</button><button type="button" id="op-steam-import" class="op-button">Importer Steam</button></div><nav class="op-collection-tabs" aria-label="Collection Orbit Play"><button type="button" data-op-collection="all" aria-pressed="true">Jeux</button><button type="button" data-op-collection="favorites" aria-pressed="false">Favoris</button><button type="button" data-op-collection="installed" aria-pressed="false">Installés</button><button type="button" data-op-collection="missing" aria-pressed="false">Sans jaquette</button><button type="button" data-op-collection="apps" aria-pressed="false">Applications</button><select id="op-custom" class="field" aria-label="Mes collections" hidden></select></nav><div class="op-library-layout"><div class="op-results"><label class="op-sort-label">Trier par <select id="op-sort" aria-label="Trier les jeux Orbit Play"><option value="name">Nom</option><option value="recent">Dernière partie</option><option value="time">Temps joué</option></select></label><div class="op-grid" id="op-grid"></div><p class="op-status" id="op-status" role="status" aria-live="polite"></p></div><aside class="op-filter-panel" aria-label="Filtres Orbit Play"><div class="op-filter-heading"><h2>Filtres</h2><button type="button" id="op-reset">Réinitialiser</button></div><input class="op-search" id="op-search" type="search" placeholder="Rechercher un titre" aria-label="Rechercher dans Orbit Play"><h3>Statut</h3><div class="op-filters" id="op-filters" aria-label="Filtrer les jeux"></div></aside></div></section>
+  <header class="op-topbar"><div class="op-brand"><img data-app-logo src="/icon.svg" alt=""><span>Orbit Play</span></div><nav class="op-nav" aria-label="Navigation Orbit Play"><button type="button" data-op-tab="home" aria-current="page">Accueil</button><button type="button" data-op-tab="library">Ma bibliothèque</button></nav><button class="op-return" id="op-return" type="button">← Retour</button></header>
+  <section class="op-main" id="op-home-view"><div class="op-hub-head"><h1 class="op-page-title" id="op-home-title">Reprendre</h1><nav class="op-hub-links" aria-label="Raccourcis du lanceur"><button type="button" id="op-find-game">Rechercher</button><button type="button" data-op-shortcut="installed">Installés</button><button type="button" data-op-shortcut="favorites">Favoris</button></nav></div><div id="op-hero"></div><div id="op-shelves"></div></section>
+  <section class="op-main op-hidden" id="op-library-view"><div class="op-library-head"><h1 class="op-page-title">Bibliothèque</h1><button type="button" id="op-portrait-import" class="op-button">Jaquettes verticales</button><button type="button" id="op-steam-import" class="op-button">Importer Steam</button></div><nav class="op-collection-tabs" aria-label="Collection Orbit Play"><button type="button" data-op-collection="all" aria-pressed="true">Jeux</button><button type="button" data-op-collection="favorites" aria-pressed="false">Favoris</button><button type="button" data-op-collection="installed" aria-pressed="false">Installés</button><button type="button" data-op-collection="missing" aria-pressed="false">Sans jaquette</button><button type="button" data-op-collection="apps" aria-pressed="false">Applications</button><select id="op-custom" class="field" aria-label="Mes collections" hidden></select></nav><div class="op-library-layout"><div class="op-results"><label class="op-sort-label">Trier par <select id="op-sort" aria-label="Trier les jeux Orbit Play"><option value="name">Nom</option><option value="recent">Dernière partie</option><option value="time">Temps joué</option></select></label><div class="op-grid" id="op-grid"></div><p class="op-status" id="op-status" role="status" aria-live="polite"></p></div><aside class="op-filter-panel" aria-label="Filtres Orbit Play"><div class="op-filter-heading"><h2>Filtres</h2><button type="button" id="op-reset">Réinitialiser</button></div><input class="op-search" id="op-search" type="search" placeholder="Rechercher un titre" aria-label="Rechercher dans Orbit Play"><h3>Statut</h3><div class="op-filters" id="op-filters" aria-label="Filtrer les jeux"></div></aside></div></section>
 </main>
+<div id="op-notice" role="status" aria-live="polite"></div>
+<dialog id="op-game-layer" aria-labelledby="p-name"></dialog>
 <div id="library-screen">
 <div class="bh" aria-hidden="true"></div>
 <div id="app">
@@ -738,7 +763,7 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 <section id="add-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="add-title">
   <div class="p-top"><div><h2 id="add-title">Ajouter des jeux</h2><div class="note">Écris un nom par ligne. Vérifie les résultats avant de les ajouter.</div></div><button class="x" id="add-close" type="button" aria-label="Fermer">×</button></div>
   <label class="lbl" for="add-names">Noms des jeux</label><textarea id="add-names" class="field add-names" rows="4" placeholder="Ex. Hades II&#10;Hollow Knight: Silksong"></textarea>
-  <div class="add-controls"><label for="add-status">Statut</label><select id="add-status" class="field"><option value="2">À faire</option><option value="0">En cours</option></select><button class="btn" id="add-search" type="button">Chercher</button></div>
+  <div class="add-controls"><label for="add-status">Statut</label><select id="add-status" class="field"><option value="2">À faire</option><option value="5">Neutre</option><option value="0">En cours</option></select><button class="btn" id="add-search" type="button">Chercher</button></div>
   <div id="add-results" class="add-results" aria-live="polite"></div>
   <div class="add-bottom"><span id="add-hint" class="note"></span><button class="go" id="add-confirm" type="button" disabled>Ajouter la sélection</button></div>
 </section>
@@ -746,11 +771,16 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
   <div class="p-top"><div><h2 id="p-name"></h2><div id="p-tags" class="p-tags"></div></div><div class="p-actions"><button class="x" id="p-edit-toggle" type="button" aria-label="Modifier" title="Modifier">⚙</button><button class="x" id="p-close" type="button" aria-label="Fermer">×</button></div></div>
   <div class="p-hero"><img id="p-bg" alt="" hidden><div class="p-hero-shade"></div><div class="p-hero-copy"><span id="p-status"></span><span id="p-completion"></span></div></div>
   <section id="p-read">
+    <div class="more-area">
+      <p id="p-overview" hidden></p>
+      <div id="p-more" class="p-more" hidden></div>
+      <button class="btn more-btn" id="p-more-btn" type="button" aria-controls="p-more" aria-expanded="false">En savoir plus</button>
+    </div>
+    <h3 class="game-activity-title">Mon activité</h3>
     <div class="read-stat"><div><div class="lbl">Temps de jeu</div><div class="time" id="p-time"></div></div><div id="p-live"></div></div>
     <div class="p-stats" id="p-stats"></div>
     <div class="row" id="p-sess"></div><button class="btn" id="p-personal" type="button">Ma fiche Orbit Play</button><p id="p-personal-summary" class="note" hidden></p>
     <div class="history-wrap"><div class="lbl">Historique des sessions</div><div id="p-history" class="history"></div></div>
-    <div class="more-area"><div id="p-more" class="p-more" hidden></div><button class="btn more-btn" id="p-more-btn" type="button">En savoir plus</button></div>
   </section>
   <section id="p-edit" hidden>
     <div class="lbl">Jaquette</div>
@@ -767,7 +797,7 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 
 <script>
 
-const ST = ["En cours", "En pause", "À faire", "Terminé", "Abandonné"];
+const ST = ["En cours", "En pause", "À faire", "Terminé", "Abandonné", "Neutre"];
 const statusIndex = game => game?.s !== null && game?.s !== undefined && game?.s !== "" && Number.isInteger(Number(game.s)) ? Number(game.s) : -1;
 const CO = ["À définir", "Pas 100 %", "100 % / Platine"];
 const KEY = "bibliotheque-jeux-v1";
@@ -793,7 +823,7 @@ function save() {
   storeLocal();
 }
 function storeLocal() {
-  try { localStorage.setItem(KEY, JSON.stringify({ games: S.games.map(({ n, s, c, m, t, firstPlayed }) => ({ n, s, c, m, t: t || 0, firstPlayed: firstPlayed || 0 })), session: S.session, sessions: S.sessions, favorites: S.favorites, profiles: S.profiles, activeProfileId: S.activeProfileId, recap:S.recap })); } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ games: S.games.map(({ n, s, c, m, t, firstPlayed, manualDelta }) => ({ n, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0 })), session: S.session, sessions: S.sessions, favorites: S.favorites, profiles: S.profiles, activeProfileId: S.activeProfileId, recap:S.recap })); } catch (e) {}
 }
 const $ = id => document.getElementById(id);
 const covers = new Map();
@@ -813,6 +843,32 @@ function coverSrc(name) {
   if (cover && cover.url) return cover.url;
   if (cover && cover.f) return "/covers/" + encodeURIComponent(cover.f) + "?v=" + (Number(cover.v) || 0);
   return "";
+}
+// Les deux vues utilisent les mêmes fichiers locaux, dans l’ordre adapté à leur format.
+function loadGameArt(image, name, portrait, onLoad, onMissing) {
+  const wide = coverSrc(name), tall = steamPortraitSrc(name);
+  const urls = [...new Set((portrait ? [tall, wide] : [wide]).filter(Boolean))];
+  const signature = JSON.stringify([portrait, ...urls]);
+  if (image.dataset.artSources === signature) return;
+  image.dataset.artSources = signature;
+  let next = 0;
+  image.onload = () => {
+    if (portrait ? image.naturalHeight <= image.naturalWidth : image.naturalWidth <= image.naturalHeight) { advance(); return; }
+    image.hidden = false;
+    image.style.removeProperty("visibility");
+    onLoad?.();
+  };
+  const advance = () => {
+    if (next < urls.length) { image.src = urls[next++]; return; }
+    image.onload = image.onerror = null;
+    image.removeAttribute("src");
+    image.hidden = true;
+    onMissing?.();
+  };
+  image.onerror = advance;
+  image.style.visibility = "hidden";
+  image.hidden = !urls.length;
+  advance();
 }
 function applyCoverIndex(index) {
   covers.clear();
@@ -897,7 +953,7 @@ function fmt(m) {
   if (!m) return "0 h";
   return h ? (r ? `${h} h ${String(r).padStart(2, "0")}` : `${h} h`) : `${r} min`;
 }
-function toast(t) { const e = $("toast"); e.textContent = t; e.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("on"), 2200); }
+function toast(t) { const e = $("launcher-screen")?.classList.contains("on") && !$("op-game-layer")?.open ? $("op-notice") : $("toast"); for(const other of [$("op-notice"),$("toast")])if(other!==e)other.classList.remove("on"); e.textContent = t; e.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("on"), 2200); }
 const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’']/g, "'");
 const sessGame = () => S.session ? S.games.find(g => g.id === S.session.id) : null;
 
@@ -953,9 +1009,20 @@ function makeTile(g, live, resume = false) {
   t.type = "button"; t.className = "tile" + (resume ? " resume-tile" : "") + (live && live.id === g.id ? " live" : ""); t.dataset.id = g.id;
   const d = document.createElement("span"); d.className = "dot d-" + g.s; d.textContent = ST[g.s];
   const n = document.createElement("span"); n.className = "nm"; n.textContent = g.n;
-  const cu = coverSrc(g.n);
-  if (cu) { const skeleton = document.createElement("span"); skeleton.className = "cover-skeleton"; skeleton.setAttribute("aria-hidden","true"); const im = document.createElement("img"); im.className = "cv"; im.src = cu; im.alt = ""; im.loading = "lazy"; im.decoding = "async"; im.draggable = false; const loaded=()=>{im.classList.add("is-loaded");skeleton.remove();};im.addEventListener("load",loaded,{once:true});im.addEventListener("error",()=>skeleton.remove(),{once:true});if(im.complete&&im.naturalWidth)loaded();const sh = document.createElement("span"); sh.className = "shade"; t.append(skeleton,im, sh); }
-  else { const ini = document.createElement("span"); ini.className = "ini"; ini.textContent = (g.n.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase(); t.append(ini); }
+  const initial = document.createElement("span");
+  initial.className = "ini";
+  initial.textContent = (g.n.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase();
+  t.append(initial);
+  if (coverSrc(g.n)) {
+    const image = new Image(), shade = document.createElement("span"), skeleton = document.createElement("span");
+    image.className = "cv"; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; image.draggable = false;
+    shade.className = "shade"; skeleton.className = "cover-skeleton"; skeleton.setAttribute("aria-hidden", "true");
+    initial.remove();
+    t.append(skeleton, image, shade);
+    loadGameArt(image, g.n, false,
+      () => { image.classList.add("is-loaded"); skeleton.remove(); },
+      () => { skeleton.remove(); shade.remove(); image.replaceWith(initial); });
+  }
   const w = document.createElement("span"); w.className = "in";
   const h = document.createElement("span"); h.className = "hr" + (g.m ? " on" : ""); h.textContent = g.m ? fmt(g.m) : "0 h";
   w.append(n, h); t.append(d, w); t.onclick = () => { setAmbientCover(t); openPanel(g.id); };
@@ -1079,11 +1146,12 @@ function renderMeta(g,m){
   const fields=[["Studio",m.developers],["Éditeur",m.publishers],["Sortie",m.releaseDate],["Genres",m.genres],["Plateformes",m.platforms]];
   fields.forEach(([label,value])=>{const vals=Array.isArray(value)?value.filter(Boolean):[value].filter(Boolean);if(!vals.length)return;const p=document.createElement("p");p.textContent=label+" : "+vals.join(", ");box.append(p);});
   if(m.sourceUrl){const a=document.createElement("a");a.href=m.sourceUrl;a.target="_blank";a.rel="noopener noreferrer";a.textContent="Source : "+(m.source||"ouvrir la source");box.append(a);}else{const small=document.createElement("span");small.textContent=m.source||"Aucune source disponible";box.append(small);}
-  const cover=m.cover; if(cover&&!covers.has(ckey(g.n))){covers.set(ckey(g.n),{url:cover});if(openId!==null){deferredGridRender=true;queueMicrotask(()=>{if(openId===g.id)renderPanel();});}else renderGrid();}
+  const cover=m.cover; if(!SRV&&cover&&!covers.has(ckey(g.n))){covers.set(ckey(g.n),{url:cover});if(openId!==null){deferredGridRender=true;queueMicrotask(()=>{if(openId===g.id)renderPanel();});}else renderGrid();}
   if(m.accent&&/^#[0-9a-f]{6}$/i.test(m.accent))$("panel").style.setProperty("--game-accent",m.accent);
   else if(cover)extractAccent(cover,g.n);
 }
 function extractAccent(src,name){const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=1;const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,1,1);const d=x.getImageData(0,0,1,1).data,hex="#"+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,"0")).join("");$("panel").style.setProperty("--game-accent",hex);if(SRV)fetch("/api/meta/accent",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,accent:hex})}).catch(()=>{});}catch(e){}};im.src=src;}
+let makeTimeAudit=null;
 function renderPanel() {
   const moreOpen=$("p-more") && !$("p-more").hidden;
   const g=S.games.find(x=>x.id===openId);if(!g)return;
@@ -1095,8 +1163,8 @@ function renderPanel() {
   $("p-edit").hidden=!panelEditing;$("p-read").hidden=panelEditing;$("p-edit-toggle").setAttribute("aria-label",panelEditing?"Terminer la modification":"Modifier");$("p-edit-toggle").title=panelEditing?"Terminer la modification":"Modifier";
   $("p-edit-toggle").textContent=panelEditing?"✓":"⚙";
   const cu=coverSrc(g.n),th=$("p-cv");th.textContent="";th.classList.toggle("has",!!cu);if(cu){const im=document.createElement("img");im.src=cu;im.alt="";th.append(im);}else th.append("Aucune");$("p-rm").hidden=!cu;
-  const bg=$("p-bg");bg.hidden=!cu;if(cu)bg.src=cu;else bg.removeAttribute("src");$("panel").style.setProperty("--game-accent","#34343a");
-  seg("p-st",ST,g.s,i=>{g.s=i;save();panelEditing=false;renderPanel();render();},true);seg("p-co",CO,g.c,i=>{g.c=i;save();panelEditing=false;renderPanel();render();},false);
+  loadGameArt($("p-bg"), g.n, false);$("panel").style.setProperty("--game-accent","#34343a");
+  seg("p-st",ST,g.s,i=>{g.s=i;storeLocal();if(SRV){clearTimeout(putT);putNow();}panelEditing=false;renderPanel();render();},true);seg("p-co",CO,g.c,i=>{g.c=i;save();panelEditing=false;renderPanel();render();},false);
   const sg=sessGame(),mine=sg&&sg.id===g.id,row=$("p-sess");row.textContent="";
   const sp=document.createElement("span");sp.textContent=mine?"Session en cours.":"Lance une session pour ajouter ce jeu à Reprendre.";row.append(sp);
   const play=document.createElement("button");play.type="button";play.className="btn";play.textContent=mine?"Arrêter":"Jouer";play.setAttribute("aria-label",mine?"Arrêter la session de "+g.n:"Démarrer une session pour "+g.n);play.onclick=()=>mine?stopSession(false):startSession(g.id);row.append(play);
@@ -1105,20 +1173,55 @@ function renderPanel() {
   else{launch=document.createElement("button");launch.type="button";launch.disabled=true;launch.title=!SRV||metaFailed.has(ckey(g.n))?"Aucun identifiant Steam trouvé pour ce jeu.":"Recherche de l’identifiant Steam…";}
   launch.className="btn steam-launch";launch.textContent="Lancer";launch.setAttribute("aria-label",steamId?"Lancer "+g.n+" avec Steam":"Lancement Steam indisponible pour "+g.n);row.append(launch);
   const sessions=(S.sessions||[]).filter(x=>ckey(x.game)===ckey(g.n)).sort((a,b)=>b.start-a.start),all=[...sessions];if(mine)all.unshift({game:g.n,start:S.session.start,durationMs:Date.now()-S.session.start,live:true});
-  const stats=$("p-stats");stats.textContent="";const total=all.reduce((a,x)=>a+sessionDuration(x),0),sessionDates=all.map(x=>Number(x.start)||0).filter(Boolean),lastPlayedAt=Math.max(Number(g.t)||0,...sessionDates),firstPlayedAt=Number(g.firstPlayed)|| (sessionDates.length?Math.min(...sessionDates):0),dateText=value=>value?new Date(value).toLocaleDateString("fr-FR"):"Aucune";statCard(stats,"Sessions",String(all.length),"p-session-count");statCard(stats,"Première partie",dateText(firstPlayedAt),"p-first-play");statCard(stats,"Dernière partie",dateText(lastPlayedAt),"p-last-play");statCard(stats,"Session la plus longue",fmt(Math.floor(all.reduce((a,x)=>Math.max(a,sessionDuration(x)),0)/60000)),"p-session-longest");statCard(stats,"Moyenne",fmt(all.length?Math.floor(total/all.length/60000):0),"p-session-average");
+  if(makeTimeAudit) {
+    document.getElementById("time-audit")?.remove();
+    $("p-stats").after(makeTimeAudit(g,sessions,detailsForName(g.n).psnMinutes,S.session));
+  }
+  const stats=$("p-stats");stats.textContent="";const total=all.reduce((a,x)=>a+sessionDuration(x),0),sessionDates=all.map(x=>Number(x.start)||0).filter(Boolean),lastPlayedAt=Math.max(Number(g.t)||0,...sessionDates),firstPlayedAt=Number(g.firstPlayed)|| (sessionDates.length?Math.min(...sessionDates):0),dateText=value=>value?new Date(value).toLocaleDateString("fr-FR"):"Aucune";statCard(stats,"Sessions",String(all.length),"p-session-count");if(firstPlayedAt)statCard(stats,"Première partie",dateText(firstPlayedAt),"p-first-play");if(lastPlayedAt)statCard(stats,"Dernière partie",dateText(lastPlayedAt),"p-last-play");if(all.length)statCard(stats,"Session la plus longue",fmt(Math.floor(all.reduce((a,x)=>Math.max(a,sessionDuration(x)),0)/60000)),"p-session-longest");if(all.length)statCard(stats,"Moyenne",fmt(all.length?Math.floor(total/all.length/60000):0),"p-session-average");
   const hist=$("p-history");hist.textContent="";if(!all.length){const empty=document.createElement("div");empty.className="history-empty";empty.textContent="Aucune session enregistrée";hist.append(empty);}else all.slice(0,5).forEach(x=>{const r=document.createElement("div"),when=document.createElement("span"),dur=document.createElement("b");r.className="history-row";when.textContent=new Date(x.start).toLocaleString("fr-FR");dur.textContent=x.live?"En cours · "+fmt(Math.floor(sessionDuration(x)/60000)):fmt(Math.floor(sessionDuration(x)/60000));r.append(when,dur);hist.append(r);});
-  const meta=metaCache.get(ckey(g.n)),failed=!SRV||metaFailed.has(ckey(g.n));$("p-more").hidden=!moreOpen;const moreBtn=$("p-more-btn");moreBtn.hidden=false;moreBtn.disabled=!meta;moreBtn.classList.toggle("loading",!meta&&!failed);moreBtn.textContent=meta?(moreOpen?"Masquer les infos":"En savoir plus"):failed?"Informations indisponibles":"Chargement des informations…";if(meta)renderMeta(g,meta);fetchMeta(g);
+  const meta=metaCache.get(ckey(g.n));
+  const year = String(meta?.releaseDate || "").match(/\b(?:19|20)\d{2}\b/)?.[0];
+  const studio = meta?.developers?.[0];
+  const genres = (meta?.genres || []).slice(0, 2).join(" / ");
+  $("p-tags").textContent = [year, studio, genres].filter(Boolean).join(" · ");
+  const description = (meta?.description || "").trim();
+  const overview = $("p-overview");
+  const excerpt = description.length > 220 ? description.slice(0, 219).replace(/\s+\S*$/, "").trimEnd() + "…" : description;
+  overview.textContent = excerpt;
+  overview.hidden = moreOpen || !excerpt || description === "Aucune information trouvée pour ce jeu.";
+  const failed=!SRV||metaFailed.has(ckey(g.n));$("p-more").hidden=!moreOpen;const moreBtn=$("p-more-btn");moreBtn.setAttribute("aria-expanded",String(moreOpen));moreBtn.hidden=meta ? meta.source==="Aucune source" && overview.hidden && !moreOpen : failed;moreBtn.closest(".more-area").hidden=moreBtn.hidden && overview.hidden;moreBtn.disabled=!meta;moreBtn.classList.toggle("loading",!meta&&!failed);moreBtn.textContent=meta?(moreOpen?"Masquer les infos":"En savoir plus"):failed?"Informations indisponibles":"Chargement des informations…";if(meta)renderMeta(g,meta);fetchMeta(g);
   if(document.activeElement!==$("p-h")&&document.activeElement!==$("p-m")){$("p-h").value=Math.floor(g.m/60);$("p-m").value=g.m%60;}tick();
 }
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const tileOf = id => document.querySelector(`.tile[data-id="${id}"]`);
+const launcherLayer = $("op-game-layer");
+let restoreLauncher = null;
+function openLauncherPanel(id, onReturn) {
+  if (openId !== null || launcherLayer.open) return;
+  const nodes = ["panel", "toast", "play-editor"].map(key => $(key));
+  const slots = nodes.map(node => {
+    const slot = document.createComment("orbit");
+    node.before(slot);
+    return slot;
+  });
+  launcherLayer.append(...nodes);
+  restoreLauncher = () => {
+    launcherLayer.close();
+    slots.forEach((slot, index) => slot.replaceWith(nodes[index]));
+    onReturn?.();
+  };
+  launcherLayer.showModal();
+  openPanel(id);
+}
+launcherLayer.addEventListener("cancel", event => { event.preventDefault(); closePanel(); });
+launcherLayer.addEventListener("click", event => { if (event.target === launcherLayer) closePanel(); });
+const tileOf = id => launcherLayer.open ? null : document.querySelector(`.tile[data-id="${id}"]`);
 function flip(t, p) {
   const a = t.getBoundingClientRect(), b = p.getBoundingClientRect();
   return `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
 }
 function persistRecap(){storeLocal();if(SRV)fetch("/api/recap",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(S.recap)}).catch(()=>{});}
 function recordOpened(game){const at=Date.now();S.recap={...S.recap,lastOpened:{name:game.n,at,scrollTop:document.getElementById("app").scrollTop||window.scrollY||0},gameStats:{...(S.recap.gameStats||{}),[ckey(game.n)]:{minutes:Math.max(0,Number(game.m)||0),lastOpened:at}}};persistRecap();}
-function recordResume(game){const at=Date.now(),item={name:game.n,at},recent=[item,...(S.recap.recent||[]).filter(x=>ckey(x.name)!==ckey(game.n))].slice(0,20);S.recap={...S.recap,lastOpened:{name:game.n,at,scrollTop:document.getElementById("app").scrollTop||window.scrollY||0},recent,gameStats:{...(S.recap.gameStats||{}),[ckey(game.n)]:{minutes:Math.max(0,Number(game.m)||0),lastOpened:at}}};persistRecap();}
+function recordResume(game,at=Date.now()){const item={name:game.n,at},recent=[item,...(S.recap.recent||[]).filter(x=>ckey(x.name)!==ckey(game.n))].slice(0,20);S.recap={...S.recap,lastOpened:{name:game.n,at,scrollTop:document.getElementById("app").scrollTop||window.scrollY||0},recent,gameStats:{...(S.recap.gameStats||{}),[ckey(game.n)]:{minutes:Math.max(0,Number(game.m)||0),lastOpened:at}}};persistRecap();}
 function removeResume(game){S.recap.recent=(S.recap.recent||[]).filter(x=>ckey(x.name)!==ckey(game.n));persistRecap();renderGrid();toast(`${game.n} retiré de « Reprendre »`);}
 let closeSeq = 0, panelEditing = false, closeTileAnim = null, closingId = null, deferredGridRender = false;
 const stopAnims = p => p.getAnimations({ subtree: true }).forEach(x => x.cancel());
@@ -1132,12 +1235,14 @@ function openPanel(id) {
   closingId = null; document.documentElement.classList.remove("panel-closing");
   if (closeTileAnim) { closeTileAnim.cancel(); closeTileAnim = null; }
   document.querySelectorAll(".tile").forEach(x => { x.style.visibility = ""; x.style.opacity = ""; });
+  $("p-more").hidden = true;
   openId = id;
   const openedGame=S.games.find(x=>x.id===id);if(openedGame)recordOpened(openedGame);
   renderPanel();
   const p = $("panel"), t = tileOf(id);
   resetPanelStyles(p);
-  $("veil").classList.add("on"); p.classList.add("on"); p.setAttribute("aria-hidden", "false");
+  if (!launcherLayer.open) $("veil").classList.add("on");
+  p.classList.add("on"); p.setAttribute("aria-hidden", "false");
   if (t && reduce) t.style.visibility = "hidden";
   if (t && !reduce) try {
     const from = flip(t, p);
@@ -1177,6 +1282,11 @@ function closePanel() {
       } else document.documentElement.classList.remove("panel-closing");
       t2.focus({ preventScroll: true });
     } else document.documentElement.classList.remove("panel-closing");
+    if (restoreLauncher) {
+      const restore = restoreLauncher;
+      restoreLauncher = null;
+      restore();
+    }
   };
   if (t && !reduce) {
     closingId = id; document.documentElement.classList.add("panel-closing");
@@ -1202,7 +1312,7 @@ function closePanel() {
   } else done();
 }
 $("p-edit-toggle").onclick=()=>{panelEditing=!panelEditing;renderPanel();};
-$("p-more-btn").onclick=()=>{if($("p-more-btn").disabled)return;const b=$("p-more");b.hidden=!b.hidden;$("p-more-btn").textContent=b.hidden?"En savoir plus":"Masquer les infos";};
+$("p-more-btn").onclick=()=>{if($("p-more-btn").disabled)return;const b=$("p-more");b.hidden=!b.hidden;renderPanel();};
 $("p-pick").onclick = () => $("p-file").click();
 $("p-file").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; const g = S.games.find(x => x.id === openId); if (!f || !g) return;
@@ -1240,7 +1350,7 @@ $("p-close").onclick = closePanel; $("veil").onclick = closePanel;
 $("p-set").onclick = () => {
   const g = S.games.find(x => x.id === openId); if (!g) return;
   const h = Math.max(0, parseInt($("p-h").value, 10) || 0), m = Math.max(0, parseInt($("p-m").value, 10) || 0);
-  g.m = h * 60 + m; save(); panelEditing=false; renderPanel(); renderSub(); renderGrid(); toast("Temps enregistré");
+  g.manualDelta=(g.manualDelta||0)+(h*60+m-g.m); g.m = h * 60 + m; save(); panelEditing=false; renderPanel(); renderSub(); renderGrid(); toast("Temps enregistré");
 };
 $("p-del").onclick = function () {
   if (!this.dataset.sure) { this.dataset.sure = "1"; this.textContent = "Confirmer la suppression"; setTimeout(() => { delete this.dataset.sure; this.textContent = "Supprimer ce jeu"; }, 3000); return; }
@@ -1251,18 +1361,24 @@ $("p-del").onclick = function () {
 
 /* Sessions */
 function startSession(id) {
+  if(SRV){
+    const game=S.games.find(g=>g.id===id);
+    if(game)fetch("/api/session/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:game.n})}).then(r=>{if(!r.ok)throw Error();toast("Session lancée");}).catch(()=>toast("Impossible de démarrer la session."));
+    return;
+  }
   if (S.session) stopSession(true);
   const g0 = S.games.find(x => x.id === id); if (g0) { g0.t = Date.now(); recordResume(g0); }
-  S.session = { id, start: Date.now() }; save(); if(SRV&&g0)fetch("/api/session/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:g0.n})}).catch(()=>{});renderPanel();if(openId!==null)deferredGridRender=true;else renderGrid();toast("Session lancée");
+  S.session = { id, start: Date.now() }; save(); renderPanel();if(openId!==null)deferredGridRender=true;else renderGrid();toast("Session lancée");
 }
 function stopSession(quiet) {
   const g = sessGame(); if (!g) { S.session = null; return; }
-  const min = Math.floor((Date.now() - S.session.start) / 60000);
-  if(SRV)fetch("/api/session/stop",{method:"POST"}).catch(()=>{});
+  const ended=Date.now(), start=S.session.start, min=Math.floor((ended-start)/60000);
+  if(SRV){fetch("/api/session/stop",{method:"POST"}).then(r=>{if(!r.ok)throw Error();}).catch(()=>toast("Impossible de sauvegarder la session."));return;}
+  S.sessions ||= []; S.sessions.push({id:crypto.randomUUID(),game:g.n,source:"manual",start,end:ended,minutes:min,durationMs:Math.max(0,ended-start)});
   S.session = null;
   if (min >= 1) g.m += min;
   g.t = Date.now();
-  save(); if (!quiet) { renderPanel();if(openId!==null)deferredGridRender=true;else renderGrid();renderSub();toast(min >= 1 ? `+${fmt(min)} ajoutées à ${g.n}` : "Session de moins d'une minute, ignorée"); }
+  save(); if (!quiet) { renderPanel();if(openId!==null)deferredGridRender=true;else renderGrid();renderSub();toast(min >= 1 ? `+${fmt(min)} ajoutées à ${g.n}` : "Session de moins d’une minute enregistrée"); }
   else { renderSub(); }
 }
 function tick() {
@@ -1287,7 +1403,7 @@ $("sort").onchange = e => { fq.o = e.target.value; try { localStorage.setItem(KE
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("add-dialog").hidden) { closeAddDialog(); return; }
-  if (e.key === "Escape" && openId !== null) { closePanel(); return; }
+  if (e.key === "Escape" && openId !== null) { e.preventDefault(); e.stopImmediatePropagation(); closePanel(); return; }
   if (openId !== null) return;
   const t = document.activeElement;
   if (!t || !t.classList || !t.classList.contains("tile")) return;
@@ -1352,7 +1468,7 @@ render();
 
 /* Mode pont Discord : actif seulement quand la page est servie par bridge.js */
 function putNow() {
-  return fetch("/api/state", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ games: S.games.map(({ n, s, c, m, t, firstPlayed }) => ({ n, s, c, m, t: t || 0, firstPlayed: firstPlayed || 0 })), sessions: S.sessions || [], favorites: S.favorites || [], profiles: S.profiles || [], activeProfileId: S.activeProfileId }) }).catch(() => {});
+  return fetch("/api/state", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ games: S.games.map(({ n, s, c, m, t, firstPlayed, manualDelta }) => ({ n, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0 })), sessions: S.sessions || [], favorites: S.favorites || [], profiles: S.profiles || [], activeProfileId: S.activeProfileId }) }).catch(() => {});
 }
 function pushSoon() { if (!SRV || applying) return; clearTimeout(putT); putT = setTimeout(putNow, 400); }
 function applyServer(st, first) {
@@ -1360,13 +1476,13 @@ function applyServer(st, first) {
   applying = true;
   try {
     const old = new Map(S.games.map(g => [ckey(g.n), g.id]));
-    S.games = st.games.map(g => ({ n: g.n, s: g.s, c: g.c, m: g.m, t: g.t || 0, firstPlayed: g.firstPlayed || 0, id: old.has(ckey(g.n)) ? old.get(ckey(g.n)) : nextId++ }));
+    S.games = st.games.map(g => ({ n: g.n, s: g.s, c: g.c, m: g.m, manualDelta:g.manualDelta||0, t: g.t || 0, firstPlayed: g.firstPlayed || 0, id: old.has(ckey(g.n)) ? old.get(ckey(g.n)) : nextId++ }));
     const previousSession=S.session?{id:S.session.id,start:S.session.start}:null;
     const sg = st.session ? S.games.find(g => ckey(g.n) === ckey(st.session.name)) : null;
-    S.session = sg ? { id: sg.id, start: st.session.start } : null;
-    if(sg&&(!previousSession||previousSession.id!==sg.id||previousSession.start!==st.session.start))recordResume(sg);
+    S.session = sg ? { id: sg.id, start: st.session.start, mins:st.session.mins, source:st.session.source } : null;
     S.sessions = Array.isArray(st.sessions) ? st.sessions : S.sessions;
     if (st.recap && typeof st.recap === "object") S.recap = st.recap;
+    if(sg&&(!previousSession||previousSession.id!==sg.id||previousSession.start!==st.session.start))recordResume(sg,st.session.start);
     if (Array.isArray(st.favorites) && (!first || st.favorites.length)) S.favorites = [...new Set(st.favorites.map(ckey).filter(Boolean))];
     if (Array.isArray(st.profiles) && st.profiles.length && (!first || st.profiles.length > 1 || st.profiles[0].id !== "main")) S.profiles = st.profiles;
     if (typeof st.activeProfileId === "string" && S.profiles.some(p => p.id === st.activeProfileId) && (!first || st.profiles?.length > 1 || st.activeProfileId !== "main")) S.activeProfileId = st.activeProfileId;
@@ -1395,6 +1511,14 @@ function applyServer(st, first) {
       if (!Array.isArray(st.games)) throw new Error('Bibliothèque invalide');
       applyServer(st, false); SRV = true; connected = true;
       const es = new EventSource('/api/events');
+      es.addEventListener("cinema-viewing",event=>{
+        window.orbitViewing=JSON.parse(event.data);
+        window.dispatchEvent(new Event("orbit:viewing"));
+      });
+      es.addEventListener("session-saved",event=>{
+        const s=JSON.parse(event.data),mins=Math.floor(s.durationMs/60000);
+        toast("Session enregistrée · "+s.game+" · "+(mins?fmt(mins):"moins d’une minute")+" · "+new Date(s.end).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}));
+      });
       es.onmessage = e => { try { applyServer(JSON.parse(e.data), false); } catch (error) { console.warn('Mise à jour Orbit impossible'); } };
       await migrateLegacyCovers();
     } catch (error) { setTimeout(connect, 2500); }
@@ -1475,7 +1599,9 @@ function applyServer(st, first) {
     returnToDefaultTheme:()=>changeTheme("apple-tv"),
     offerDefaultTheme:message=>{if(window.confirm(message))changeTheme("apple-tv");}
   }});
-  window.__orbitLauncherBridge={getData:()=>({games:S.games,favorites:S.favorites,recent:S.recap?.recent||[],session:S.session?{name:S.games.find(game=>game.id===S.session.id)?.n||""}:null}),detailsFor:detailsForName,played:id=>{const g=S.games.find(g=>g.id===id);if(g)recordResume(g);},coverFor:coverSrc,portraitFor:steamPortraitSrc,formatTime:fmt,openGame:id=>{const game=S.games.find(item=>String(item.id)===String(id));if(!game)return;playWhoosh();showScreen("library");setTimeout(()=>openPanel(game.id),matchMedia("(prefers-reduced-motion: reduce)").matches?30:480);},goHome:()=>{playThemeSound("back");showScreen("home");},goToLibrary:()=>showScreen("library")};window.dispatchEvent(new Event("orbit:launcher-ready"));
+  window.__orbitLauncherBridge={getData:()=>({games:S.games,favorites:S.favorites,recent:S.recap?.recent||[],session:S.session?{name:S.games.find(game=>game.id===S.session.id)?.n||"",start:S.session.start,source:S.session.source||"manual"}:null}),
+    favorite:id=>shellContext().actions.toggleFavorite(id),notify:toast,startTracking:id=>{if(!S.session)startSession(id);},stopTracking:()=>{if(S.session&&S.session.source!=="discord")stopSession(false);},
+    detailsFor:detailsForName,played:id=>{const g=S.games.find(g=>g.id===id);if(g)recordResume(g);},coverFor:coverSrc,portraitFor:steamPortraitSrc,loadGameArt,formatTime:fmt,openGame:(id,onReturn)=>{const game=S.games.find(item=>String(item.id)===String(id));if(!game)return;playWhoosh();openLauncherPanel(game.id,onReturn);},goHome:()=>{playThemeSound("back");showScreen("home");},goToLibrary:()=>showScreen("library")};window.dispatchEvent(new Event("orbit:launcher-ready"));
   async function activateShell(id,initial=false){
     if(!shellRegistry)return;
     const screen=launcherScreen.classList.contains("on")?launcherScreen:filmsScreen.classList.contains("on")?filmsScreen:library.classList.contains("on")?library:home,app=document.getElementById("app"),appTop=app.scrollTop,gridTop=$("grid").scrollTop,gridLeft=$("grid").scrollLeft,shelfPositions=[...document.querySelectorAll(".shell-shelf-track")].map(x=>x.scrollLeft),query=$("q").value,reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1497,14 +1623,39 @@ function applyServer(st, first) {
     shellSwitchTask=shellSwitchTask.then(async()=>{try{await activateShell(id,false);}catch(error){console.error("Activation du thème impossible",error);shellMounted?.dispose?.();shellMounted=null;if(id!=="apple-tv"){themeBoot.theme="apple-tv";document.documentElement.dataset.orbitShell="apple-tv";document.documentElement.dataset.theme="default";const css=document.getElementById("orbit-shell-style");if(css)css.textContent=(window.__ORBIT_SHELL_CSS||{})["apple-tv"]||"";try{shellMounted=shellRegistry.mountShell("apple-tv",shellContext(true));}catch{}saveUiPrefs();renderThemeCards();toast("Le thème a rencontré un problème. Le thème actuel a été rétabli.");}else throw error;}});return shellSwitchTask;
   }
   try{shellRegistry=await import("/themes/index.js");await activateShell(themeBoot.theme,true);}catch(e){console.warn("Shell Orbit indisponible",e);if(themeBoot.theme!=="apple-tv"){themeBoot.theme="apple-tv";themeBoot.apply(false);document.documentElement.dataset.orbitShell="apple-tv";document.documentElement.dataset.theme="default";const css=document.getElementById("orbit-shell-style");if(css)css.textContent=(window.__ORBIT_SHELL_CSS||{})["apple-tv"]||"";try{shellMounted=shellRegistry?.mountShell("apple-tv",shellContext(true));}catch{}saveUiPrefs();}}
-  let filmItems=[],filmFilter="all";
+  let filmItems=[],filmFilter="home",cinemaStatistics=null;
+  let updateFilmHome;
+  function selectFilmTab(tab){
+    filmFilter=tab;renderFilms();
+  }
+  const filmHome=$("cinema-home");
+  import("/themes/film-home.js").then(({createFilmHome})=>{
+    updateFilmHome=createFilmHome(filmHome,{card:createFilmCard,selectTab:tab=>{
+      $("film-search").value="";selectFilmTab(tab);
+      document.querySelector('[data-film-filter="'+tab+'"]').focus({preventScroll:true});
+    },add:()=>openFilmEditor()});
+    if(filmFilter==="home")updateFilmHome(filmItems);
+  }).catch(()=>{if(filmFilter==="home")selectFilmTab("all");document.querySelector('[data-film-filter="home"]').hidden=true;});
   const filmGrid=document.getElementById("film-grid"),filmDialog=document.getElementById("film-editor"),filmForm=document.getElementById("film-form"),filmStorageKey="orbit-cinema-v1";
   const filmPosterButton=document.getElementById("film-posters-auto");
   const filmFields={id:document.getElementById("film-id"),title:document.getElementById("film-title"),type:document.getElementById("film-type"),year:document.getElementById("film-year"),releaseDate:document.getElementById("film-release-date"),poster:document.getElementById("film-poster"),status:document.getElementById("film-status"),rating:document.getElementById("film-rating"),watchedAt:document.getElementById("film-watched-at"),season:document.getElementById("film-season"),episode:document.getElementById("film-episode")};
   const filmToday=()=>new Date().toISOString().slice(0,10),filmDate=value=>value?new Date(`${value}T00:00:00`).toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"}):"";
-  function createFilmCard(item,diaryDate=""){const card=document.createElement("button");card.type="button";card.className="film-card";card.setAttribute("aria-label",`${item.title}${item.year?`, ${item.year}`:""}, ${diaryDate?`vu le ${filmDate(diaryDate)}`:item.status==="watched"?"vu":item.status==="watching"?"en cours":"à voir"}`);const poster=document.createElement("span");poster.className="film-poster";const fallback=document.createElement("span");fallback.className="film-placeholder";const initials=document.createElement("span");initials.textContent=item.title.split(/\s+/).filter(Boolean).slice(0,2).map(word=>word[0]).join("").toLocaleUpperCase("fr");fallback.append(initials);poster.append(fallback);if(item.poster){const img=document.createElement("img");img.loading="lazy";img.referrerPolicy="no-referrer";img.alt=`Affiche de ${item.title}`;img.onload=()=>poster.classList.add("has-image");img.onerror=()=>img.remove();img.src=item.poster;poster.append(img);}const meta=document.createElement("span");meta.className="film-poster-meta";const type=document.createElement("span");type.className="film-poster-type";type.textContent=item.type==="series"?"Série":"Film";const status=document.createElement("span");const watchingSeries=item.type==="series"&&item.status==="watching";status.textContent=diaryDate?"Visionné":watchingSeries?(item.season?(item.episode?`S${item.season} · E${item.episode}`:`S${item.season} vue`):"En cours"):item.rating>0?`${Number(item.rating).toLocaleString("fr-FR")} / 5`:item.status==="watched"?"Vu":item.status==="watching"?"En cours":"À voir";meta.append(type,status);poster.append(meta);const title=document.createElement("span");title.className="film-card-title";title.textContent=item.title;const year=document.createElement("span");year.className="film-card-year";year.textContent=diaryDate?`Vu le ${filmDate(diaryDate)}`:item.year||(item.watchedAt?filmDate(item.watchedAt):"");card.append(poster,title,year);card.addEventListener("click",()=>editFilm(item.id));return card;}
+  let filmDetail;
+  const filmDetailReady=import("/themes/film-detail.js").then(m=>{
+    filmDetail=m.createFilmDetail({lookup:id=>filmItems.find(x=>x.id===id),search:fetchPosterMatches,edit:openFilmEditor});
+    return filmDetail;
+  }).catch(()=>null);
+  async function viewFilm(item,trigger,date) {
+    const view=await filmDetailReady;
+    if(view)view.open(item,trigger,date);else if(item)openFilmEditor(item);
+  }
+  filmDialog.addEventListener("keydown",e=>{if(e.key==="Escape")e.stopPropagation();});
+  filmDialog.addEventListener("close",()=>filmDetail?.refresh());
+  function createFilmCard(item,diaryDate=""){const card=document.createElement("button");card.type="button";card.className="film-card";card.setAttribute("aria-label",`${item.title}${item.year?`, ${item.year}`:""}, ${diaryDate?`vu le ${filmDate(diaryDate)}`:item.status==="watched"?"vu":item.status==="watching"?"en cours":"à voir"}`);const poster=document.createElement("span");poster.className="film-poster";const fallback=document.createElement("span");fallback.className="film-placeholder";const initials=document.createElement("span");initials.textContent=item.title.split(/\s+/).filter(Boolean).slice(0,2).map(word=>word[0]).join("").toLocaleUpperCase("fr");fallback.append(initials);poster.append(fallback);if(item.poster){const img=document.createElement("img");img.loading="lazy";img.referrerPolicy="no-referrer";img.alt=`Affiche de ${item.title}`;img.onload=()=>poster.classList.add("has-image");img.onerror=()=>img.remove();img.src=item.poster;poster.append(img);}const meta=document.createElement("span");meta.className="film-poster-meta";const type=document.createElement("span");type.className="film-poster-type";type.textContent=item.type==="series"?"Série":"Film";const status=document.createElement("span");const watchingSeries=item.type==="series"&&item.status==="watching";status.textContent=diaryDate?"Visionné":watchingSeries?(item.season?(item.episode?`S${item.season} · E${item.episode}`:`S${item.season} vue`):"En cours"):item.rating>0?`${Number(item.rating).toLocaleString("fr-FR")} / 5`:item.status==="watched"?"Vu":item.status==="watching"?"En cours":"À voir";meta.append(type,status);poster.append(meta);const title=document.createElement("span");title.className="film-card-title";title.textContent=item.title;const year=document.createElement("span");year.className="film-card-year";year.textContent=diaryDate?`Vu le ${filmDate(diaryDate)}`:item.year||(item.watchedAt?filmDate(item.watchedAt):"");card.append(poster,title,year);card.dataset.filmId=item.id;card.addEventListener("click",()=>viewFilm(filmItems.find(x=>x.id===item.id)||item,card,diaryDate));return card;}
   function renderFilmDiary(query){const entries=[];for(const item of filmItems){if(query&&!item.title.toLocaleLowerCase("fr").includes(query))continue;const dates=Array.isArray(item.watchedDates)?[...new Set(item.watchedDates.filter(date=>/^\d{4}-\d{2}-\d{2}$/.test(date)))]:[];if(!dates.length&&/^\d{4}-\d{2}-\d{2}$/.test(item.watchedAt||""))dates.push(item.watchedAt);for(const date of dates)entries.push({date,item});}entries.sort((a,b)=>b.date.localeCompare(a.date)||a.item.title.localeCompare(b.item.title,"fr"));const days=new Map();for(const entry of entries){if(!days.has(entry.date))days.set(entry.date,[]);days.get(entry.date).push(entry.item);}if(!days.size){const empty=document.createElement("div");empty.className="film-empty";empty.innerHTML="<b>Aucun visionnage daté</b><span>Les dates de ton export Letterboxd apparaîtront ici.</span>";filmGrid.append(empty);return;}for(const [date,items] of days){const section=document.createElement("section");section.className="film-journal-day";const head=document.createElement("header");head.className="film-journal-heading";const title=document.createElement("h2");title.textContent=new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});const count=document.createElement("span");count.textContent=`${items.length} ${items.length===1?"visionnage":"visionnages"}`;head.append(title,count);const grid=document.createElement("div");grid.className="film-journal-grid";for(const item of items)grid.append(createFilmCard(item,date));section.append(head,grid);filmGrid.append(section);}}
   function renderFilms(){
+    filmDetail?.refresh();
+    window.dispatchEvent(new Event("orbit:cinema-changed"));
     const query=document.getElementById("film-search").value.trim().toLocaleLowerCase("fr"),sort=document.getElementById("film-sort").value;
     let visible=filmItems.filter(item=>(filmFilter==="all"?item.status!=="watchlist":filmFilter==="film"||filmFilter==="series"?item.type===filmFilter&&item.status!=="watchlist":item.status===filmFilter)&&(!query||item.title.toLocaleLowerCase("fr").includes(query)));
     visible.sort(sort==="title"?(a,b)=>a.title.localeCompare(b.title,"fr"):sort==="year"?(a,b)=>(b.year||0)-(a.year||0):sort==="rating"?(a,b)=>(b.rating||0)-(a.rating||0): (a,b)=>(b.addedAt||0)-(a.addedAt||0));
@@ -1514,40 +1665,73 @@ function applyServer(st, first) {
     const rated=filmItems.filter(item=>item.rating>0),average=rated.length?rated.reduce((sum,item)=>sum+item.rating,0)/rated.length:0;
     document.getElementById("film-average").textContent=rated.length?`${average.toLocaleString("fr-FR",{maximumFractionDigits:1})} / 5`:" - ";
     document.querySelectorAll("[data-film-filter]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.filmFilter===filmFilter)));
+    const onHome=filmFilter==="home";
+    filmHome.hidden=!onHome;
+    filmGrid.hidden=onHome;
+    filmsScreen.querySelector(".film-search-sort").hidden=onHome;
+    filmsScreen.querySelector(".film-overview").hidden=onHome;
+    if(onHome){updateFilmHome?.(filmItems);return;}
     filmGrid.replaceChildren();
     if(filmFilter==="diary"){renderFilmDiary(query);return;}
     if(!visible.length){const empty=document.createElement("div");empty.className="film-empty";const title=document.createElement("b"),message=document.createElement("span");title.textContent=filmItems.length?"Aucun résultat":"Ta collection commence ici";message.textContent=filmItems.length?"Essaie un autre filtre ou un autre titre.":"Ajoute un film ou une série pour créer ta liste à voir.";empty.append(title,message);filmGrid.append(empty);return;}
     for(const item of visible)filmGrid.append(createFilmCard(item));
   }
+  let filmRead=0;
   async function loadFilms(){
-    try{const response=await fetch("/api/cinema",{cache:"no-store"});if(!response.ok)throw new Error("service unavailable");const data=await response.json();filmItems=Array.isArray(data.items)?data.items:[];if(!filmItems.length){try{const local=JSON.parse(localStorage.getItem(filmStorageKey)||"[]");if(Array.isArray(local)&&local.length){filmItems=local;await persistFilms(false);}}catch(e){}}}
-    catch(e){try{const local=JSON.parse(localStorage.getItem(filmStorageKey)||"[]");filmItems=Array.isArray(local)?local:[];}catch(e){filmItems=[];}}
+    const revision=++filmRead;
+    try{const response=await fetch("/api/cinema",{cache:"no-store"});if(!response.ok)throw new Error("service unavailable");const data=await response.json();if(revision!==filmRead)return;cinemaStatistics=data.statistics||null;filmItems=Array.isArray(data.items)?data.items:[];if(!filmItems.length){try{const local=JSON.parse(localStorage.getItem(filmStorageKey)||"[]");if(Array.isArray(local)&&local.length){filmItems=local;await persistFilms(false);}}catch(e){}}}
+    catch(e){if(revision!==filmRead)return;try{const local=JSON.parse(localStorage.getItem(filmStorageKey)||"[]");filmItems=Array.isArray(local)?local:[];}catch(e){filmItems=[];}}
     renderFilms();
   }
   async function persistFilms(notify=true){
+    ++filmRead;
     try{localStorage.setItem(filmStorageKey,JSON.stringify(filmItems));}catch(e){}
-    try{const response=await fetch("/api/cinema",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({items:filmItems})});if(!response.ok)throw new Error("save failed");if(notify)toast("Collection enregistrée");}
+    try{const response=await fetch("/api/cinema",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({items:filmItems})});if(!response.ok)throw new Error("save failed");await loadFilms();if(notify)toast("Collection enregistrée");}
     catch(e){if(notify)toast("Enregistré sur cet appareil ; synchronisation en attente");}
   }
   let selectedTmdbData=null;
-  function renderTmdbDetails(item){const box=document.getElementById("film-tmdb-detail"),original=document.getElementById("film-tmdb-original"),facts=document.getElementById("film-tmdb-facts"),overview=document.getElementById("film-tmdb-overview");const has=!!(item?.tmdbId||item?.overview||item?.genres?.length||item?.runtime);box.hidden=!has;original.textContent=item?.originalTitle&&item.originalTitle!==item.title?`Titre original : ${item.originalTitle}`:"Fiche TMDB associée";const parts=[item?.releaseDate?`Sortie : ${new Date(`${item.releaseDate}T00:00:00`).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}`:item?.year?`Sortie : ${item.year}`:"",item?.genres?.length?`Genres : ${item.genres.join(" · ")}`:"",item?.runtime?`Durée : ${item.runtime} min`:""];facts.textContent=parts.filter(Boolean).join(" · ");overview.textContent=item?.overview||"Résumé indisponible.";}
+  const episodePanel=document.getElementById("film-series-guide");
+  const episodeModule=import("/themes/series-guide.js").then(m=>m.createSeriesGuidePanel(episodePanel)).catch(()=>null);
+  let episodeRequest=0;
+  function showEpisodeGuide(item) {
+    const request=++episodeRequest;
+    episodePanel.hidden=true;
+    episodeModule.then(show=>{if(show && request===episodeRequest) show(item);});
+  }
+  function episodeFormChanged(){
+    const old=filmItems.find(item=>item.id===filmFields.id.value);
+    const title=filmFields.title.value.trim();
+    showEpisodeGuide({type:filmFields.type.value,title,year:filmFields.year.value,
+      tmdbId: old?.title===title && old?.type===filmFields.type.value ? old.tmdbId : null});
+  }
+  for(const field of [filmFields.type,filmFields.title,filmFields.year]) field.addEventListener("change",episodeFormChanged);
+  filmDialog.addEventListener("close",()=>showEpisodeGuide(null));
+  function renderTmdbDetails(item){showEpisodeGuide(item);const box=document.getElementById("film-tmdb-detail"),original=document.getElementById("film-tmdb-original"),facts=document.getElementById("film-tmdb-facts"),overview=document.getElementById("film-tmdb-overview");const has=!!(item?.tmdbId||item?.overview||item?.genres?.length||item?.runtime);box.hidden=!has;original.textContent=item?.originalTitle&&item.originalTitle!==item.title?`Titre original : ${item.originalTitle}`:"Fiche TMDB associée";const parts=[item?.releaseDate?`Sortie : ${new Date(`${item.releaseDate}T00:00:00`).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}`:item?.year?`Sortie : ${item.year}`:"",item?.genres?.length?`Genres : ${item.genres.join(" · ")}`:"",item?.runtime?`Durée : ${item.runtime} min`:""];facts.textContent=parts.filter(Boolean).join(" · ");overview.textContent=item?.overview||"Résumé indisponible.";}
   async function searchFilmTmdb(){const button=document.getElementById("film-tmdb-search"),resultsBox=document.getElementById("film-tmdb-results"),title=filmFields.title.value.trim(),type=filmFields.type.value;if(!title){toast("Écris d’abord le titre du film ou de la série.");filmFields.title.focus();return;}button.disabled=true;resultsBox.textContent="Recherche…";try{const results=await fetchPosterMatches({title,type,year:null});resultsBox.replaceChildren();if(!results.length){resultsBox.textContent="Aucune fiche trouvée.";return;}for(const match of results){const pick=document.createElement("button");pick.type="button";pick.className="film-tmdb-result";const year=match.date?.slice(0,4)||"Année inconnue";pick.textContent=`${match.title} · ${year}${match.originalTitle&&match.originalTitle!==match.title?` · ${match.originalTitle}`:""}`;pick.addEventListener("click",()=>applyTmdbMatch(match,type),{once:true});resultsBox.append(pick);}}catch(error){resultsBox.textContent=error.message||"Recherche indisponible.";}finally{button.disabled=false;}}
   async function applyTmdbMatch(match,type){const resultsBox=document.getElementById("film-tmdb-results");resultsBox.textContent="Chargement de la fiche…";try{const response=await fetch("/api/cinema/details",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:match.id,type})}),data=await response.json();if(!response.ok)throw new Error(data.error||"Fiche indisponible");const id=filmFields.id.value,existing=filmItems.find(value=>value.id===id);const updated={...(existing||{}),tmdbId:data.id,title:data.title||filmFields.title.value.trim(),type,year:data.date?.slice(0,4)?Number(data.date.slice(0,4)):(existing?.year||null),releaseDate:/^\d{4}-\d{2}-\d{2}$/.test(data.date||"")?data.date:(existing?.releaseDate||null),poster:data.posterPath?`https://image.tmdb.org/t/p/w500${data.posterPath}`:(existing?.poster||filmFields.poster.value.trim()),overview:data.overview||"",originalTitle:data.originalTitle||"",genres:Array.isArray(data.genres)?data.genres:[],runtime:data.runtime||null};selectedTmdbData={tmdbId:updated.tmdbId,overview:updated.overview,originalTitle:updated.originalTitle,genres:updated.genres,runtime:updated.runtime,releaseDate:updated.releaseDate};filmFields.title.value=updated.title;filmFields.year.value=updated.year||"";filmFields.releaseDate.value=updated.releaseDate||"";filmFields.poster.value=updated.poster||"";if(existing){filmItems=filmItems.map(item=>item.id===id?updated:item);await persistFilms(false);renderFilms();}renderTmdbDetails(updated);resultsBox.replaceChildren();toast("Fiche officielle associée. Tes notes et ta progression sont conservées.");}catch(error){resultsBox.textContent=error.message||"Impossible de charger cette fiche.";}}
   document.getElementById("film-tmdb-search").addEventListener("click",searchFilmTmdb);
+  let editProgressVersion=0;
   function openFilmEditor(item=null){
+    editProgressVersion=Number(item?.progressUpdatedAt)||0;
+    let note=document.getElementById("continue-progress-note");
+    if (!note) {
+      note=document.createElement("p"); note.id="continue-progress-note";
+      filmForm.querySelector(".film-form-head").after(note);
+    }
+    note.hidden=item?.type!=="series" || item?.status!=="watching";
+    note.textContent=note.hidden?"":describeProgress(item);
     filmForm.reset();selectedTmdbData=item?{tmdbId:item.tmdbId||null,overview:item.overview||"",originalTitle:item.originalTitle||"",genres:item.genres||[],runtime:item.runtime||null}:null;document.getElementById("film-tmdb-results").replaceChildren();renderTmdbDetails(item);filmFields.id.value=item?.id||"";filmFields.title.value=item?.title||"";filmFields.type.value=item?.type||"film";filmFields.year.value=item?.year||"";filmFields.releaseDate.value=item?.releaseDate||"";filmFields.poster.value=item?.poster||"";filmFields.status.value=item?.status||"watchlist";filmFields.rating.value=String(item?.rating||0);filmFields.watchedAt.value=item?.watchedAt||"";const showProgress=item?.type==="series"&&item?.status==="watching";filmFields.season.value=showProgress?(item?.season||""):"";filmFields.episode.value=showProgress?(item?.episode||""):"";
     document.getElementById("film-editor-title").textContent=item?"Modifier la fiche":"Ajouter à la collection";document.getElementById("film-delete").hidden=!item;document.getElementById("film-save").textContent=item?"Enregistrer":"Ajouter";filmFields.watchedAt.disabled=filmFields.status.value!=="watched";if(filmFields.status.value==="watched"&&!filmFields.watchedAt.value)filmFields.watchedAt.value=filmToday();syncFilmProgress();filmDialog.showModal();filmFields.title.focus();
   }
-  function editFilm(id){const item=filmItems.find(value=>value.id===id);if(item)openFilmEditor(item);}
   document.getElementById("film-add").addEventListener("click",()=>openFilmEditor());
   document.getElementById("films-back").addEventListener("click",()=>{playThemeSound("back");showScreen("home");});
   document.getElementById("film-editor-close").addEventListener("click",()=>filmDialog.close());document.getElementById("film-cancel").addEventListener("click",()=>filmDialog.close());
   filmDialog.addEventListener("click",event=>{if(event.target===filmDialog)filmDialog.close();});
   function syncFilmProgress(){const show=filmFields.type.value==="series"&&filmFields.status.value==="watching",box=document.getElementById("film-progress");box.hidden=!show;box.style.display=show?"grid":"none";filmFields.season.disabled=!show;filmFields.episode.disabled=!show;if(!show){filmFields.season.value="";filmFields.episode.value="";}}document.getElementById("film-status").addEventListener("change",()=>{filmFields.watchedAt.disabled=filmFields.status.value!=="watched";if(filmFields.status.value==="watched"&&!filmFields.watchedAt.value)filmFields.watchedAt.value=filmToday();syncFilmProgress();});document.getElementById("film-type").addEventListener("change",syncFilmProgress);filmFields.releaseDate.addEventListener("change",()=>{if(/^\d{4}-\d{2}-\d{2}$/.test(filmFields.releaseDate.value))filmFields.year.value=filmFields.releaseDate.value.slice(0,4);});filmFields.year.addEventListener("change",()=>{if(filmFields.releaseDate.value&&filmFields.releaseDate.value.slice(0,4)!==filmFields.year.value)filmFields.releaseDate.value="";});
-  filmForm.addEventListener("submit",async event=>{event.preventDefault();const title=filmFields.title.value.trim();if(!title)return;const existing=filmItems.find(item=>item.id===filmFields.id.value),status=filmFields.status.value,record={...(existing||{}),...(selectedTmdbData||{}),id:existing?.id||window.crypto?.randomUUID?.()||`film-${Date.now()}`,title,type:filmFields.type.value,year:filmFields.releaseDate.value?Number(filmFields.releaseDate.value.slice(0,4)):(filmFields.year.value?Number(filmFields.year.value):null),releaseDate:filmFields.releaseDate.value||null,poster:filmFields.poster.value.trim(),status,rating:Number(filmFields.rating.value)||0,watchedAt:status==="watched"?(filmFields.watchedAt.value||filmToday()):null,season:status==="watching"&&filmFields.type.value==="series"&&filmFields.season.value?Number(filmFields.season.value):null,episode:status==="watching"&&filmFields.type.value==="series"&&filmFields.episode.value?Number(filmFields.episode.value):null,addedAt:existing?.addedAt||Date.now()};if(existing)filmItems=filmItems.map(item=>item.id===existing.id?record:item);else filmItems.unshift(record);await persistFilms();filmDialog.close();renderFilms();});
+  filmForm.addEventListener("submit",async event=>{event.preventDefault();const title=filmFields.title.value.trim();if(!title)return;const existing=filmItems.find(item=>item.id===filmFields.id.value),status=filmFields.status.value,record={...(existing||{}),progressUpdatedAt:editProgressVersion,...(selectedTmdbData||{}),id:existing?.id||window.crypto?.randomUUID?.()||`film-${Date.now()}`,title,type:filmFields.type.value,year:filmFields.releaseDate.value?Number(filmFields.releaseDate.value.slice(0,4)):(filmFields.year.value?Number(filmFields.year.value):null),releaseDate:filmFields.releaseDate.value||null,poster:filmFields.poster.value.trim(),status,rating:Number(filmFields.rating.value)||0,watchedAt:status==="watched"?(filmFields.watchedAt.value||filmToday()):null,season:status==="watching"&&filmFields.type.value==="series"&&filmFields.season.value?Number(filmFields.season.value):null,episode:status==="watching"&&filmFields.type.value==="series"&&filmFields.episode.value?Number(filmFields.episode.value):null,addedAt:existing?.addedAt||Date.now()};if(existing)filmItems=filmItems.map(item=>item.id===existing.id?record:item);else filmItems.unshift(record);await persistFilms();filmDialog.close();renderFilms();});
   document.getElementById("film-delete").addEventListener("click",async()=>{const id=filmFields.id.value;if(!id||!window.confirm("Supprimer cette fiche de ta collection ?"))return;filmItems=filmItems.filter(item=>item.id!==id);await persistFilms();filmDialog.close();renderFilms();});
   document.getElementById("film-search").addEventListener("input",renderFilms);document.getElementById("film-sort").addEventListener("change",renderFilms);
-  document.getElementById("film-filters").addEventListener("click",event=>{const button=event.target.closest("[data-film-filter]");if(!button)return;filmFilter=button.dataset.filmFilter;renderFilms();});
+  document.getElementById("film-filters").addEventListener("click",event=>{const button=event.target.closest("[data-film-filter]");if(!button)return;selectFilmTab(button.dataset.filmFilter);});
   const tmdbKeyInput=document.getElementById("tmdb-key"),tmdbKeyStatus=document.getElementById("tmdb-key-status");
   async function updateTmdbKeyStatus(){try{const response=await fetch("/api/cinema/tmdb-key",{cache:"no-store"}),data=await response.json();tmdbKeyStatus.textContent=data.configured?"Clé enregistrée sur cet appareil":"Aucune clé enregistrée";return !!data.configured;}catch(e){tmdbKeyStatus.textContent="Pont indisponible";return false;}}
   updateTmdbKeyStatus();
@@ -1575,13 +1759,78 @@ function applyServer(st, first) {
     }finally{filmPosterButton.disabled=false;filmPosterButton.removeAttribute("aria-busy");filmPosterButton.textContent="Affiches auto";}
   }
   filmPosterButton.addEventListener("click",fillMissingFilmPosters);
+  import("/themes/activity.js").then(({mountActivity,timeAudit})=>{
+    makeTimeAudit=timeAudit;if(openId!==null)renderPanel();
+    function dismissViews(){
+      if(filmDialog.open) filmDialog.close();
+      if(filmDetail?.dialog.open)filmDetail.dialog.close();
+      if(settingsOpen)closeSettings();
+      if(openId!==null)closePanel();
+    }
+    mountActivity({stats:async()=>{
+        try {
+          const {openStatistics}=await import("/themes/statistics.js");
+          openStatistics({items:()=>filmItems,history:()=>cinemaStatistics,gameData:()=>({
+            games:S.games,sessions:S.sessions||[],details:detailsForName,isGame:isGameName,normalize:ckey,statusNames:ST
+          })});
+        } catch { toast("Impossible d’ouvrir les statistiques."); }
+      },games:()=>S.games, sessions:()=>S.sessions||[],items:()=>filmItems,isGame:isGameName,
+      game:id=>{dismissViews();window.__orbitLauncherBridge.openGame(id);},
+      media:item=>{dismissViews();if(!filmsScreen.classList.contains("on"))showScreen("films");viewFilm(item);}});
+  });
+  function showDiscordViewing(){
+    const view=window.orbitViewing?.view, bar=$("film-discord"), btn=$("film-discord-action");
+    bar.hidden=!view;
+    if(!view)return;
+    const episode=view.season && view.episode ? " · S"+view.season+" E"+view.episode : "";
+    $("film-discord-title").textContent="Sur Discord · "+view.title+episode+(view.done?" · Vu":"");
+    btn.hidden=view.done || view.ambiguous || (view.id && view.type==="series" && !view.episode);
+    btn.textContent=view.id?(view.type==="series"?"Marquer cet épisode comme vu":"Marquer comme vu"):"Ajouter à ma collection";
+    btn.onclick=async()=>{
+      if(!view.id){
+        openFilmEditor();
+        filmFields.title.value=view.title;
+        filmFields.type.value=view.type;
+        filmFields.year.value=view.year||"";
+        filmFields.status.value="watching";
+        syncFilmProgress();
+        return;
+      }
+      try {
+        const r=await fetch("/api/cinema/viewing/confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:view.key})});
+        if(!r.ok)throw Error();
+      } catch {toast("Lecture modifiée ou indisponible.");}
+    };
+  }
+  window.addEventListener("orbit:viewing",()=>{showDiscordViewing();if(window.orbitViewing?.refresh)loadFilms();});
+  showDiscordViewing();
+  let describeProgress = () => "";
   loadFilms();
+  import("/themes/continue.js").then(({mountContinue}) => {
+    describeProgress = mountContinue({
+      state: () => ({games:S.games, sessions:S.sessions, active:S.session}),
+      series: () => filmItems, key:ckey, isGame:isGameName, details:detailsForName,
+      cover: coverSrc,
+      openGame: id => window.__orbitLauncherBridge.openGame(id),
+      openSeries: item => { showScreen("films"); viewFilm(filmItems.find(x=>x.id===item.id) || item); },
+      replaceSeries: updated => {
+        filmItems=filmItems.map(item=>item.id===updated.id?updated:item);
+        try { localStorage.setItem(filmStorageKey,JSON.stringify(filmItems)); } catch {}
+        renderFilms();
+      },
+      notify:toast
+    });
+  }).catch(error=>console.warn("Rangée Continuer indisponible",error));
   function showScreen(target){
     if(switching)return;switching=true;
     const screens=[home,library,filmsScreen,launcherScreen],incoming=target==="library"?library:target==="films"?filmsScreen:target==="launcher"?launcherScreen:home,outgoing=screens.find(screen=>screen.classList.contains("on"))||home,veil=document.getElementById("route-veil"),toLibrary=target==="library";
     const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches,screenMs=+themeBoot.current().animations.screenDurationMs||340;
+    if(target==="films" && outgoing!==filmsScreen){
+      selectFilmTab(document.querySelector('[data-film-filter="home"]').hidden?"all":"home");
+      filmsScreen.scrollTop=0;
+    }
     veil.classList.add("on");
-    setTimeout(()=>{outgoing.classList.remove("on");if(outgoing===launcherScreen)launcherScreen.setAttribute("aria-hidden","true");incoming.classList.add("on","entering");if(incoming===launcherScreen){launcherScreen.setAttribute("aria-hidden","false");window.dispatchEvent(new Event("orbit:launcher-show"));}if(toLibrary){const last=S.recap.lastOpened;document.getElementById("app").scrollTop=Math.max(0,Number(last?.scrollTop)||0);}requestAnimationFrame(()=>veil.classList.remove("on"));setTimeout(()=>{incoming.classList.remove("entering");switching=false;window.__ORBIT_ACTIVE_SHELL?.shell?.onScreenChange?.(target);if(target==="home"){const active=grid.querySelector('[data-active="true"]');if(active)active.focus({preventScroll:true});}else if(target==="films")document.getElementById("film-add").focus({preventScroll:true});else if(target==="launcher")document.querySelector("[data-op-tab=home]")?.focus({preventScroll:true});},reduced?0:screenMs);},reduced?0:Math.round(screenMs*.42));
+    setTimeout(()=>{outgoing.classList.remove("on");if(outgoing===launcherScreen)launcherScreen.setAttribute("aria-hidden","true");incoming.classList.add("on","entering");if(incoming===launcherScreen){launcherScreen.setAttribute("aria-hidden","false");window.dispatchEvent(new Event("orbit:launcher-show"));}if(toLibrary){const last=S.recap.lastOpened;document.getElementById("app").scrollTop=Math.max(0,Number(last?.scrollTop)||0);}requestAnimationFrame(()=>veil.classList.remove("on"));setTimeout(()=>{incoming.classList.remove("entering");switching=false;window.__ORBIT_ACTIVE_SHELL?.shell?.onScreenChange?.(target);if(target==="home"){const active=grid.querySelector('[data-active="true"]');if(active)active.focus({preventScroll:true});}else if(target==="films"&&!filmDialog.open&&!filmDetail?.dialog.open)document.querySelector("#film-filters [aria-pressed=true]")?.focus({preventScroll:true});else if(target==="launcher")document.querySelector("[data-op-tab=home]")?.focus({preventScroll:true});},reduced?0:screenMs);},reduced?0:Math.round(screenMs*.42));
   }
   sections.forEach(section=>{const card=document.createElement("button");card.type="button";card.className="section-card";card.dataset.sectionId=section.id;card.dataset.active=String(section.active);card.setAttribute("aria-disabled",String(!section.active));card.innerHTML='<span class="section-icon">'+(icons[section.icon]||"")+'</span><span><span class="section-name"></span><span class="section-state"></span></span>';card.querySelector(".section-name").textContent=section.title;card.querySelector(".section-state").textContent=section.active?"Ouvrir":"À venir";card.dataset.destination=section.destination;
     if(section.id==="settings")card.addEventListener("click",openSettings);else if(section.active&&section.destination==="library")card.addEventListener("click",()=>{playWhoosh();showScreen("library");});else if(section.active&&section.destination==="films")card.addEventListener("click",()=>{playWhoosh();showScreen("films");});else if(section.active&&section.destination==="launcher")card.addEventListener("click",()=>{playWhoosh();showScreen("launcher");});
@@ -1594,7 +1843,7 @@ function applyServer(st, first) {
   document.getElementById("home-back").addEventListener("click",()=>{if(openId!==null)closePanel();playThemeSound("back");showScreen("home");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(library.classList.contains("on")||filmsScreen.classList.contains("on")||launcherScreen.classList.contains("on"))&&openId===null){playThemeSound("back");showScreen("home");}});
   function focusDirectional(direction){
-    const scope=settingsOpen?settingsDrawer:openId!==null?$("panel"):launcherScreen.classList.contains("on")?launcherScreen:filmsScreen.classList.contains("on")?filmsScreen:library.classList.contains("on")?library:home;
+    const scope=$("orbit-stats")?.open?$("orbit-stats"):filmDialog.open?filmDialog:filmDetail?.dialog.open?filmDetail.dialog:settingsOpen?settingsDrawer:openId!==null?$("panel"):launcherScreen.classList.contains("on")?launcherScreen:filmsScreen.classList.contains("on")?filmsScreen:library.classList.contains("on")?library:home;
     const candidates=[...scope.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex="0"]')].filter(x=>x.getClientRects().length&&x.getAttribute("aria-hidden")!=="true");
     const current=document.activeElement,from=current?.getBoundingClientRect?.();
     if(!from||!candidates.includes(current)){candidates[0]?.focus({preventScroll:false});return;}
@@ -1603,7 +1852,7 @@ function applyServer(st, first) {
     if(next){next.focus({preventScroll:true});if(scope===home)centerMenuCard(next);else next.scrollIntoView({block:"nearest",inline:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});}
   }
   document.addEventListener("keydown",event=>{if((!library.classList.contains("on")&&!filmsScreen.classList.contains("on")&&!launcherScreen.classList.contains("on"))||!/^Arrow(Left|Right|Up|Down)$/.test(event.key)||event.target.matches("input,textarea,select,[contenteditable=true]"))return;event.preventDefault();focusDirectional(event.key.slice(5).toLowerCase());});
-  let gamepadLatch=new Set();const gamepadTimer=setInterval(()=>{if(!navigator.getGamepads)return;const pads=[...navigator.getGamepads()].filter(Boolean),pressed=new Set();for(const pad of pads){const held=(button)=>!!pad.buttons?.[button]?.pressed,axes=pad.axes||[];if(held(12)||axes[1]<-.65)pressed.add("up");if(held(13)||axes[1]>.65)pressed.add("down");if(held(14)||axes[0]<-.65)pressed.add("left");if(held(15)||axes[0]>.65)pressed.add("right");if(held(0))pressed.add("accept");if(held(1))pressed.add("back");}for(const key of pressed)if(!gamepadLatch.has(key)){if(key==="accept")document.activeElement?.click?.();else if(key==="back"){if(settingsOpen)closeSettings();else if(openId!==null)closePanel();else if(library.classList.contains("on")||filmsScreen.classList.contains("on")||launcherScreen.classList.contains("on"))showScreen("home");}else focusDirectional(key);}gamepadLatch=pressed;},100);
+  let gamepadLatch=new Set();const gamepadTimer=setInterval(()=>{if(!navigator.getGamepads)return;const pads=[...navigator.getGamepads()].filter(Boolean),pressed=new Set();for(const pad of pads){const held=(button)=>!!pad.buttons?.[button]?.pressed,axes=pad.axes||[];if(held(12)||axes[1]<-.65)pressed.add("up");if(held(13)||axes[1]>.65)pressed.add("down");if(held(14)||axes[0]<-.65)pressed.add("left");if(held(15)||axes[0]>.65)pressed.add("right");if(held(0))pressed.add("accept");if(held(1))pressed.add("back");}for(const key of pressed)if(!gamepadLatch.has(key)){if(key==="accept")document.activeElement?.click?.();else if(key==="back"){if($("orbit-stats")?.open)$("orbit-stats").close();else if(filmDialog.open)filmDialog.close();else if(filmDetail?.dialog.open)filmDetail.dialog.close();else if(settingsOpen)closeSettings();else if(openId!==null)closePanel();else if(library.classList.contains("on")||filmsScreen.classList.contains("on")||launcherScreen.classList.contains("on"))showScreen("home");}else focusDirectional(key);}gamepadLatch=pressed;},100);
   window.addEventListener("pagehide",()=>clearInterval(gamepadTimer),{once:true});
   let introDone=false,introPreviewing=false,introPreviewTimer=0;const finishIntro=()=>{if(introDone)return;introDone=true;intro.classList.add("out");setTimeout(()=>{intro.hidden=true;settingsButton.hidden=false;const first=cards.find(card=>card.dataset.active==="true");first?.focus({preventScroll:true});centerMenuCard(first);},Math.max(250,+themeBoot.current().animations.screenDurationMs||340));};
   const finishIntroPreview=()=>{if(!introPreviewing)return;introPreviewing=false;clearTimeout(introPreviewTimer);intro.classList.add("out");setTimeout(()=>{intro.hidden=true;settingsButton.hidden=false;},Math.max(250,+themeBoot.current().animations.screenDurationMs||340));};
@@ -1613,6 +1862,6 @@ function applyServer(st, first) {
   if("serviceWorker" in navigator && location.protocol!=="file:")navigator.serviceWorker.register("/sw.js").catch(()=>{});
 })();
 </script>
-<script src="/launcher.js?v=1.0.30" defer></script>
+<script src="/launcher.js?v=play-hub-1" defer></script>
 
 

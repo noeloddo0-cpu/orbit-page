@@ -10,7 +10,7 @@
     "app": "electron .",
     "dist:portable": "electron-builder --win portable --x64",
     "dist:installer": "electron-builder --win nsis --x64 --publish never",
-    "test": "node --test scripts/smoke.test.mjs"
+    "test": "node --test scripts/smoke.test.mjs scripts/discord-viewing.test.mjs scripts/statistics.test.mjs"
   },
   "dependencies": {
     "discord.js": "^14",
@@ -44,8 +44,12 @@
       "package.json",
       "node_modules/**",
       "steam-local.mjs",
+      "game-art.mjs",
+      "cinema-statistics.mjs",
+      "discord-viewing.mjs",
+      "orbit-activity.mjs",
       "orbit-updates.mjs",
-      "themes/**/*.{js,css,json,woff2}",
+      "themes/**/*.{js,css,json,woff2,webp}",
       "themes/**/LICENSE*",
       "themes/**/*OFL.txt",
       "THIRD_PARTY.md"

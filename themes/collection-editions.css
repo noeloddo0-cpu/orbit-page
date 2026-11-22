@@ -1,0 +1,110 @@
+/* Affiches, navigation et contrôles partagés par les huit éditions historiques. */
+:root[data-collection-edition][data-orbit-shell] {
+  & #home-screen .orbit-kicker { display:none; }
+  & #home-screen .orbit-lead { color:var(--muted); font-variant-numeric:tabular-nums; }
+  & #home-screen #section-cards { display:flex; justify-content:flex-start; overflow-x:auto; scroll-padding-inline:8px; }
+  & #home-screen #section-cards .section-card { flex:0 0 var(--section-card-width,clamp(205px,24vw,322px)); }
+  & #home-screen .section-card { position:relative; isolation:isolate; overflow:hidden; text-align:left; }
+  & #section-cards .collection-art { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; border-radius:inherit; }
+  & .collection-art img { display:block; width:100%; height:100%; object-fit:cover; object-position:center 35%; opacity:0; }
+  & .collection-art img.ready { opacity:1; }
+  & #section-cards .section-icon, & #section-cards .section-icon + span { position:relative; z-index:3; }
+  & #section-cards .section-name { display:block; line-height:1.14; }
+  & #section-cards .section-card[data-active="true"] .section-state { display:none; }
+  & #section-cards .section-card[data-active="false"] { box-shadow:none; }
+  & #section-cards .section-card:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  & #app #chips.chips { background:var(--surface); color:var(--fg); border-color:var(--line); }
+  & #app #chips .chip { color:var(--fg); }
+  & #app #chips .chip b { color:inherit; }
+  & #app #chips .glass { display:none; }
+  & #app #chips .chip[aria-pressed="true"] { background:var(--accent); color:var(--edition-on-accent,var(--bg)); }
+  & :is(#films-screen,#film-editor) { --film-bg:var(--bg); --film-panel:var(--surface); --film-surface:var(--surface); --film-text:var(--fg); --film-line:var(--line); --film-muted:var(--muted); --film-green:var(--accent); background:var(--film-bg); color:var(--film-text); }
+  & #films-screen .film-brand h1, & #launcher-screen .op-page-title { font-family:var(--font-family); color:var(--fg); }
+  & #films-screen .film-search-sort .field, & #film-editor .field { background:var(--surface); color:var(--fg); border-color:var(--line); }
+  & #films-screen #film-add { color:var(--edition-on-accent,var(--bg))!important; }
+  & #films-screen .film-poster { border-radius:var(--edition-print-radius,8px); }
+  & #films-screen .film-card-title { color:var(--fg); }
+  & #settings-drawer .settings-head { padding-bottom:16px; border-bottom:1px solid var(--line); }
+  & #launcher-screen#launcher-screen { --op-bg:var(--bg); --op-panel:var(--surface); --op-text:var(--fg); --op-line:var(--line); --op-muted:var(--muted); --op-accent:var(--accent); background:var(--bg); color:var(--fg); }
+  & #launcher-screen :is(.op-topbar,.op-filter-panel,.op-search) { background:var(--surface); color:var(--fg); border-color:var(--line); }
+  & #launcher-screen :is(.op-filter[aria-pressed="true"],.op-nav button[aria-current="page"]) { background:var(--accent); color:var(--edition-on-accent,var(--bg)); }
+  & #launcher-screen .op-filter[aria-pressed="true"] span { color:inherit; }
+  & #launcher-screen .op-card-button { border-radius:var(--edition-print-radius,8px); border-color:var(--line); }
+  @media(prefers-reduced-motion:reduce) {
+    & #home-screen .section-card, & .collection-art img { transition:none!important; }
+  }
+}
+
+/* TV : un écran large par destination. Les jaquettes portent le titre en surimpression. */
+:root:is([data-collection-edition="apple-tv"],[data-collection-edition="apple-tv-3d"])[data-orbit-shell] {
+  & #home-screen .orbit-title { letter-spacing:-.055em; font-size:clamp(44px,6vw,90px); line-height:.98; }
+  & #home-screen #section-cards { --section-card-width:clamp(230px,31vw,440px); gap:16px; }
+  & #home-screen #section-cards .section-card { aspect-ratio:16/9; height:auto; min-height:154px; justify-content:space-between; align-items:flex-start; padding:clamp(16px,2vw,28px); border-radius:12px; }
+  & #section-cards .section-card > .collection-art { position:absolute; inset:0; z-index:0; }
+  & #section-cards .collection-art:has(img.ready)::after { content:""; position:absolute; inset:0; background:linear-gradient(0deg,rgba(9,11,17,.94),transparent 77%); }
+  & #section-cards .section-name { font-size:clamp(22px,2.5vw,36px); letter-spacing:-.035em; }
+  & #section-cards .section-icon { color:#edf1fe; }
+  & #app .sec, & .shell-shelf-title { letter-spacing:-.025em; }
+}
+:root[data-collection-edition="apple-tv-3d"][data-orbit-shell] {
+  & #home-screen #section-cards { gap:24px; perspective:1100px; }
+  & #home-screen #section-cards .section-card { border-radius:16px; border:1px solid rgba(202,219,255,.46); }
+  & .collection-art img { transform:scale(1.035); }
+  & #app header, & #films-screen .film-brand { border-left:3px solid var(--accent); padding-left:16px; }
+}
+
+/* Papier : tirage encadré, légende et filet d’imprimerie. */
+:root:is([data-collection-edition="papier"],[data-collection-edition="papier-sombre"])[data-orbit-shell] {
+  --edition-print-radius:2px;
+  & #home-screen .orbit-top { border-block-end:3px double var(--fg); margin-bottom:22px; padding-bottom:12px; }
+  & #home-screen .orbit-title { font:400 clamp(48px,7vw,96px)/1 Georgia,serif; letter-spacing:-.055em; }
+  & #home-screen .orbit-lead { font:400 15px/1.5 Georgia,serif; font-style:italic; }
+  & #home-screen #section-cards { gap:16px; }
+  & #home-screen #section-cards .section-card { border-radius:3px; padding:15px; min-height:clamp(166px,22vh,212px); justify-content:flex-end; align-items:flex-start; box-shadow:none; }
+  & #section-cards .collection-art { inset:8px 8px 54px; border-radius:1px; background:var(--surface-2); border-bottom:1px solid var(--line); }
+  & #section-cards .section-card:has(img.ready) .section-icon { visibility:hidden; }
+  & #section-cards .section-name { font:400 clamp(20px,2.3vw,32px)/1.12 Georgia,serif; color:var(--fg); }
+  & #app header, & #films-screen .film-top { border-bottom:3px double var(--line); padding-bottom:16px; }
+  & #app #stats, & #films-screen .film-overview { box-shadow:none; border-block:1px solid var(--line); border-radius:0; }
+  & #launcher-screen .op-page-title, & #p-name { font-family:Georgia,serif; font-weight:400; }
+}
+:root[data-collection-edition="papier"] { --edition-on-accent:#fffaf3; }
+
+/* Studio : catalogue de travail, photographie à droite et légende à gauche. */
+:root[data-collection-edition="studio"][data-orbit-shell] {
+  --edition-print-radius:5px;
+  & #home-screen .orbit-title { font-size:clamp(42px,5.5vw,80px); letter-spacing:-.05em; }
+  & #home-screen #section-cards .section-card { min-height:148px; align-items:flex-start; justify-content:space-between; padding:18px; border-radius:6px; }
+  & #section-cards .collection-art { inset:8px 8px 8px 56%; border-radius:4px; background:var(--surface-2); }
+  & #section-cards .section-icon + span { max-width:56%; overflow-wrap:anywhere; }
+  & #section-cards .section-name { font-size:clamp(18px,1.7vw,25px); }
+  & #app header, & #films-screen .film-top, & #launcher-screen .op-library-head { border-bottom:1px solid var(--line); padding-bottom:14px; }
+  & #app #stats .v, & #films-screen .film-metric b { font-variant-numeric:tabular-nums; color:var(--accent); }
+}
+
+/* Steam : raccourcis dessinés comme des capsules de jeu horizontales. */
+:root[data-collection-edition="steam-library"][data-orbit-shell] {
+  --edition-print-radius:3px;
+  & #home-screen .orbit-title { font:600 clamp(38px,5vw,72px)/1.05 Bahnschrift,"Segoe UI",sans-serif; letter-spacing:-.04em; }
+  & #home-screen #section-cards .section-card { min-height:155px; justify-content:flex-end; align-items:flex-start; border-radius:4px; border-bottom:3px solid var(--line); }
+  & #home-screen #section-cards .section-card[data-active="true"] { border-bottom-color:var(--accent); }
+  & #section-cards .collection-art { inset:0 0 44px; border-radius:0; background:var(--surface-2); }
+  & #section-cards .section-card:has(img.ready) .section-icon { visibility:hidden; }
+  & #section-cards .section-name { font-size:22px; }
+  & #app #stats .v, & #films-screen .film-metric b { font-variant-numeric:tabular-nums; }
+  & #launcher-screen .op-nav button { border-radius:3px; }
+}
+
+/* Sillage : bande de jaquettes et légendes dans la marge de chaque rayon. */
+:root[data-collection-edition="sillage"][data-orbit-shell] {
+  --edition-print-radius:4px;
+  & #home-screen .orbit-top { border-bottom:1px solid var(--sg-line); padding-bottom:14px; }
+  & #home-screen #section-cards .section-card { justify-content:end; padding:18px; min-height:175px; border-radius:6px; }
+  & #section-cards .collection-art { inset:0 0 59px 0; border-radius:0; background:var(--sg-surface); }
+  & #section-cards .section-card:has(img.ready) .section-icon { visibility:hidden; }
+  & #section-cards .section-icon + span { border-left:3px solid var(--sg-accent); padding-left:12px; }
+  & .shell-shelf-title { border-top:1px solid var(--sg-line); padding-top:16px; }
+}
+@media(max-width:700px) {
+  :root[data-collection-edition][data-orbit-shell] #home-screen #section-cards { --section-card-width:min(74vw,300px); gap:12px; }
+}

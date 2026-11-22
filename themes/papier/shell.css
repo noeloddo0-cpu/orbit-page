@@ -143,13 +143,13 @@
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
-' :root[data-orbit-shell="papier"] #films-screen {
-  --film-bg: #f1eee6;
-  --film-surface: #faf8f2;
-  --film-line: rgba(36,37,33,.16);
-  --film-text: #242521;
-  --film-muted: #5f605a;
-  --film-green: #9c4f32;
+:root[data-orbit-shell="papier"] #films-screen {
+  --film-bg: var(--bg);
+  --film-surface: var(--surface);
+  --film-line: var(--line);
+  --film-text: var(--fg);
+  --film-muted: var(--muted);
+  --film-green: var(--accent);
   background: var(--film-bg);
 }
 :root[data-orbit-shell="papier"] #films-screen .film-search-sort .field,
@@ -166,7 +166,7 @@
 :root[data-orbit-shell="papier"] #film-editor::backdrop {
   background: rgba(36,37,33,.42);
 }
-':root[data-orbit-shell="papier"] #film-editor {
+:root[data-orbit-shell="papier"] #film-editor {
   color: var(--fg);
   background: var(--surface);
   border-color: var(--line);

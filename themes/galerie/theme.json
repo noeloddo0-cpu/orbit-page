@@ -1,0 +1,84 @@
+{
+  "id": "galerie",
+  "name": "Galerie",
+  "description": "Papier céladon, encre bleue et tirages grand format.",
+  "tokens": {
+    "--bg": "#e7ece7",
+    "--surface": "#f7f8f3",
+    "--surface-2": "#d4ded7",
+    "--fg": "#172b29",
+    "--muted": "#4b625b",
+    "--accent": "#234ac0",
+    "--line": "#b3c1b7",
+    "--glass": "#eef2ec",
+    "--radius-card": "10px",
+    "--radius-panel": "10px",
+    "--radius-control": "6px",
+    "--shadow-card": "none",
+    "--shadow-panel": "none",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "Galerie Sans, Segoe UI, sans-serif",
+    "--font-weight": "400",
+    "--title-size": "clamp(40px,5vw,80px)",
+    "--tile-scale": "1.012",
+    "--focus-ring": "0 0 0 2px #234ac0"
+  },
+  "animations": {
+    "introStyle": "fade",
+    "introDurationMs": 1400,
+    "screenDurationMs": 230,
+    "themeChangeMs": 320,
+    "hoverDurationMs": 150,
+    "hoverScale": 1.012,
+    "focusScale": 1,
+    "easing": "cubic-bezier(.2,.7,.2,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 294,
+      "endHz": 440,
+      "durationMs": 190,
+      "gain": 0.014
+    },
+    "click": {
+      "wave": "sine",
+      "startHz": 523,
+      "endHz": 493,
+      "durationMs": 24,
+      "gain": 0.014
+    },
+    "open": {
+      "wave": "sine",
+      "startHz": 392,
+      "endHz": 523,
+      "durationMs": 90,
+      "gain": 0.014
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 392,
+      "endHz": 294,
+      "durationMs": 70,
+      "gain": 0.014
+    }
+  },
+  "typography": {
+    "family": "Galerie Sans, Segoe UI, sans-serif",
+    "weight": 400,
+    "titleSize": "clamp(40px,5vw,80px)",
+    "bodySize": "16px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "light"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "id": "galerie-sombre",
+  "name": "Galerie sombre",
+  "description": "Céladon nocturne, cadres anthracite et bleu pervenche.",
+  "tokens": {
+    "--bg": "#101917",
+    "--surface": "#1a2623",
+    "--surface-2": "#263631",
+    "--fg": "#e8efe9",
+    "--muted": "#b0c3b9",
+    "--accent": "#a2baff",
+    "--line": "#45574e",
+    "--glass": "#1a2623",
+    "--radius-card": "10px",
+    "--radius-panel": "10px",
+    "--radius-control": "6px",
+    "--shadow-card": "none",
+    "--shadow-panel": "none",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "Galerie Sans, Segoe UI, sans-serif",
+    "--font-weight": "400",
+    "--title-size": "clamp(40px,5vw,80px)",
+    "--tile-scale": "1.012",
+    "--focus-ring": "0 0 0 2px #a2baff"
+  },
+  "animations": {
+    "introStyle": "fade",
+    "introDurationMs": 1400,
+    "screenDurationMs": 230,
+    "themeChangeMs": 320,
+    "hoverDurationMs": 150,
+    "hoverScale": 1.012,
+    "focusScale": 1,
+    "easing": "cubic-bezier(.2,.7,.2,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 294,
+      "endHz": 440,
+      "durationMs": 190,
+      "gain": 0.014
+    },
+    "click": {
+      "wave": "sine",
+      "startHz": 523,
+      "endHz": 493,
+      "durationMs": 24,
+      "gain": 0.014
+    },
+    "open": {
+      "wave": "sine",
+      "startHz": 392,
+      "endHz": 523,
+      "durationMs": 90,
+      "gain": 0.014
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 392,
+      "endHz": 294,
+      "durationMs": 70,
+      "gain": 0.014
+    }
+  },
+  "typography": {
+    "family": "Galerie Sans, Segoe UI, sans-serif",
+    "weight": 400,
+    "titleSize": "clamp(40px,5vw,80px)",
+    "bodySize": "16px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}

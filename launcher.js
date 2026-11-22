@@ -9,8 +9,8 @@ const grid = document.getElementById("op-grid");
 const status = document.getElementById("op-status");
 const search = document.getElementById("op-search");
 const filters = document.getElementById("op-filters");
-let currentTab = "library", currentFilter = "all", collection = "all";
-const statusNames = ["En cours", "En pause", "À faire", "Terminé", "Abandonné"];
+let currentTab = "home", currentFilter = "all", collection = "all";
+const statusNames = ["En cours", "En pause", "À faire", "Terminé", "Abandonné", "Neutre"];
 const normalize = value => String(value || "").toLocaleLowerCase("fr").normalize("NFD").replace(/\p{M}/gu, "").replace(/[®™©]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 
 function bridge() { return window.__orbitLauncherBridge; }
@@ -92,21 +92,28 @@ byId('play-search-form').onsubmit = async e => {
 function action(label, onClick) {
   const b=document.createElement('button'); b.type='button'; b.className='op-action-link'; b.textContent=label; b.onclick=onClick; return b;
 }
+const pendingLaunches=new Set();
+function canLaunch(game){
+  return detailsFor(game).kind!=="app" && !!detailsFor(game).installedId && typeof window.tracker?.launchSteam==="function";
+}
+async function launchGame(game,control){
+  const steamId=Number(detailsFor(game).installedId);
+  if(!canLaunch(game)||!Number.isSafeInteger(steamId)||pendingLaunches.has(steamId))return;
+  pendingLaunches.add(steamId);control.disabled=true;
+  try{
+    const result=await window.tracker.launchSteam(steamId);
+    if(!result?.ok)throw Error();
+    bridge().played(game.id);
+    bridge().notify("Lancement demandé à Steam pour "+game.n+".");
+    render();
+  }catch{bridge().notify("Steam n’a pas pu ouvrir "+game.n+". Vérifie son installation.");}
+  finally{pendingLaunches.delete(steamId);control.disabled=false;}
+}
 function addPlayActions(item, game) {
   const actions = document.createElement('div'); actions.className='op-card-actions';
-  const {installedId,kind}=detailsFor(game);
-  if (kind!=='app' && installedId && window.tracker?.launchSteam) {
-    const play = action('Jouer', async () => {
-      play.disabled=true;
-      try {
-        const result=await window.tracker.launchSteam(installedId);
-        if (!result.ok) throw Error(result.message);
-        bridge().played(game.id);
-        status.textContent='Lancement demandé à Steam pour '+game.n+'.';
-      } catch { status.textContent='Steam n’a pas pu ouvrir '+game.n+'. Vérifie son installation.'; }
-      finally { play.disabled=false; }
-    });
-    play.setAttribute('aria-label','Jouer à '+game.n+' avec Steam');actions.append(play);
+  if(canLaunch(game)){
+    const play=action("Jouer",()=>launchGame(game,play));
+    play.setAttribute("aria-label","Jouer à "+game.n+" avec Steam");actions.append(play);
   }
   const edit=action('Ma fiche',()=>openPersonal(game));
   edit.setAttribute('aria-label','Modifier ma fiche pour '+game.n);actions.append(edit);item.append(actions);
@@ -134,68 +141,178 @@ function syncCollections(games) {
 }
 byId('op-custom').onchange=e=>{collection=e.target.value?'custom':'all';renderLibrary(data());};
 
+let refreshAfterDetail = false;
+function showGameDetail(game, button) {
+  const shelfTitle = button.closest(".op-shelf")?.querySelector("h2")?.textContent;
+  const featured = button.closest("#op-hero");
+  const scrollTop = screen.scrollTop;
+  const shelves = () => [...screen.querySelectorAll(".op-shelf")];
+  const titleOf = shelf => shelf.querySelector("h2")?.textContent;
+  const positions = new Map(shelves().map(shelf => [titleOf(shelf), shelf.querySelector(".op-track").scrollLeft]));
+  bridge()?.openGame?.(game.id, () => {
+    if (refreshAfterDetail) {
+      refreshAfterDetail = false;
+      render();
+    }
+    for (const shelf of shelves()) {
+      const left = positions.get(titleOf(shelf));
+      if (left !== undefined) shelf.querySelector(".op-track").scrollLeft = left;
+    }
+    screen.scrollTop = scrollTop;
+    const scope = shelfTitle ? shelves().find(shelf => titleOf(shelf) === shelfTitle) : grid;
+    const replacement = featured ? hero.querySelector('[data-home-action="detail"]') : scope?.querySelector(`[data-game-id="${CSS.escape(String(game.id))}"]`);
+    (button.isConnected ? button : replacement || screen.querySelector('[aria-current="page"]'))?.focus({preventScroll:true});
+  });
+}
 function card(game, tools) {
   const item = document.createElement("article"); item.className = "op-card";
   const button = document.createElement("button"); button.type = "button"; button.className = "op-card-button";
   button.dataset.gameId = String(game.id);
   button.setAttribute("aria-label", `Ouvrir la fiche de ${game.n}`);
-  const cover = bridge()?.portraitFor?.(game.n) || bridge()?.coverFor?.(game.n);
-  if (cover) { const image = document.createElement("img"); image.src = cover; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; button.append(image); }
-  else { const initial = document.createElement("span"); initial.className = "op-card-fallback"; initial.textContent = (game.n.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase(); button.append(initial); }
+  const image = new Image();
+  image.alt = ""; image.loading = "lazy"; image.decoding = "async";
+  button.append(image);
+  bridge().loadGameArt(image, game.n, true, null, () => {
+    const initial = document.createElement("span");
+    initial.className = "op-card-fallback";
+    initial.textContent = (game.n.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase();
+    image.replaceWith(initial);
+  });
   const shade = document.createElement("span"); shade.className = "op-card-shade";
   const badge = document.createElement("span"); badge.className = "op-card-status"; badge.textContent = statusNames[game.s] || statusNames[0];
   const copy = document.createElement("span"); copy.className = "op-card-copy";
   const title = document.createElement("span"); title.className = "op-card-title"; title.textContent = game.n;
   const time = document.createElement("span"); time.className = "op-card-hours"; time.textContent = bridge()?.formatTime?.(Number(game.m) || 0) || "0 h";
-  copy.append(title, time); button.append(badge); item.append(copy); button.addEventListener("click", () => bridge()?.openGame?.(game.id)); item.prepend(button);
+  copy.append(title, time); button.append(badge); item.append(copy); button.addEventListener("click", () => showGameDetail(game, button)); item.prepend(button);
   if (tools) { item.classList.add("op-library-card"); addPlayActions(item,game); }
   return item;
 }
-function makeShelf(title, games, fragment) {
+function showCollection(group="all", filter="all", sort="name", focusSearch=false) {
+  collection=group;
+  currentFilter=filter;
+  search.value="";
+  byId("op-sort").value=sort;
+  byId("op-custom").value="";
+  coopFilter?.reset();
+  setTab("library",focusSearch);
+  screen.scrollTop=0;
+  if(!focusSearch)screen.querySelector('[data-op-tab="library"]').focus({preventScroll:true});
+}
+function makeShelf(title, games, fragment, browse) {
   if (!games.length) return;
   const section = document.createElement("section"); section.className = "op-shelf";
   const head = document.createElement("div"); head.className = "op-shelf-head";
   const heading = document.createElement("h2"); heading.textContent = title;
-  const link = document.createElement("button"); link.type = "button"; link.className = "op-shelf-link"; link.textContent = "Tout voir"; link.addEventListener("click", () => setTab("library", true));
-  head.append(heading, link); const track = document.createElement("div"); track.className = "op-track";
-  games.slice(0, 18).forEach(game => track.append(card(game, false)));
+  const link=action("Tout voir",browse);link.className="op-shelf-link";link.setAttribute("aria-label","Tout voir · "+title);
+  head.append(heading, link);
+  const track = document.createElement("div"); track.className = "op-track";
+  games.slice(0, 8).forEach(game => track.append(card(game,true)));
   section.append(head, track); fragment.append(section);
 }
-function renderHome(state) {
-  const games = (state.games || []).filter(g=>detailsFor(g).kind!=='app');
-  const recent = (state.recent || []).map(item => games.find(game => normalize(game.n) === normalize(item.name))).filter(Boolean);
-  const active = state.session && games.find(game => normalize(game.n) === normalize(state.session.name));
-  const featured = active || recent[0] || [...games].sort((a, b) => (Number(b.m) || 0) - (Number(a.m) || 0))[0];
-  hero.replaceChildren();
-  if (featured) {
-    const section = document.createElement("section"); section.className = "op-hero";
-    const art = document.createElement("div"); art.className = "op-hero-art";
-    const src = bridge()?.coverFor?.(featured.n);
-    if (src) { const image = document.createElement("img"); image.src = src; image.alt = ""; image.fetchPriority = "high"; art.append(image); }
-    else { const empty = document.createElement("span"); empty.className = "op-empty-hero"; art.append(empty); }
-    const copy = document.createElement("div"); copy.className = "op-hero-copy";
-    const label = document.createElement("span"); label.className = "op-hero-label"; label.textContent = active ? "Session en cours" : recent.includes(featured) ? "À reprendre" : "Dans ta collection";
-    const title = document.createElement("h2"); title.textContent = featured.n;
-    const meta = document.createElement("p"); meta.className = "op-hero-meta"; meta.textContent = `${statusNames[featured.s] || statusNames[0]} · ${bridge()?.formatTime?.(Number(featured.m) || 0) || "0 h"} jouées`;
-    const actions = document.createElement("div"); actions.className = "op-actions";
-    const open = document.createElement("button"); open.type = "button"; open.className = "op-button primary"; open.textContent = "Ouvrir la fiche"; open.addEventListener("click", () => bridge()?.openGame?.(featured.id));
-    const browse = document.createElement("button"); browse.type = "button"; browse.className = "op-button"; browse.textContent = "Ma bibliothèque"; browse.addEventListener("click", () => setTab("library", true));
-    actions.append(open, browse); copy.append(label, title, meta, actions); section.append(art, copy); hero.append(section);
-  } else {
-    const empty = document.createElement("div"); empty.className = "op-shelf-empty";
-    const message = document.createElement("p"); message.textContent = "Ta collection est vide. Ajoute des jeux dans la Bibliothèque pour les retrouver ici.";
-    const browse = document.createElement("button"); browse.type = "button"; browse.className = "op-button"; browse.textContent = "Ouvrir la Bibliothèque"; browse.addEventListener("click", () => bridge()?.goToLibrary?.());
-    empty.append(message, browse); hero.append(empty);
-  }
-  const fragment = document.createDocumentFragment();
-  makeShelf("Reprendre", recent, fragment);
-  makeShelf("À découvrir dans ta collection", games.filter(game => game.s === 2).sort((a, b) => (Number(b.t) || 0) - (Number(a.t) || 0)), fragment);
-  makeShelf("Tes jeux les plus joués", [...games].sort((a, b) => (Number(b.m) || 0) - (Number(a.m) || 0)).filter(game => (Number(game.m) || 0) > 0), fragment);
-  shelves.replaceChildren(fragment);
+function node(tag,cls,text=""){
+  const el=document.createElement(tag);el.className=cls;el.textContent=text;return el;
 }
+function button(label,key,handler,cls="op-button"){
+  const b=action(label,()=>handler(b));b.className=cls;b.dataset.homeAction=key;return b;
+}
+function lastPlayed(at){
+  if(!at)return "";
+  const date=new Date(at);
+  if(!Number.isFinite(+date))return "";
+  const today=new Date(),yesterday=new Date();yesterday.setDate(today.getDate()-1);
+  if(date.toDateString()===today.toDateString())return "Aujourd’hui";
+  if(date.toDateString()===yesterday.toDateString())return "Hier";
+  return date.toLocaleDateString("fr-FR",{day:"numeric",month:"short",...(date.getFullYear()!==today.getFullYear()?{year:"numeric"}:{})});
+}
+function recentChooser(recent,featured) {
+  const rail=node("section","op-recent"),title=node("h2","","Dernières parties");
+  const list=node("div","op-recent-games");
+  for(const {game,at} of recent){
+    const name=normalize(game.n);
+    const pick=button("","recent-"+name,()=>{
+      selectedName=name;render();
+    },"op-recent-pick");
+    pick.setAttribute("aria-pressed",String(game.id===featured.id));
+    const cover=node("span","op-recent-art"),image=new Image();
+    image.alt="";image.loading="lazy";cover.append(image);
+    bridge().loadGameArt(image,game.n,true,null,()=>{cover.textContent=game.n.trim().slice(0,1);});
+    const copy=node("span","op-recent-copy");copy.append(node("strong","",game.n),node("small","",lastPlayed(at)));
+    pick.append(cover,copy);list.append(pick);
+  }
+  rail.append(title,list);return rail;
+}
+let selectedName="", homeSignature="";
+function renderHome(state) {
+  const games=state.games.filter(g=>detailsFor(g).kind!=="app");
+  const byName=new Map(games.map(g=>[normalize(g.n),g]));
+  const recent=[],seen=new Set();
+  for(const entry of state.recent){
+    const name=normalize(entry.name),game=byName.get(name);
+    if(game&&!seen.has(name)){seen.add(name);recent.push({game,at:entry.at});}
+  }
+  const live=byName.get(normalize(state.session?.name));
+  if(live&&!seen.has(normalize(live.n)))recent.unshift({game:live,at:state.session.start});
+  const installed=games.filter(g=>detailsFor(g).installedId);
+  const favorites=games.filter(g=>state.favorites.includes(normalize(g.n)));
+  const later=games.filter(g=>g.s===2);
+  const featured=recent.find(r=>normalize(r.game.n)===selectedName)?.game || live || recent[0]?.game || installed[0] || favorites[0] || games[0];
+  const entry=recent.find(r=>r.game===featured);
+  const signature=JSON.stringify([featured?.id,state.session,state.favorites,recent.map(r=>[r.game.id,r.at,bridge().portraitFor(r.game.n)]),
+    [featured,...installed.slice(0,8),...favorites.slice(0,8),...later.slice(0,8)].filter(Boolean).map(g=>[g.id,g.n,g.m,g.s,detailsFor(g).installedId,bridge().coverFor(g.n),bridge().portraitFor(g.n)])]);
+  if(signature===homeSignature)return;
+  homeSignature=signature;
+  const focused=document.activeElement?.dataset.homeAction;
+  const shelfPositions=new Map([...shelves.querySelectorAll(".op-shelf")].map(s=>[s.querySelector("h2").textContent,s.querySelector(".op-track").scrollLeft]));
+  const recentTop=hero.querySelector(".op-recent-games")?.scrollTop||0,recentLeft=hero.querySelector(".op-recent-games")?.scrollLeft||0;
+  hero.replaceChildren();hero.classList.toggle("op-with-recent",recent.length>1);
+  byId("op-home-title").textContent=entry || !featured ? "Reprendre" : "Jouer";
+  if(featured){
+    const section=node("section","op-hero"),art=node("div","op-hero-art"),image=new Image();
+    image.alt="";image.fetchPriority="high";art.append(image);
+    bridge().loadGameArt(image,featured.n,false,null,()=>{
+      section.classList.add("op-no-wide");
+      const portrait=new Image();portrait.alt="";art.replaceChildren(portrait);
+      bridge().loadGameArt(portrait,featured.n,true,null,()=>{art.replaceChildren();section.classList.add("op-no-art");});
+    });
+    const copy=node("div","op-hero-copy"),playing=live===featured;
+    const label=playing?"Session en cours":entry?["Dernière partie",lastPlayed(entry.at)].filter(Boolean).join(" · "):installed.includes(featured)?"Installé sur ce PC":"Dans ta collection";
+    const title=node("h2","",featured.n);
+    const meta=node("p","op-hero-meta",[statusNames[featured.s],bridge().formatTime(featured.m||0)+" de jeu",installed.includes(featured)?"Steam":""].filter(Boolean).join(" · "));
+    const actions=node("div","op-actions");
+    const detail=button("Fiche du jeu","detail",b=>showGameDetail(featured,b));
+    if(!playing && canLaunch(featured)){
+      actions.append(button(entry?"Reprendre le jeu":"Lancer le jeu","launch",b=>launchGame(featured,b),"op-button primary"));
+    }else if(playing && state.session.source==="manual"){
+      actions.append(button("Terminer le suivi","end",()=>bridge().stopTracking(),"op-button primary"));
+    }else if(!state.session){
+      actions.append(button("Démarrer le suivi","track",()=>bridge().startTracking(featured.id),"op-button primary"));
+    }else{
+      detail.classList.add("primary");
+    }
+    actions.append(detail);
+    const favorite=favorites.includes(featured);
+    const fav=button(favorite?"Retirer des favoris":"Ajouter aux favoris","favorite",()=>bridge().favorite(featured.id),"op-favorite-action");
+    copy.append(node("p","op-hero-label",label),title,meta,actions,fav);section.append(art,copy);hero.append(section);
+    if(recent.length>1)hero.append(recentChooser(recent,featured));
+  }else{
+    const empty=node("div","op-shelf-empty");empty.append(node("p","","Ta prochaine partie apparaîtra ici."),button("Parcourir la bibliothèque","browse",()=>showCollection()));hero.append(empty);
+  }
+  const fragment=document.createDocumentFragment();
+  makeShelf("Installés sur ce PC",installed,fragment,()=>showCollection("installed"));
+  makeShelf("Favoris",favorites,fragment,()=>showCollection("favorites"));
+  makeShelf("À faire",later,fragment,()=>showCollection("all","2"));
+  shelves.replaceChildren(fragment);
+  for(const s of shelves.querySelectorAll(".op-shelf"))s.querySelector(".op-track").scrollLeft=shelfPositions.get(s.querySelector("h2").textContent)||0;
+  const rail=hero.querySelector(".op-recent-games");if(rail){rail.scrollTop=recentTop;rail.scrollLeft=recentLeft;}
+  if(focused)hero.querySelector('[data-home-action="'+CSS.escape(focused)+'"]')?.focus({preventScroll:true});
+}
+let coopFilter;
+import("/themes/coop-filter.js").then(({mountCoopFilter})=>{
+  coopFilter=mountCoopFilter({panel:filters.closest("aside")||filters.parentElement,render:()=>renderLibrary(data())});
+});
 function renderLibrary(state) {
   syncCollections(state.games || []);
-  const group=(state.games||[]).filter(g=>inCollection(g,state));
+  const group=(state.games||[]).filter(g=>inCollection(g,state) && (!coopFilter || coopFilter.matches(detailsFor(g))));
   const activeFilter = document.activeElement?.dataset?.opFilter;
   const allFilters = [{ id: "all", label: "Tous les statuts" }, ...statusNames.map((label,i)=>({id:String(i),label}))];
   const filterFragment = document.createDocumentFragment();
@@ -214,15 +331,22 @@ function render() { if (!screen?.classList.contains("on")) return; const active 
 function activate() { if (!bridge()) return; setTab(currentTab); }
 document.querySelectorAll("[data-op-tab]").forEach(button => button.addEventListener("click", () => setTab(button.dataset.opTab, button.dataset.opTab === "library")));
 document.getElementById("op-return").addEventListener("click", () => bridge()?.goHome?.());
-document.getElementById('op-portrait-import').addEventListener('click',async event=>{const b=event.currentTarget;b.disabled=true;b.textContent='Recherche des jaquettes…';try{const r=await fetch('/api/steam/portraits',{method:'POST'}),result=await r.json();if(!r.ok||!result.ok)throw Error(result.message||'Recherche impossible');status.textContent=result.added+' nouvelle(s) jaquette(s) · '+result.total+' disponibles · '+result.missing+' introuvables sur Steam';}catch(error){status.textContent=error.message;}finally{b.disabled=false;b.textContent='Jaquettes verticales';}});
+document.getElementById('op-portrait-import').addEventListener('click',async event=>{const b=event.currentTarget;b.disabled=true;b.textContent='Recherche des jaquettes…';try{const r=await fetch('/api/steam/portraits',{method:'POST'}),result=await r.json();if(!r.ok||!result.ok)throw Error(result.message||'Recherche impossible');status.textContent=result.added+' nouvelle(s) jaquette(s) · '+result.total+' disponibles · '+result.missing+' sans jaquette verticale';}catch(error){status.textContent=error.message;}finally{b.disabled=false;b.textContent='Jaquettes verticales';}});
 document.getElementById('op-steam-import').addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;button.textContent='Lecture de Steam…';try{const response=await fetch('/api/steam/import',{method:'POST'}),result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||'Import impossible');renderLibrary(data());status.textContent=result.added+' jeu(x) ajouté(s) · '+result.portraits+' jaquette(s) verticale(s) Steam';}catch(error){status.textContent=error.message;}finally{button.disabled=false;button.textContent='Importer Steam';}});
 search.addEventListener("input", () => renderLibrary(data()));
 document.getElementById('op-sort').addEventListener('change',()=>renderLibrary(data()));
-document.getElementById('op-reset').addEventListener('click',()=>{currentFilter='all';search.value='';renderLibrary(data());});
+document.getElementById('op-reset').addEventListener('click',()=>{currentFilter='all';search.value='';coopFilter?.reset();renderLibrary(data());});
 document.querySelectorAll('[data-op-collection]').forEach(button=>button.addEventListener('click',()=>{collection=button.dataset.opCollection;byId('op-custom').value='';document.querySelectorAll('[data-op-collection]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));renderLibrary(data());}));
 window.addEventListener("orbit:launcher-ready", activate);
-window.addEventListener("orbit:launcher-show", activate);
-window.addEventListener("orbit:launcher-data", () => { if (screen?.classList.contains("on")) render(); });
+window.addEventListener("orbit:launcher-show", () => {
+  selectedName="";setTab("home");screen.scrollTop=0;
+});
+byId("op-find-game").onclick=()=>showCollection("all","all","name",true);
+screen.querySelectorAll("[data-op-shortcut]").forEach(b=>b.onclick=()=>showCollection(b.dataset.opShortcut));
+window.addEventListener("orbit:launcher-data", () => {
+  if (byId("op-game-layer").open) refreshAfterDetail = true;
+  else if (screen?.classList.contains("on")) render();
+});
 if(window.tracker?.checkUpdate) {
   byId('orbit-update-settings').hidden=false;
   const check=byId('orbit-update-check'), msg=byId('orbit-update-status');
