@@ -4,12 +4,12 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { checkRelease, downloadRelease } from './orbit-updates.mjs';
+import { checkRelease, downloadRelease, newer } from './orbit-updates.mjs';
 import { installedSteamGames } from './steam-local.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let dataDir;
-const assetDir = here;
+let assetDir = here;
 let appPort;
 let setupWindow;
 let libraryWindow;
@@ -17,6 +17,8 @@ let tray;
 let bridgeStarted = false;
 let backupTimer;
 let quitAfterFlush = false;
+let miniMode = false;
+let libraryBounds = null;
 const DATA_FILES = ['library.json', 'settings.json', 'recap.json', 'cinema.json'];
 const REQUIRED_IMPORT_FILES = ['library.json', 'settings.json', 'recap.json'];
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
@@ -26,16 +28,36 @@ if (!hasSingleInstanceLock) app.quit();
 else app.on('second-instance', () => showLibrary());
 
 async function exists(file) { try { await access(file); return true; } catch { return false; } }
+async function findEditableAssets() {
+  try {
+    const envPath = (await readFile(path.join(dataDir, 'discord-env-path.txt'), 'utf8')).trim();
+    if (!envPath) return;
+    const candidate = path.dirname(envPath);
+    const required = ['bridge.js', 'bibliotheque.html', 'app-config.json', 'icon.svg', 'sw.js'];
+    const ready = (await Promise.all(required.map(name => exists(path.join(candidate, name))))).every(Boolean) && await exists(path.join(candidate, 'themes'));
+    if (ready && app.isPackaged && newer(app.getVersion(),JSON.parse(await readFile(path.join(candidate,'package.json'),'utf8')).version)) return;
+    if (ready && await exists(path.join(candidate, 'node_modules', 'discord.js'))) assetDir = candidate;
+  } catch {}
+}
 async function seedFile(name) {
   const target = path.join(dataDir, name);
   if (!(await exists(target)) && await exists(path.join(assetDir, name))) await copyFile(path.join(assetDir, name), target);
 }
 async function seedData() {
   await mkdir(dataDir, { recursive: true });
+  await seedFile('library.json');
   if (!(await exists(path.join(dataDir,'library.json')))) await atomicJson(path.join(dataDir,'library.json'),{version:1,games:[],sessions:[],favorites:[],profiles:[{id:'main',name:'Profil principal'}]});
+  await seedFile('meta.json');
   await seedFile('app-config.json');
   const coverDir = path.join(dataDir, 'covers');
   await mkdir(coverDir, { recursive: true });
+  const sourceDir = path.join(assetDir, 'covers');
+  try {
+    for (const name of await readdir(sourceDir)) {
+      const target = path.join(coverDir, name);
+      if (!(await exists(target))) await copyFile(path.join(sourceDir, name), target);
+    }
+  } catch {}
 }
 async function prepareDataFiles() {
   const libraryPath = path.join(dataDir, 'library.json');
@@ -148,17 +170,49 @@ function showLibrary() {
     libraryWindow.show(); libraryWindow.focus();
   }
 }
-function createTray() {
-  if (tray) return;
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#07070a"/><circle cx="32" cy="32" r="19" fill="none" stroke="#f5f5f7" stroke-width="5"/><ellipse cx="32" cy="32" rx="28" ry="10" fill="none" stroke="#bdcaff" stroke-width="3" transform="rotate(-28 32 32)"/><circle cx="51" cy="18" r="4" fill="#e7ecff"/></svg>';
-  const icon = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`).resize({ width: 16, height: 16 });
-  tray = new Tray(icon);
-  tray.setToolTip('Orbit — suivi de jeu actif');
-  tray.setContextMenu(Menu.buildFromTemplate([
+// Compact always-on-top window: useful while a game launches, or beside it.
+function setMiniMode(on) {
+  const next = !!on;
+  if (!libraryWindow || libraryWindow.isDestroyed()) { miniMode = next; return miniMode; }
+  if (next === miniMode) return miniMode;
+  if (next) {
+    if (!libraryWindow.isMaximized()) libraryBounds = libraryWindow.getBounds();
+    libraryWindow.unmaximize();
+    libraryWindow.setMinimumSize(360, 480);
+    libraryWindow.setSize(440, 700, true);
+    libraryWindow.setAlwaysOnTop(true, 'floating');
+    libraryWindow.show();
+    libraryWindow.focus();
+  } else {
+    libraryWindow.setAlwaysOnTop(false);
+    libraryWindow.setMinimumSize(720, 560);
+    if (libraryBounds) { libraryWindow.setBounds(libraryBounds, true); libraryBounds = null; }
+    else libraryWindow.setSize(1260, 900, true);
+  }
+  miniMode = next;
+  refreshTrayMenu();
+  if (!libraryWindow.isDestroyed()) libraryWindow.webContents.send('orbit:mini-changed', miniMode);
+  return miniMode;
+}
+function trayMenu() {
+  return Menu.buildFromTemplate([
     { label: 'Ouvrir Orbit', click: showLibrary },
+    { label: 'Mini-mode', type: 'checkbox', checked: miniMode, click: item => setMiniMode(item.checked) },
     { type: 'separator' },
     { label: 'Quitter Orbit', click: () => app.quit() }
-  ]));
+  ]);
+}
+function refreshTrayMenu() {
+  if (tray && !tray.isDestroyed()) tray.setContextMenu(trayMenu());
+}
+function createTray() {
+  if (tray) return;
+  // Planet icon from MynaUI Icons (MIT): https://github.com/praveenjuge/mynaui-icons
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#07070a"/><g transform="translate(5.6 5.6) scale(2.2)" fill="#e7ecff"><path d="M19.08 12.215c-.112 3.638-3.052 6.535-6.642 6.535a6.5 6.5 0 0 1-2.948-.699c1.495-.501 3.116-1.24 4.738-2.19 1.913-1.12 3.58-2.389 4.852-3.646m-11.548 6.37a8.05 8.05 0 0 0 4.906 1.665c4.509 0 8.146-3.704 8.146-8.25q0-.697-.111-1.363c.506-.676.89-1.353 1.1-2.001.236-.734.272-1.518-.115-2.197-.394-.692-1.1-1.056-1.864-1.213-.722-.149-1.576-.132-2.494.008a8.03 8.03 0 0 0-4.662-1.484C7.93 3.75 4.293 7.454 4.293 12q0 .181.008.363c-.773.851-1.371 1.707-1.716 2.516-.368.862-.502 1.808-.043 2.615.448.786 1.293 1.148 2.186 1.267.81.108 1.77.037 2.804-.175m-1.354-1.307a8.3 8.3 0 0 1-1.554-2.942 6 6 0 0 0-.66 1.132c-.285.67-.242 1.067-.118 1.284.118.207.413.433 1.081.522.352.047.772.05 1.25.004M18.616 6.623q.378.01.676.072c.52.107.758.303.862.486.105.183.153.49-.01.994q-.08.255-.229.548a8.3 8.3 0 0 0-1.299-2.1"/></g></svg>';
+  const icon = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`).resize({ width: 16, height: 16 });
+  tray = new Tray(icon);
+  tray.setToolTip('Orbit - suivi de jeu actif');
+  refreshTrayMenu();
   tray.on('click', showLibrary);
   tray.on('double-click', showLibrary);
 }
@@ -184,7 +238,7 @@ function openLibrary({ hidden = false } = {}) {
     event.preventDefault();
     libraryWindow?.hide();
   });
-  libraryWindow.on('closed', () => { libraryWindow = null; });
+  libraryWindow.on('closed', () => { libraryWindow = null; miniMode = false; libraryBounds = null; refreshTrayMenu(); });
 }
 function openSetup() {
   setupWindow = new BrowserWindow({
@@ -293,6 +347,9 @@ ipcMain.handle('play:launch-steam', async (event, id) => {
   if (!fromLibrary(event) || !Number.isSafeInteger(id) || id<=0 || !installedSteamGames().some(g=>g.appId===id)) return {ok:false};
   try { await shell.openExternal('steam://run/'+id); return {ok:true}; } catch { return {ok:false}; }
 });
+ipcMain.handle('orbit:mini-get', event => fromLibrary(event) ? miniMode : false);
+ipcMain.handle('orbit:mini-set', (event, on) => fromLibrary(event) ? setMiniMode(on) : miniMode);
+ipcMain.handle('orbit:mini-toggle', event => fromLibrary(event) ? setMiniMode(!miniMode) : miniMode);
 let updateBusy = false;
 ipcMain.handle('orbit:update', async (event, installVersion) => {
   if (!fromLibrary(event) || updateBusy) return {message:'Action indisponible.'};
@@ -320,6 +377,7 @@ ipcMain.handle('data:open-folder', async () => { const folder = path.join(dataDi
 app.whenReady().then(async () => {
   if (!hasSingleInstanceLock) return;
   dataDir = app.getPath('userData');
+  await findEditableAssets();
   await seedData();
   const restored = await recoverCorruptFiles();
   await prepareDataFiles();

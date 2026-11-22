@@ -10,5 +10,15 @@ contextBridge.exposeInMainWorld('tracker', {
   exportData: () => ipcRenderer.invoke('data:export'),
   importData: () => ipcRenderer.invoke('data:import'),
   restoreBackup: () => ipcRenderer.invoke('data:restore'),
-  openBackupFolder: () => ipcRenderer.invoke('data:open-folder')
+  openBackupFolder: () => ipcRenderer.invoke('data:open-folder'),
+  miniMode: {
+    get: () => ipcRenderer.invoke('orbit:mini-get'),
+    set: on => ipcRenderer.invoke('orbit:mini-set', !!on),
+    toggle: () => ipcRenderer.invoke('orbit:mini-toggle'),
+    onChanged: cb => {
+      const handler = (_event, on) => cb(!!on);
+      ipcRenderer.on('orbit:mini-changed', handler);
+      return () => ipcRenderer.removeListener('orbit:mini-changed', handler);
+    }
+  }
 });

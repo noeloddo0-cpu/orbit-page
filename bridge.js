@@ -1,4 +1,9 @@
+import { createViewingTracker, isVideoActivity } from "./discord-viewing.mjs";
+import { selectArtwork, fillArtwork } from "./game-art.mjs";
 import { steamRoots, installedSteamGames, localPortrait, imageSize } from "./steam-local.mjs";
+import { getSteamAchievements, getSteamAchievementSummary, getSteamPlaytime, steamAccount } from "./steam-achievements.mjs";
+import { withCinemaStatistics } from "./cinema-statistics.mjs";
+import { createCoopIndex } from "./orbit-activity.mjs";
 import { createRequire } from "node:module";
 import { shells as SHELL_REGISTRY } from "./themes/index.js";
 const require = createRequire(import.meta.url);
@@ -54,7 +59,8 @@ function migrateFileVersion(file, legacyFile, fallback) {
   return { version: 1, ...fallback };
 }
 let settingsDocument = migrateFileVersion(SETTINGS_FILE, UI_PREFS_FILE, {});
-let recap = migrateFileVersion(RECAP_FILE, path.join(DATA_DIR, "recap.json"), { lastOpened: null, recent: [], gameStats: {} });
+let recap = migrateFileVersion(RECAP_FILE, path.join(DATA_DIR, "recap.json"), { lastOpened: null, recent: [], gameStats: {}, queue: [] });
+recap.queue = Array.isArray(recap.queue) ? recap.queue.filter(name => typeof name === "string" && name.trim()).slice(0, 50) : [];
 function loadThemes() {
   const themes = {};
   try {
@@ -68,7 +74,11 @@ function loadThemes() {
 }
 const THEMES = loadThemes();
 const SHELLS = Object.fromEntries(Object.entries(SHELL_REGISTRY).map(([id, shell]) => [id, { id, name: shell.name, menuLayout: shell.menuLayout, libraryLayout: shell.libraryLayout, navigation: shell.navigation, components: shell.components }]));
-const SHELL_CSS = Object.fromEntries(Object.keys(SHELLS).map(id => { try { return [id, fs.readFileSync(path.join(THEMES_DIR, id, "shell.css"), "utf8")]; } catch (e) { return [id, ""]; } }));
+const SHELL_CSS = Object.fromEntries(Object.keys(SHELLS).map(id => {
+  const directory = SHELL_REGISTRY[id].styleSource || id;
+  try { return [id, fs.readFileSync(path.join(THEMES_DIR, directory, "shell.css"), "utf8")]; }
+  catch { return [id, ""]; }
+}));
 const UI_THEMES = new Set(Object.keys(THEMES).filter(id => Object.hasOwn(SHELLS, id)));
 const LEGACY_THEME_IDS = { minuit: "apple-tv", ocean: "apple-tv", aurore: "apple-tv", foret: "apple-tv", braise: "apple-tv", clair: "apple-tv" };
 function validTheme(id) { return UI_THEMES.has(id) ? id : (LEGACY_THEME_IDS[id] && UI_THEMES.has(LEGACY_THEME_IDS[id]) ? LEGACY_THEME_IDS[id] : "apple-tv"); }
@@ -105,10 +115,12 @@ const RAWG_KEY = pick("RAWG_KEY");
 fs.mkdirSync(COVERS, { recursive: true });
 
 /* ---------- État ---------- */
+const NEUTRAL_STATUS = 5;
+const normalizeStatus = value => value !== null && value !== undefined && value !== "" && Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 5 ? Number(value) : NEUTRAL_STATUS;
 let state = { games: [], sessions: [], session: null, favorites: [], profiles: [{ id: "main", name: "Profil principal" }], activeProfileId: "main", meta: {} };
 try {
   const stored = JSON.parse(fs.readFileSync(DATA, "utf8"));
-  state.games = Array.isArray(stored.games) ? stored.games : [];
+  state.games = Array.isArray(stored.games) ? stored.games.map(game => game && typeof game === "object" ? { ...game, s: normalizeStatus(game.s) } : game) : [];
   state.sessions = Array.isArray(stored.sessions) ? stored.sessions : [];
   state.favorites = Array.isArray(stored.favorites) ? stored.favorites : [];
   state.profiles = Array.isArray(stored.profiles) && stored.profiles.length ? stored.profiles : state.profiles;
@@ -119,6 +131,9 @@ try {
   const cached = JSON.parse(fs.readFileSync(META_FILE, "utf8"));
   if (cached && typeof cached === "object") state.meta = { ...state.meta, ...cached };
 } catch (e) {}
+let psnReference={};
+try { psnReference=JSON.parse(fs.readFileSync(path.join(DATA_DIR,"psn-reference.json"),"utf8")); } catch {}
+const coopIndex=createCoopIndex(DATA_DIR,atomicWrite);
 const disc = { status: "démarrage", playing: null };
 const ckey = n => String(n || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[®™©]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 state.favorites = [...new Set(state.favorites.map(ckey).filter(Boolean))];
@@ -134,8 +149,9 @@ function save() {
 }
 function writeLibrary() {
   clearTimeout(saveTimer);
-  try { atomicWrite(DATA, { version: 1, games: state.games, sessions: state.sessions, favorites: state.favorites, profiles: state.profiles, activeProfileId: state.activeProfileId }); }
-  catch (e) { console.log("Sauvegarde impossible :", e.message); }
+  onCoverLibraryChange();
+  try { atomicWrite(DATA, { version: 1, games: state.games, sessions: state.sessions, favorites: state.favorites, profiles: state.profiles, activeProfileId: state.activeProfileId }); return true; }
+  catch (e) { console.log("Sauvegarde impossible :", e.message); return false; }
 }
 function saveRecap() { try { atomicWrite(RECAP_FILE, recap); } catch (e) { console.log("Sauvegarde du récap impossible :", e.message); } }
 function saveMeta() {
@@ -167,12 +183,25 @@ function localInstallIndex(force = false) {
   }
   return steamInstallCache;
 }
+let steamPlaytimeCache;
+function localSteamPlaytime(force = false) {
+  if (force || !steamPlaytimeCache || Date.now() - steamPlaytimeCache.at > 60000) {
+    let times = new Map();
+    try { times = getSteamPlaytime(); } catch {}
+    steamPlaytimeCache = { at: Date.now(), times };
+  }
+  return steamPlaytimeCache.times;
+}
 function playDetailsIndex() {
   const installed = localInstallIndex();
+  const steamTimes = localSteamPlaytime();
   return Object.fromEntries(state.games.map(g => {
     const key = ckey(g.n), m = state.meta[metaKey(g.n)] || {};
     const installedId = installed.names.get(key) || (installed.ids.has(m.localSteamId) ? m.localSteamId : null);
-    return [key, { ...m.playDetails, installedId }];
+    const steamAppId = installedId || m.appId || m.localSteamId || null;
+    const steamInfo = steamAppId ? steamTimes.get(String(steamAppId)) : null;
+    return [key, { ...m.playDetails, psnMinutes:psnReference[key], installedId, steamAppId,
+      steamMinutes: steamInfo?.minutes || 0, steamLastPlayed: steamInfo?.lastPlayed || 0 }];
   }));
 }
 function validPortrait(bytes) {
@@ -186,7 +215,10 @@ function savePlayMeta(key, patch) {
   broadcast();
 }
 async function downloadSteamPortrait(id) {
-  for (const filename of ['library_600x900_2x.jpg', 'library_600x900.jpg']) {
+  return downloadSteamArt(id, ['library_600x900_2x.jpg', 'library_600x900.jpg'], validPortrait);
+}
+async function downloadSteamArt(id, files, validate) {
+  for (const filename of files) {
     try {
       const response = await fetch('https://cdn.cloudflare.steamstatic.com/steam/apps/' + id + '/' + filename, { signal: AbortSignal.timeout(7000) });
       if (!response.ok) continue;
@@ -201,13 +233,23 @@ async function downloadSteamPortrait(id) {
       }
       if (length > 8 * 1024 * 1024) continue;
       const bytes = Buffer.concat(chunks);
-      if (validPortrait(bytes)) return bytes;
+      if (validate(bytes)) return bytes;
     } catch {}
   }
   return null;
 }
 
-function steamPortraitIndex(){const result={};for(const g of state.games){const m=state.meta[metaKey(g.n)],portrait=m?.playPortrait || m?.steamPortrait;if(portrait&&fs.existsSync(path.join(COVERS,path.basename(portrait.f))))result[ckey(g.n)]=portrait;}return result;}
+function artworkIndices() {
+  const files = coverIndex(), covers = {}, steamCovers = {};
+  for (const game of state.games) {
+    const key = ckey(game.n);
+    const {wide,tall} = selectArtwork(COVERS,game.n,files[key],state.meta[metaKey(game.n)],files);
+    if (wide) covers[key] = wide;
+    if (tall) steamCovers[key] = tall;
+  }
+  return {covers,steamCovers};
+}
+function steamPortraitIndex() { return artworkIndices().steamCovers; }
 function importLocalSteam(){
  const roots=steamRoots();if(!roots.length)return {ok:false,message:"Steam n’a pas été trouvé sur cet ordinateur."};
  steamInstallCache=null;
@@ -221,20 +263,162 @@ function importLocalSteam(){
  }
  saveMeta();writeLibrary();broadcast();return {ok:true,installed:installed.length,added,portraits,total:state.games.length};
 }
-let portraitJob=null;
-async function completeVerticalCovers(){
- const available=steamPortraitIndex();
- const games=state.games.filter(g=>!available[ckey(g.n)]);let added=0,next=0;
- async function worker(){while(next<games.length){const game=games[next++];try{
- const key=metaKey(game.n),old=state.meta[key]||{};let appId=Number(old.appId)||0;
- if(!appId){const result=await getJson('https://store.steampowered.com/api/storesearch/?'+new URLSearchParams({term:game.n,l:'english',cc:'us'}));const match=(result.items||[]).find(x=>ckey(x.name)===ckey(game.n));appId=Number(match?.id)||0;}if(!appId)continue;
- const found=await downloadSteamPortrait(appId);
- if(!found)continue;const filename='steam-'+appId+'-portrait.jpg',target=path.join(COVERS,filename);fs.writeFileSync(target+'.tmp',found);fs.renameSync(target+'.tmp',target);
- state.meta[key]={...(state.meta[key]||{title:game.n}),appId,steamPortrait:{f:filename,v:Math.round(fs.statSync(target).mtimeMs)}};added++;
- }catch{}}}
- await Promise.all([worker(),worker(),worker()]);saveMeta();broadcast();return {ok:true,added,total:Object.keys(steamPortraitIndex()).length,missing:state.games.length-Object.keys(steamPortraitIndex()).length};
+function syncSteamState() {
+  steamInstallCache = null;
+  steamPlaytimeCache = null;
+  const installed = installedSteamGames();
+  const byName = new Map(installed.map(game => [ckey(game.name), game.appId]));
+  const ids = new Set(installed.map(game => game.appId));
+  const times = localSteamPlaytime(true);
+  let linked = 0, playtime = 0;
+  for (const game of state.games) {
+    const key = metaKey(game.n), meta = state.meta[key] || { title: game.n };
+    const appId = byName.get(ckey(game.n)) || (ids.has(Number(meta.localSteamId)) ? Number(meta.localSteamId) : null);
+    const steam = appId ? times.get(String(appId)) : null;
+    const next = { ...meta, localSteamId: appId || meta.localSteamId || null, steamSyncedAt: Date.now() };
+    if (steam) {
+      next.playDetails = { ...(meta.playDetails || {}), steamMinutes: steam.minutes || 0, steamLastPlayed: steam.lastPlayed || 0 };
+      if (steam.minutes) playtime++;
+    }
+    if (appId) linked++;
+    if (JSON.stringify(next) !== JSON.stringify(meta)) state.meta[key] = next;
+  }
+  saveMeta();
+  broadcast();
+  return { ok: true, installed: installed.length, linked, playtime, account: steamAccount(steamRoots())?.accountId || null };
 }
-const payload = () => ({ games: state.games, sessions: state.sessions, session: state.session, favorites: state.favorites, profiles: state.profiles, activeProfileId: state.activeProfileId, recap, discord: { status: disc.status, playing: disc.playing }, covers: coverIndex(), steamCovers: steamPortraitIndex(), playDetails: playDetailsIndex() });
+let steamSummaryCache = { at: 0, value: null };
+function steamSummary(force = false) {
+  if (!force && steamSummaryCache.value && Date.now() - steamSummaryCache.at < 60000) return steamSummaryCache.value;
+  const details = playDetailsIndex(), summaries = {};
+  for (const game of state.games) {
+    const key = ckey(game.n), appId = String(details[key]?.steamAppId || "").match(/^\d{1,10}$/)?.[0];
+    if (!appId) continue;
+    try { summaries[key] = getSteamAchievementSummary(appId, { refresh: force }); }
+    catch { summaries[key] = { ok: false, error: "lecture-impossible", appId }; }
+  }
+  steamSummaryCache = { at: Date.now(), value: summaries };
+  return summaries;
+}
+const HOUR = 3600000;
+const ART_FORMAT_VERSION = 3;
+let portraitJob, coverTimer, coverLibrarySignature;
+function scheduleCovers() {
+  if (!coverTimer) coverTimer = setTimeout(() => {
+    coverTimer = null;
+    if (portraitJob) { portraitJob.then(scheduleCovers, scheduleCovers); return; }
+    runCoverSync().catch(() => {});
+  }, 2000);
+}
+function onCoverLibraryChange() {
+  const signature = JSON.stringify(state.games.map(game => ckey(game.n)).sort());
+  if (signature === coverLibrarySignature) return;
+  coverLibrarySignature = signature;
+  scheduleCovers();
+}
+function runCoverSync(force = false) {
+  if (!portraitJob) portraitJob = syncSteamArt(force).finally(() => { portraitJob = null; });
+  return portraitJob;
+}
+function writeArt(filename, bytes) {
+  const target = path.join(COVERS, filename);
+  if (fs.existsSync(target) && fs.readFileSync(target).equals(bytes)) return false;
+  fs.writeFileSync(target + '.tmp', bytes);
+  fs.renameSync(target + '.tmp', target);
+  return true;
+}
+function artRecord(filename) {
+  return {f:filename, v:Math.round(fs.statSync(path.join(COVERS, filename)).mtimeMs)};
+}
+async function syncSteamArt(force) {
+  const games = state.games.filter(game => {
+    const m = state.meta[metaKey(game.n)] || {};
+    return m.playDetails?.kind !== 'app' && (force || m.artFormatVersion !== ART_FORMAT_VERSION || !(m.artRetryAt > Date.now()));
+  });
+  if (!games.length) {
+    const total = Object.keys(steamPortraitIndex()).length;
+    return {ok:true, added:0, total, missing:state.games.length-total};
+  }
+  const wide = coverIndex(), portraits = steamPortraitIndex(), roots = steamRoots();
+  const installed = new Map(installedSteamGames(roots).map(game => [ckey(game.name), game.appId]));
+  let added = 0, next = 0, notifyTimer;
+  function publishSoon() {
+    if (!notifyTimer) notifyTimer = setTimeout(() => {
+      notifyTimer = null;
+      broadcast();
+    }, 1000);
+  }
+  async function update(game) {
+    const name = ckey(game.n), key = metaKey(game.n), old = state.meta[key] || {};
+    const touch = fields => Object.assign(state.meta[key] ||= {title:game.n}, fields);
+    const ownedWide = file => file && old.autoBanner && old.autoBanner.f === file.f && old.autoBanner.v === file.v;
+    const selected = selectArtwork(COVERS,game.n,wide[name],old,wide,{allowNearSquare:false});
+    const needsWide = !old.coverManual && !old.autoBannerOff && (!selected.wide || ownedWide(wide[name]));
+    const needsTall = !selected.tall || (!force && selected.tall.f === old.steamPortrait?.f);
+    if (!needsWide && !needsTall && (selected.wide || old.autoBannerOff) && selected.tall) { touch({artFormatVersion:ART_FORMAT_VERSION,artRetryAt:Date.now()+30*24*HOUR}); saveMeta(); return; }
+    let retry = 6 * HOUR;
+    let id;
+    try {
+      id = installed.get(name) || old.localSteamId || (ckey(old.title || game.n) === name && old.appId);
+      if (!id) {
+        const search = await getJson('https://store.steampowered.com/api/storesearch/?'+new URLSearchParams({term:game.n,l:'english',cc:'us'}));
+        id = search.items?.find(hit => ckey(hit.name) === name)?.id;
+        if (!id) { retry = 7*24*HOUR; return; }
+      }
+      if (!/^\d{1,10}$/.test(String(id))) return;
+      let complete = true;
+      if (needsTall) {
+        const local = localPortrait(id, roots);
+        const bytes = local?.bytes || await downloadSteamPortrait(id);
+        if (bytes) {
+          const filename = 'steam-'+id+'-portrait'+(local?.extension || '.jpg');
+          const changed = writeArt(filename, bytes);
+          touch({steamPortrait:artRecord(filename)});
+          if (!portraits[name]) added++;
+          if (changed || portraits[name]?.f !== filename) publishSoon();
+        } else complete = false;
+      }
+      if (needsWide) {
+        const bytes = await downloadSteamArt(id, ['header.jpg'], data => {
+          const size = imageSize(data);
+          return size && size[0] >= 300 && size[0] > size[1];
+        });
+        if (bytes) {
+          // Une image choisie pendant le téléchargement garde la priorité.
+          const current = coverIndex()[name], m = state.meta[key];
+          if (!m?.coverManual && !m?.autoBannerOff && (!current || ownedWide(current))) {
+            const filename = name+'.jpg';
+            if (writeArt(filename, bytes)) publishSoon();
+            touch({autoBanner:artRecord(filename)});
+          }
+        } else complete = false;
+      }
+      retry = complete ? 30*24*HOUR : 6*HOUR;
+    } finally {
+      const current = state.meta[key] || old, files = coverIndex();
+      const available = selectArtwork(COVERS,game.n,files[name],current,files,{allowNearSquare:false});
+      const missing = ['wide','tall'].filter(kind => !available[kind] && !(kind==='wide' && current.autoBannerOff));
+      if (missing.length) {
+        const found = await fillArtwork(COVERS,game.n,missing,id);
+        if (found.length) { publishSoon(); if(found.includes('tall')) added++; }
+        retry = found.length === missing.length ? 30*24*HOUR : Math.min(7*24*HOUR,retry);
+      }
+      touch({artFormatVersion:ART_FORMAT_VERSION,artRetryAt:Date.now()+retry}); saveMeta();
+    }
+  }
+  async function worker() {
+    while (next < games.length) {
+      const game = games[next++];
+      try { await update(game); } catch {}
+      if (next < games.length) await new Promise(resolve => setTimeout(resolve, 400));
+    }
+  }
+  await Promise.all([worker(), worker()]);
+  if (notifyTimer) { clearTimeout(notifyTimer); broadcast(); }
+  const total = Object.keys(steamPortraitIndex()).length;
+  return {ok:true, added, total, missing:state.games.length-total};
+}
+const payload = () => ({ games: state.games, sessions: state.sessions, session: state.session, favorites: state.favorites, profiles: state.profiles, activeProfileId: state.activeProfileId, recap, discord: { status: disc.status, playing: disc.playing }, ...artworkIndices(), playDetails: playDetailsIndex() });
 const clients = new Set();
 function broadcast() { const d = "data: " + JSON.stringify(payload()) + "\n\n"; for (const r of clients) r.write(d); }
 const metaKey = name => crypto.createHash("sha1").update(ckey(name)).digest("hex");
@@ -278,6 +462,8 @@ async function saveRemoteCover(name, url) {
     const ext = type === "image/png" ? ".png" : type === "image/webp" ? ".webp" : type === "image/jpeg" ? ".jpg" : "";
     if (!ext) return "";
     const filename = key + ext, target = path.join(COVERS, filename);
+    const latest = coverIndex()[key];
+    if (latest) return "/covers/" + encodeURIComponent(latest.f) + "?v=" + latest.v;
     fs.writeFileSync(target, bytes);
     const v = Math.round(fs.statSync(target).mtimeMs);
     return "/covers/" + encodeURIComponent(filename) + "?v=" + v;
@@ -385,10 +571,12 @@ function findGame(name) {
   }
   return best;
 }
-function startSession(name) {
+function startSession(name, source="discord") {
   let g = findGame(name);
   if (!g) { g = { n: String(name).replace(/[®™©]/g, "").trim(), s: 2, c: 0, m: 0, t: 0 }; state.games.push(g); console.log("Nouveau jeu ajouté :", g.n); }
-  state.session = { id: crypto.randomUUID(), name: g.n, start: Date.now(), mins: 0 };
+  // Lancer un jeu ou démarrer une session ne doit jamais changer son statut.
+  g.s = normalizeStatus(g.s);
+  state.session = { id: crypto.randomUUID(), name: g.n, start: Date.now(), mins: 0, source };
   g.t = Date.now(); save();
   console.log("Session démarrée :", g.n);
   scheduleEnrichment(g.n);
@@ -404,11 +592,17 @@ function endSession() {
   if (!state.session) return;
   tickSession();
   const current = { ...state.session }, ended = Date.now();
-  state.sessions.push({ id: current.id, game: current.name, start: current.start, end: ended, durationMs: Math.max(0, ended - current.start), minutes: Math.max(0, current.mins) });
+  state.sessions.push({ id: current.id, source:current.source, game: current.name, start: current.start, end: ended, durationMs: Math.max(0, ended - current.start), minutes: Math.max(0, current.mins) });
   const g = state.games.find(x => x.n === current.name); if (g) g.t = ended;
   console.log("Session terminée :", current.name);
-  state.session = null; save();
+  state.session = null;
+  const persisted=writeLibrary();
   broadcast();
+  if(persisted){
+    const receipt=state.sessions.at(-1);
+    for(const client of clients)client.write("event: session-saved\ndata: "+JSON.stringify(receipt)+"\n\n");
+  }
+  return persisted;
 }
 let rawPlaying = null;
 function setPlaying(name) {
@@ -422,8 +616,34 @@ function setPlaying(name) {
 }
 setInterval(tickSession, Math.min(10000, MINUTE));
 
+function saveCinema(next) {
+  const document = withCinemaStatistics(cinema, next);
+  atomicWrite(CINEMA_FILE, document);
+  cinema = document;
+}
+
 /* ---------- Discord ---------- */
-function playingFrom(p) { const a = p && (p.activities || []).find(x => x.type === 0); return a ? a.name : null; }
+let videoActivities = [], cinemaDirty = false;
+const viewing = createViewingTracker({
+  items: () => cinema.items,
+  save(item) {
+    const next = {...cinema,items:cinema.items.map(x=>x.id===item.id?item:x)};
+    saveCinema(next);
+    cinemaDirty=true;
+  },
+  notify() {
+    const message=JSON.stringify({view:viewing.snapshot(),refresh:cinemaDirty});
+    cinemaDirty=false;
+    for(const client of clients)client.write("event: cinema-viewing\ndata: "+message+"\n\n");
+  }
+});
+function applyPresence(p) {
+  const activities=p?.activities || [];
+  videoActivities=activities.filter(isVideoActivity);
+  viewing.update(videoActivities);
+  setPlaying(activities.find(a=>a.type===0 && !isVideoActivity(a))?.name || null);
+}
+setInterval(()=>viewing.tick(),10000).unref();
 function startDiscord() {
   let D; try { D = require("discord.js"); } catch (e) { disc.status = "discord.js manquant (npm i discord.js)"; console.log(disc.status); return; }
   if (!TOKEN || !USER_ID) { disc.status = "non configuré (.env)"; console.log("Token ou ID utilisateur introuvable dans .env"); return; }
@@ -434,10 +654,15 @@ function startDiscord() {
     disc.status = "connecté"; console.log("Discord connecté.");
     const guild = GUILD_ID ? c.guilds.cache.get(GUILD_ID) : c.guilds.cache.first();
     const pr = guild && guild.presences.cache.get(USER_ID);
-    setPlaying(playingFrom(pr)); broadcast();
+    applyPresence(pr); broadcast();
   };
   c.once("ready", onReady); c.once("clientReady", onReady);
-  c.on("presenceUpdate", (_o, n) => { if (n && n.userId === USER_ID && (!GUILD_ID || n.guild.id === GUILD_ID)) setPlaying(playingFrom(n)); });
+  c.on("presenceUpdate", (_o, n) => { if (n && n.userId === USER_ID && (!GUILD_ID || n.guild.id === GUILD_ID)) applyPresence(n); });
+  c.on("shardDisconnect",(_event,shardId)=>{
+    const guild=GUILD_ID?c.guilds.cache.get(GUILD_ID):c.guilds.cache.first();
+    if(!guild || guild.shardId===shardId){ videoActivities=[]; viewing.update([]); }
+  });
+  c.on("shardResume",()=>{const guild=GUILD_ID?c.guilds.cache.get(GUILD_ID):c.guilds.cache.first();applyPresence(guild?.presences.cache.get(USER_ID));});
   c.on("error", e => console.log("Erreur Discord :", e.message));
   c.login(TOKEN).catch(e => { disc.status = "connexion refusée"; console.log("Connexion Discord impossible :", e.message); broadcast(); });
 }
@@ -467,8 +692,8 @@ http.createServer(async (req, res) => {
   if (url.startsWith("/themes/") && req.method === "GET") {
     let relative = ""; try { relative = decodeURIComponent(url.slice("/themes/".length)); } catch (e) { res.writeHead(400); return res.end("Bad path"); }
     const root = path.resolve(THEMES_DIR), file = path.resolve(root, relative), ext = path.extname(file).toLowerCase();
-    if (!file.startsWith(root + path.sep) || ![".js", ".css", ".json", ".woff2"].includes(ext) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404); return res.end("Not found"); }
-    const type = ext === ".js" ? "text/javascript; charset=utf-8" : ext === ".css" ? "text/css; charset=utf-8" : ext === ".woff2" ? "font/woff2" : "application/json; charset=utf-8";
+    if (!file.startsWith(root + path.sep) || ![".js", ".css", ".json", ".woff2", ".webp"].includes(ext) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404); return res.end("Not found"); }
+    const type = ext === ".js" ? "text/javascript; charset=utf-8" : ext === ".css" ? "text/css; charset=utf-8" : ext === ".webp" ? "image/webp" : ext === ".woff2" ? "font/woff2" : "application/json; charset=utf-8";
     res.writeHead(200, { "Content-Type": type, "Cache-Control": "no-cache" }); return res.end(fs.readFileSync(file));
   }
   if (url === "/app-config.json" && req.method === "GET") return json(200, APP_CONFIG);
@@ -503,7 +728,10 @@ http.createServer(async (req, res) => {
       if (!fields || !['game','app'].includes(fields.kind) || typeof fields.note !== 'string' || fields.note.length > 2000) return json(400, {error: 'Fiche invalide.'});
       const validTags = tags => Array.isArray(tags) && tags.length <= 20 && tags.every(t => typeof t === 'string' && t.trim().length > 0 && t.length <= 60);
       if (!validTags(fields.collections) || !validTags(fields.platforms)) return json(400, {error: '20 noms maximum, 60 caractères par nom.'});
-      savePlayMeta(key, {playDetails: {kind: fields.kind, note: fields.note, collections: [...new Set(fields.collections.map(t=>t.trim()))], platforms: [...new Set(fields.platforms.map(t=>t.trim()))]}});
+      const rating = Math.max(0, Math.min(5, Number(fields.rating) || 0));
+      const review = typeof fields.review === 'string' ? fields.review.trim().slice(0, 500) : '';
+      const previous = state.meta[key]?.playDetails || {};
+      savePlayMeta(key, {playDetails: {...previous, kind: fields.kind, note: fields.note, collections: [...new Set(fields.collections.map(t=>t.trim()))], platforms: [...new Set(fields.platforms.map(t=>t.trim()))], rating, review}});
       return json(200, {ok: true});
     } catch { return json(400, {error: 'Impossible d’enregistrer la fiche.'}); }
   }
@@ -524,7 +752,7 @@ http.createServer(async (req, res) => {
     } catch { return json(400, {error: 'Jaquette indisponible ou fichier trop grand.'}); }
   }
 
-  if(url==="/api/steam/portraits"&&req.method==="POST"){try{if(!portraitJob)portraitJob=completeVerticalCovers().finally(()=>{portraitJob=null;});return json(200,await portraitJob);}catch{return json(500,{ok:false,message:"Recherche des jaquettes momentanément indisponible"});}}
+  if(url==="/api/steam/portraits"&&req.method==="POST"){try{return json(200,await runCoverSync(true));}catch{return json(500,{ok:false,message:"Recherche des jaquettes momentanément indisponible"});}}
   if(url==="/api/steam/import"&&req.method==="POST"){try{return json(200,importLocalSteam());}catch(error){return json(500,{ok:false,message:"L’import Steam local a échoué. Réessaie après avoir ouvert Steam."});}}
   if (url === "/api/search-games" && req.method === "GET") {
     const name = (parsed.searchParams.get("name") || "").trim(); if (!name) return json(400, { error: "nom manquant" });
@@ -553,7 +781,7 @@ http.createServer(async (req, res) => {
     const metaId = metaKey(rawKey), current = state.meta[metaId] || { title: rawKey, source: "" };
     if (req.method === "DELETE") {
       for (const f of matching()) { try { fs.unlinkSync(path.join(COVERS, f)); } catch (e) {} }
-      delete current.cover; current.image = ""; current.coverManual = false; state.meta[metaId] = current; saveMeta(); broadcast();
+      delete current.cover; current.autoBannerOff = true; current.image = ""; current.coverManual = false; state.meta[metaId] = current; saveMeta(); broadcast();
       return json(200, { ok: true });
     }
     try {
@@ -569,6 +797,38 @@ http.createServer(async (req, res) => {
       state.meta[metaId] = { ...current, image: "", cover: "/covers/" + encodeURIComponent(filename) + "?v=" + v, coverManual: true, checkedAt: current.checkedAt || Date.now() };
       saveMeta(); broadcast(); return json(200, { ok: true, cover: { f: filename, v } });
     } catch (e) { return json(400, { error: "image impossible à enregistrer" }); }
+  }
+  if (url === "/api/steam/achievements" && req.method === "GET") {
+    try {
+      const params = new URL(req.url, "http://127.0.0.1").searchParams;
+      const name = params.get("name") || "";
+      const mapped = name ? playDetailsIndex()[ckey(name)]?.steamAppId : null;
+      const appId = String(params.get("appId") || mapped || "").match(/^\d{1,10}$/)?.[0];
+      if (!appId) return json(404, { ok: false, error: "appid-introuvable" });
+      return json(200, getSteamAchievements(appId, { refresh: params.get("refresh") === "1" }));
+    } catch (error) {
+      return json(500, { ok: false, error: "lecture-impossible", message: error.message });
+    }
+  }
+  if (url === "/api/steam/summary" && req.method === "GET") {
+    try {
+      const params = new URL(req.url, "http://127.0.0.1").searchParams;
+      const refresh = params.get("refresh") === "1";
+      let summaries = steamSummary(refresh);
+      const appId = String(params.get("appId") || "").match(/^\d{1,10}$/)?.[0];
+      if (appId) {
+        const key = Object.keys(summaries).find(name => String(summaries[name]?.appId) === appId);
+        summaries = key ? { [key]: summaries[key] } : {};
+      }
+      return json(200, { ok: true, summaries });
+    } catch (error) { return json(500, { ok: false, error: "lecture-impossible", message: error.message }); }
+  }
+  if (url === "/api/steam/sync" && req.method === "POST") {
+    try { return json(200, syncSteamState()); }
+    catch (error) { return json(500, { ok: false, error: "synchronisation-impossible", message: error.message }); }
+  }
+  if (url === "/api/steam/coop" && (req.method==="POST" || req.method==="GET")) {
+    return json(200, req.method==="GET" ? coopIndex.snapshot() : coopIndex.start(Object.values(playDetailsIndex()).map(d=>d.steamAppId)));
   }
   if (url === "/api/state" && req.method === "GET") return json(200, payload());
   if (url === "/api/cinema/tmdb-key" && req.method === "GET") return json(200, { configured: fs.existsSync(TMDB_KEY_FILE) && !!fs.readFileSync(TMDB_KEY_FILE, "utf8").trim() });
@@ -600,8 +860,53 @@ http.createServer(async (req, res) => {
       const item = await response.json();
       const date = item.release_date || item.first_air_date || "";
       const runtime = type === "movie" ? item.runtime : (Array.isArray(item.episode_run_time) && item.episode_run_time.length ? Math.round(item.episode_run_time.reduce((a,b)=>a+b,0)/item.episode_run_time.length) : null);
-      return json(200, { id: Number(item.id), title: item.title || item.name || "", originalTitle: item.original_title || item.original_name || "", date, releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "", posterPath: item.poster_path || "", overview: item.overview || "", genres: Array.isArray(item.genres) ? item.genres.map(g=>String(g.name||"")).filter(Boolean).slice(0,20) : [], runtime: Number.isInteger(runtime) && runtime > 0 ? runtime : null });
+      const last = item.last_episode_to_air, next = item.next_episode_to_air;
+      const countOrNull = value => Number.isInteger(value) && value >= 0 ? value : null;
+      const episodeGuide = type === "tv" && Array.isArray(item.seasons) ? {
+        tvId: Number(item.id), total: countOrNull(item.number_of_episodes),
+        specials: countOrNull(item.seasons.find(s => s.season_number === 0)?.episode_count),
+        seasons: Object.fromEntries(item.seasons.filter(s => Number.isInteger(s.season_number) && s.season_number > 0)
+          .map(s => [s.season_number, countOrNull(s.episode_count)])),
+        nextAir: next?.season_number > 0 && next?.episode_number > 0 ? {s:next.season_number,e:next.episode_number,date:next.air_date || null} : null,
+        aired: last?.season_number > 0 && last?.episode_number > 0 ? {s:last.season_number,e:last.episode_number} : null,
+        ended: ["Ended","Canceled"].includes(item.status)
+      } : null;
+      return json(200, { episodeGuide, id: Number(item.id), title: item.title || item.name || "", originalTitle: item.original_title || item.original_name || "", date, releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "", posterPath: item.poster_path || "", overview: item.overview || "", genres: Array.isArray(item.genres) ? item.genres.map(g=>String(g.name||"")).filter(Boolean).slice(0,20) : [], runtime: Number.isInteger(runtime) && runtime > 0 ? runtime : null });
     } catch (error) { return json(502, { error: "Impossible de charger la fiche TMDB" }); }
+  }
+  if (url === "/api/cinema/episode" && req.method === "POST") {
+    let input;
+    try { input = JSON.parse(await body(req, 2000)); } catch { return json(400,{error:"Progression invalide."}); }
+    const item = cinema.items.find(x => x.id === input?.id && x.type === "series");
+    if (!item) return json(404,{error:"Série introuvable."});
+    const season = Number(item.season) || 0, episode = Number(item.episode) || 0;
+    if (item.status !== "watching" || season !== Number(input.season) || episode !== Number(input.episode))
+      return json(409,{error:"La progression a déjà changé.",item});
+    const next = input.next;
+    if (!next || !Number.isInteger(next.season) || next.season < 1 || next.season > 1000 ||
+        !Number.isInteger(next.episode) || next.episode < 1 || next.episode > 10000 ||
+        !((next.season === (season || 1) && next.episode === episode + 1 && (episode || !season)) ||
+          (next.season === season + 1 && next.episode === 1)))
+      return json(400,{error:"Épisode invalide."});
+    const at=Date.now();
+    const updated = {...item,season:next.season,episode:next.episode,progressUpdatedAt:at,
+      episodeHistory:[...(item.episodeHistory||[]),{s:next.season,e:next.episode,at}]};
+    if (next.final === true) {
+      updated.status="watched";
+      const now=new Date();
+      const day=[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");
+      updated.watchedAt=day; updated.firstWatchedAt ||= day;
+      updated.watchedDates=[...new Set([...(item.watchedDates || []),day])].sort();
+    }
+    const changed={...cinema,items:cinema.items.map(x=>x===item?updated:x)};
+    try { saveCinema(changed); } catch { return json(500,{error:"Impossible d’enregistrer cet épisode sur le disque."}); }
+    return json(200,{item:updated});
+  }
+  if (url === "/api/cinema/viewing/confirm" && req.method === "POST") {
+    try {
+      const {key}=JSON.parse(await body(req,2000));
+      return viewing.confirm(key)?json(200,{ok:true}):json(409,{error:"La lecture a changé."});
+    } catch {return json(400,{error:"Validation impossible."});}
   }
   if (url === "/api/cinema" && req.method === "GET") return json(200, cinema);
   if (url === "/api/cinema" && req.method === "PUT") {
@@ -609,6 +914,7 @@ http.createServer(async (req, res) => {
       const input = JSON.parse(await body(req, 2 * 1024 * 1024));
       if (!Array.isArray(input.items) || input.items.length > 5000) return json(400, { error: "Liste de films invalide" });
       const items = [];
+      const previousById = new Map(cinema.items.map(item=>[item.id,item]));
       for (const raw of input.items) {
         const title = String(raw?.title || "").trim(), type = raw?.type, status = raw?.status;
         if (!title || title.length > 200 || !["film", "series"].includes(type) || !["watchlist", "watching", "watched"].includes(status)) return json(400, { error: "Une fiche de film ou série est invalide" });
@@ -626,10 +932,17 @@ http.createServer(async (req, res) => {
         const genres = Array.isArray(raw.genres) ? [...new Set(raw.genres.map(value=>String(value).trim()).filter(Boolean))].slice(0, 20) : [];
         const runtime = Number.isInteger(Number(raw.runtime)) && Number(raw.runtime) > 0 && Number(raw.runtime) <= 1000 ? Number(raw.runtime) : null;
         const releaseDate = /^\d{4}-\d{2}-\d{2}$/.test(String(raw.releaseDate || "")) ? String(raw.releaseDate) : null;
-        items.push({ id: String(raw.id || crypto.randomUUID()).slice(0, 100), title, type, year: releaseDate ? Number(releaseDate.slice(0,4)) : year, releaseDate, status, rating, poster, season, episode, watchedAt, firstWatchedAt, watchedDates, tmdbId, overview, originalTitle, genres, runtime, addedAt: Math.max(0, Number(raw.addedAt) || Date.now()) });
+        const previous = previousById.get(raw.id);
+        const newerProgress = previous?.progressUpdatedAt && previous.progressUpdatedAt > (Number(raw.progressUpdatedAt) || 0);
+        items.push({ id: String(raw.id || crypto.randomUUID()).slice(0, 100), title, type, year: releaseDate ? Number(releaseDate.slice(0,4)) : year, releaseDate, status, rating, poster, season, episode, watchedAt, firstWatchedAt, watchedDates, tmdbId, overview, originalTitle, genres, runtime, addedAt: Math.max(0, Number(raw.addedAt) || Date.now()), ...(previous?.progressUpdatedAt ? {progressUpdatedAt:previous.progressUpdatedAt} : {}), ...(previous?.episodeHistory ? {episodeHistory:previous.episodeHistory} : {}) });
+        if (newerProgress) {
+          for (const key of ["status","season","episode","watchedAt","firstWatchedAt","watchedDates"])
+            items.at(-1)[key]=previous[key];
+        }
       }
-      cinema = { version: 1, items };
-      atomicWrite(CINEMA_FILE, cinema);
+      const nextCinema = { ...cinema, items };
+      saveCinema(nextCinema);
+      viewing.update(videoActivities);
       return json(200, { ok: true, count: items.length });
     } catch (e) { return json(400, { error: "Impossible d’enregistrer les films et séries" }); }
   }
@@ -652,26 +965,27 @@ http.createServer(async (req, res) => {
     try {
       const value = JSON.parse(await body(req, 12000));
       if (value.lastOpened !== null && (!value.lastOpened || typeof value.lastOpened.name !== "string" || !Number.isFinite(+value.lastOpened.at))) return json(400, { error: "dernier jeu invalide" });
-      recap = { version: 1, lastOpened: value.lastOpened ? { name: value.lastOpened.name.slice(0, 200), at: +value.lastOpened.at, scrollTop: Math.max(0, +value.lastOpened.scrollTop || 0) } : null, recent: Array.isArray(value.recent) ? value.recent.filter(x => x && typeof x.name === "string" && Number.isFinite(+x.at)).slice(0, 20).map(x => ({ name: x.name.slice(0, 200), at: +x.at })) : [], gameStats: value.gameStats && typeof value.gameStats === "object" && !Array.isArray(value.gameStats) ? value.gameStats : {} };
+      recap = { version: 1, lastOpened: value.lastOpened ? { name: value.lastOpened.name.slice(0, 200), at: +value.lastOpened.at, scrollTop: Math.max(0, +value.lastOpened.scrollTop || 0) } : null, recent: Array.isArray(value.recent) ? value.recent.filter(x => x && typeof x.name === "string" && Number.isFinite(+x.at)).slice(0, 20).map(x => ({ name: x.name.slice(0, 200), at: +x.at })) : [], gameStats: value.gameStats && typeof value.gameStats === "object" && !Array.isArray(value.gameStats) ? value.gameStats : {}, queue: Array.isArray(value.queue) ? value.queue.filter(name => typeof name === "string" && name.trim()).map(name => name.slice(0, 200)).slice(0, 50) : [] };
       saveRecap(); return json(200, { ok: true });
     } catch (e) { return json(400, { error: "Récap invalide" }); }
   }
   if (url === "/api/session/start" && req.method === "POST") {
-    try { const b = JSON.parse(await body(req, 2000)), name = String(b.name || "").trim(); if (!name) return json(400, { error: "jeu manquant" }); if (state.session) endSession(); startSession(name); broadcast(); return json(200, { ok: true }); }
+    try { const b = JSON.parse(await body(req, 2000)), name = String(b.name || "").trim(); if (!name) return json(400, { error: "jeu manquant" }); if (state.session) endSession(); startSession(name,"manual"); broadcast(); return json(200, { ok: true }); }
     catch (e) { return json(400, { error: "session impossible à démarrer" }); }
   }
-  if (url === "/api/session/stop" && req.method === "POST") { endSession(); return json(200, { ok: true }); }
+  if (url === "/api/session/stop" && req.method === "POST") { const ok=endSession()!==false; return json(ok?200:500, {ok}); }
   if (url === "/api/state" && req.method === "PUT") {
     try {
       const b = JSON.parse(await body(req));
       if (!Array.isArray(b.games)) return json(400, { error: "games manquant" });
       const known = new Set(state.games.map(g => ckey(g.n)));
-      state.games = b.games.filter(g => g && typeof g.n === "string" && g.n.trim()).map(g => ({ n: g.n, s: g.s | 0, c: g.c | 0, m: Math.max(0, g.m | 0), t: +g.t || 0, firstPlayed: Math.max(0, +g.firstPlayed || 0) }));
+      const priorGames=new Map(state.games.map(g=>[ckey(g.n),g]));
+      state.games = b.games.filter(g => g && typeof g.n === "string" && g.n.trim()).map(g => ({ n: g.n, s: normalizeStatus(g.s), c: g.c | 0, m: Math.max(0, g.m | 0), manualDelta: Number.isSafeInteger(g.manualDelta)?g.manualDelta:(priorGames.get(ckey(g.n))?.manualDelta||0), t: +g.t || 0, firstPlayed: Math.max(0, +g.firstPlayed || 0) }));
       if (Array.isArray(b.sessions)) {
         const byId = new Map();
         const keepSession = x => {
           if (!x || typeof x.game !== "string" || !Number.isFinite(+x.start)) return;
-          const session = { ...(typeof x.id === "string" ? { id: x.id } : {}), game: x.game, start: +x.start, end: Number.isFinite(+x.end) ? +x.end : null, durationMs: Math.max(0, +x.durationMs || 0), minutes: Math.max(0, +x.minutes || 0) };
+          const session = { ...(["manual","discord"].includes(x.source)?{source:x.source}:{}), ...(typeof x.id === "string" ? { id: x.id } : {}), game: x.game, start: +x.start, end: Number.isFinite(+x.end) ? +x.end : null, durationMs: Math.max(0, +x.durationMs || 0), minutes: Math.max(0, +x.minutes || 0) };
           const key = session.id ? `id:${session.id}` : `${ckey(session.game)}:${session.start}`;
           const previous = byId.get(key);
           byId.set(key, previous ? { ...previous, end: Math.max(previous.end || 0, session.end || 0) || null, durationMs: Math.max(previous.durationMs, session.durationMs), minutes: Math.max(previous.minutes, session.minutes) } : session);
@@ -694,6 +1008,7 @@ http.createServer(async (req, res) => {
   if (url === "/api/events") {
     res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
     res.write("retry: 2000\n\n"); clients.add(res);
+    res.write("event: cinema-viewing\ndata: "+JSON.stringify({view:viewing.snapshot(),refresh:true})+"\n\n");
     const hb = setInterval(() => res.write(": hb\n\n"), 25000);
     req.on("close", () => { clearInterval(hb); clients.delete(res); });
     return res.write("data: " + JSON.stringify(payload()) + "\n\n");
@@ -707,6 +1022,8 @@ http.createServer(async (req, res) => {
 }).listen(PORT, "127.0.0.1", () => {
   console.log(`Bibliothèque : http://127.0.0.1:${PORT}/`);
   console.log(`Token : ${TOKEN ? "ok" : "ABSENT"} · ID utilisateur : ${USER_ID ? "ok" : "ABSENT"} · ID serveur : ${GUILD_ID ? "ok" : "non précisé (1er serveur)"}`);
+  onCoverLibraryChange();
+  setInterval(scheduleCovers, HOUR).unref();
   startDiscord();
 });
 process.on("SIGINT", () => { endSession(); writeLibrary(); saveRecap(); process.exit(0); });

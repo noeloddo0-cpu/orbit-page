@@ -1,0 +1,453 @@
+/* Barre de lancement de la fiche jeu.
+   Un composant commun, une silhouette par thème. Les teintes viennent du
+   thème actif : plus de bleu générique posé par-dessus tous les habillages. */
+
+:root[data-orbit-shell] #panel .p-launchbar {
+  --lb-accent: var(--accent);
+  --lb-mark: var(--lb-accent);
+  --lb-ink: #0b0b0f;
+  --lb-line: var(--line, rgba(255,255,255,.12));
+  --lb-surface: var(--surface, #16161a);
+  --lb-surface-2: var(--surface-2, #222228);
+  --lb-muted: var(--muted, #8e8e93);
+  --lb-radius: var(--radius-control, 10px);
+  --lb-primary-bg: var(--lb-accent);
+  --lb-primary-hover: color-mix(in srgb, var(--lb-accent) 86%, var(--lb-ink));
+  --lb-primary-border: color-mix(in srgb, var(--lb-accent) 62%, var(--lb-ink));
+  --lb-primary-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+  --lb-primary-size: 15px;
+  --lb-secondary-size: 13px;
+  --lb-secondary-bg: transparent;
+  --lb-secondary-border: var(--lb-line);
+  --lb-secondary-hover: var(--lb-surface-2);
+  --lb-deck-bg: transparent;
+  --lb-deck-border: transparent;
+  --lb-deck-width: 0;
+  --lb-deck-padding: 0;
+  --lb-deck-radius: calc(var(--lb-radius) + 4px);
+  --lb-deck-shadow: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: var(--lb-deck-padding);
+  border-style: solid;
+  border-width: var(--lb-deck-width);
+  border-color: var(--lb-deck-border);
+  border-radius: var(--lb-deck-radius);
+  background: var(--lb-deck-bg);
+  box-shadow: var(--lb-deck-shadow);
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-launch-primary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 12px 18px;
+  border: 1px solid var(--lb-primary-border);
+  border-radius: var(--lb-radius);
+  color: var(--lb-ink);
+  background: var(--lb-primary-bg);
+  box-shadow: var(--lb-primary-shadow);
+  font-family: var(--font);
+  font-size: var(--lb-primary-size);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -.01em;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-launch-primary::before {
+  content: "";
+  flex: none;
+  width: 0;
+  height: 0;
+  border-block: 6px solid transparent;
+  border-left: 9px solid currentColor;
+  transform: translateX(1px);
+  opacity: .9;
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-launch-primary:hover {
+  background: var(--lb-primary-hover);
+  border-color: color-mix(in srgb, var(--lb-accent) 54%, var(--lb-ink));
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-launch-primary:active {
+  transform: translateY(1px);
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-launch-primary:disabled {
+  color: var(--lb-muted);
+  background: var(--lb-surface-2);
+  border-color: var(--lb-line);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-launch-primary:disabled::before {
+  opacity: .4;
+}
+
+:root[data-orbit-shell] #panel .p-launchbar :is(.p-play-session, .p-panel-queue) {
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--lb-secondary-border);
+  border-radius: calc(var(--lb-radius) - 1px);
+  color: var(--fg);
+  background: var(--lb-secondary-bg);
+  box-shadow: none;
+  font-family: var(--font);
+  font-size: var(--lb-secondary-size);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+:root[data-orbit-shell] #panel .p-launchbar :is(.p-play-session, .p-panel-queue):hover {
+  background: var(--lb-secondary-hover);
+  border-color: color-mix(in srgb, var(--lb-mark) 42%, var(--lb-secondary-border));
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-panel-queue[aria-pressed="true"] {
+  color: var(--lb-mark);
+  border-color: color-mix(in srgb, var(--lb-mark) 55%, var(--lb-secondary-border));
+  background: color-mix(in srgb, var(--lb-mark) 12%, var(--lb-secondary-bg));
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-launch-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0 2px;
+  color: var(--lb-muted);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+:root[data-orbit-shell] #panel .p-launchbar .p-launch-note[hidden] {
+  display: none;
+}
+
+:root[data-orbit-shell] #panel .p-launchbar :is(.p-launch-primary, .p-play-session, .p-panel-queue):focus-visible {
+  outline: 2px solid var(--lb-mark);
+  outline-offset: 2px;
+}
+
+/* Apple TV : pastille givrée, bouton clair, contrôle secondaire en verre. */
+:root[data-orbit-shell="apple-tv"] #panel .p-launchbar {
+  --lb-accent: #b9c6ff;
+  --lb-ink: #0b0d16;
+  --lb-radius: 12px;
+  --lb-primary-bg: linear-gradient(180deg, #ccd6ff, #aebcf8);
+  --lb-primary-hover: linear-gradient(180deg, #d8e0ff, #bdc9fd);
+  --lb-primary-border: rgba(255,255,255,.44);
+  --lb-primary-shadow: inset 0 1px 0 rgba(255,255,255,.72), 0 12px 26px -18px rgba(0,0,0,.9);
+  --lb-secondary-bg: rgba(255,255,255,.055);
+  --lb-secondary-border: rgba(255,255,255,.12);
+  --lb-secondary-hover: rgba(255,255,255,.11);
+}
+
+:root[data-orbit-shell="apple-tv"] #panel .p-launchbar .p-launch-primary {
+  letter-spacing: -.015em;
+}
+
+/* Apple TV 3D : relief doux et lumière froide, sans caricature de bouton 3D. */
+:root[data-orbit-shell="apple-tv-3d"] #panel .p-launchbar {
+  --lb-accent: #a9c5ff;
+  --lb-ink: #08101f;
+  --lb-radius: 12px;
+  --lb-primary-bg: linear-gradient(180deg, #c5d7ff, #8fb0f4);
+  --lb-primary-hover: linear-gradient(180deg, #d2e0ff, #9dbcfa);
+  --lb-primary-border: rgba(238,245,255,.5);
+  --lb-primary-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 8px 20px -12px rgba(0,0,0,.9);
+  --lb-secondary-bg: rgba(255,255,255,.05);
+  --lb-secondary-border: rgba(232,239,255,.15);
+  --lb-secondary-hover: rgba(255,255,255,.1);
+}
+
+/* Liquid Glass : le lancement est un galet de menthe translucide. */
+:root[data-orbit-shell="liquid-glass"] #panel .p-launchbar {
+  --lb-accent: #9ee2ce;
+  --lb-ink: #06201b;
+  --lb-radius: 12px;
+  --lb-primary-bg: linear-gradient(180deg, rgba(174,234,216,.98), rgba(137,210,190,.96));
+  --lb-primary-hover: linear-gradient(180deg, rgba(190,241,226,.99), rgba(151,222,203,.98));
+  --lb-primary-border: rgba(225,255,246,.55);
+  --lb-primary-shadow: inset 0 1px 0 rgba(255,255,255,.62), 0 12px 26px -18px rgba(0,0,0,.75);
+  --lb-secondary-bg: rgba(255,255,255,.055);
+  --lb-secondary-border: rgba(185,232,222,.2);
+  --lb-secondary-hover: rgba(255,255,255,.11);
+  --lb-deck-bg: rgba(8,28,31,.55);
+  --lb-deck-border: rgba(185,232,222,.22);
+  --lb-deck-width: 1px;
+  --lb-deck-padding: 9px;
+  --lb-deck-radius: 16px;
+  --lb-deck-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.25);
+  backdrop-filter: blur(16px) saturate(1.25);
+}
+
+/* Studio : mat, sage, aucun effet. Le bouton est un outil, pas une attraction. */
+:root[data-orbit-shell="studio"] #panel .p-launchbar {
+  --lb-accent: #a9c2ad;
+  --lb-ink: #151b16;
+  --lb-radius: 9px;
+  --lb-primary-bg: #a9c2ad;
+  --lb-primary-hover: #b8cfbb;
+  --lb-primary-border: rgba(255,255,255,.18);
+  --lb-primary-shadow: none;
+  --lb-primary-size: 14px;
+  --lb-secondary-bg: #292d2a;
+  --lb-secondary-border: rgba(226,232,225,.13);
+  --lb-secondary-hover: #333834;
+}
+
+:root[data-orbit-shell="studio"] #panel .p-launchbar .p-launch-primary {
+  letter-spacing: .015em;
+}
+
+/* Papier : encart imprimé, bouton tampon, file et suivi au trait. */
+:root[data-orbit-shell="papier"] #panel .p-launchbar {
+  --lb-accent: #9c4f32;
+  --lb-ink: #fff8f1;
+  --lb-mark: #9c4f32;
+  --lb-radius: 4px;
+  --lb-primary-bg: #9c4f32;
+  --lb-primary-hover: #89422a;
+  --lb-primary-border: #7d3c25;
+  --lb-primary-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+  --lb-secondary-bg: transparent;
+  --lb-secondary-border: rgba(36,37,33,.22);
+  --lb-secondary-hover: #e7e2d8;
+  --lb-deck-bg: #faf8f2;
+  --lb-deck-border: rgba(36,37,33,.16);
+  --lb-deck-width: 1px;
+  --lb-deck-padding: 9px;
+  --lb-deck-radius: 8px;
+}
+
+:root[data-orbit-shell="papier"] #panel .p-launchbar .p-launch-primary {
+  letter-spacing: 0;
+}
+
+/* Papier sombre : même encart, papier charbon et encre cuivrée. */
+:root[data-orbit-shell="papier-sombre"] #panel .p-launchbar {
+  --lb-accent: #cc7754;
+  --lb-ink: #22110b;
+  --lb-mark: #cc7754;
+  --lb-radius: 4px;
+  --lb-primary-bg: #cc7754;
+  --lb-primary-hover: #d88665;
+  --lb-primary-border: #e09272;
+  --lb-primary-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+  --lb-secondary-bg: transparent;
+  --lb-secondary-border: rgba(240,233,221,.14);
+  --lb-secondary-hover: #322e28;
+  --lb-deck-bg: #26231f;
+  --lb-deck-border: rgba(240,233,221,.14);
+  --lb-deck-width: 1px;
+  --lb-deck-padding: 9px;
+  --lb-deck-radius: 8px;
+  --lb-deck-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+:root[data-orbit-shell="papier-sombre"] #panel .p-launchbar .p-launch-primary {
+  letter-spacing: 0;
+}
+
+/* Steam Library : le vert « jouer » de Steam, file et suivi en consoles sombres. */
+:root[data-orbit-shell="steam-library"] #panel .p-launchbar {
+  --lb-accent: #9ac47a;
+  --lb-ink: #14200e;
+  --lb-mark: #c58b50;
+  --lb-radius: 5px;
+  --lb-primary-bg: linear-gradient(180deg, #a8cf86, #8fbb6b);
+  --lb-primary-hover: linear-gradient(180deg, #b5d996, #9ac578);
+  --lb-primary-border: rgba(190,226,160,.45);
+  --lb-primary-shadow: inset 0 1px 0 rgba(255,255,255,.3);
+  --lb-secondary-bg: #202628;
+  --lb-secondary-border: var(--sl-line, rgba(220,228,224,.13));
+  --lb-secondary-hover: #2b3335;
+  --lb-deck-bg: transparent;
+  --lb-deck-border: var(--sl-line, rgba(220,228,224,.13));
+  --lb-deck-width: 1px 0 0;
+  --lb-deck-padding: 14px 0 0;
+  --lb-deck-radius: 0;
+}
+
+:root[data-orbit-shell="steam-library"] #panel .p-launchbar .p-launch-primary {
+  letter-spacing: .005em;
+}
+
+/* Chambre noire : signal rouge, plaque de laboratoire, libellés capitales. */
+:root[data-orbit-shell="chambre-noire"] #panel .p-launchbar {
+  --lb-accent: #ff704e;
+  --lb-ink: #1a0a05;
+  --lb-mark: #ff704e;
+  --lb-radius: 3px;
+  --lb-primary-bg: #ff704e;
+  --lb-primary-hover: #ff8568;
+  --lb-primary-border: #ff947b;
+  --lb-primary-shadow: none;
+  --lb-primary-size: 13px;
+  --lb-secondary-size: 12px;
+  --lb-secondary-bg: #201e1a;
+  --lb-secondary-border: #49443c;
+  --lb-secondary-hover: #302c27;
+  --lb-deck-bg: #201e1a;
+  --lb-deck-border: #49443c;
+  --lb-deck-width: 1px;
+  --lb-deck-padding: 9px;
+  --lb-deck-radius: 4px;
+}
+
+:root[data-orbit-shell="chambre-noire"] #panel .p-launchbar .p-launch-primary {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+:root[data-orbit-shell="chambre-noire"] #panel .p-launchbar :is(.p-play-session, .p-panel-queue) {
+  letter-spacing: .035em;
+}
+
+/* Galerie : cartel et filets de musée, bleu d'encre sur papier. */
+:root:is([data-orbit-shell="galerie"], [data-orbit-shell="galerie-sombre"]) #panel .p-launchbar {
+  --lb-radius: 5px;
+  --lb-primary-shadow: none;
+  --lb-primary-size: 14px;
+  --lb-secondary-bg: var(--mat, #f7f8f3);
+  --lb-secondary-border: var(--rule, #b3c1b7);
+  --lb-secondary-hover: var(--wash, #d4ded7);
+  --lb-deck-bg: transparent;
+  --lb-deck-border: var(--rule, #b3c1b7);
+  --lb-deck-width: 1px 0;
+  --lb-deck-padding: 10px 0;
+  --lb-deck-radius: 0;
+}
+
+:root[data-orbit-shell="galerie"] #panel .p-launchbar {
+  --lb-accent: #234ac0;
+  --lb-ink: #f7f8f3;
+  --lb-mark: #234ac0;
+  --lb-primary-bg: #234ac0;
+  --lb-primary-hover: #1c3ea4;
+  --lb-primary-border: #16358f;
+}
+
+:root[data-orbit-shell="galerie-sombre"] #panel .p-launchbar {
+  --lb-accent: #a2baff;
+  --lb-ink: #101724;
+  --lb-mark: #a2baff;
+  --lb-primary-bg: #a2baff;
+  --lb-primary-hover: #b7caff;
+  --lb-primary-border: #d0dcff;
+  --lb-secondary-bg: #1a2623;
+  --lb-secondary-border: #45574e;
+  --lb-secondary-hover: #263631;
+  --lb-deck-border: #45574e;
+}
+
+/* Sillage : archive éditoriale, terracotta mat et filet supérieur. */
+:root[data-orbit-shell="sillage"] #panel .p-launchbar {
+  --lb-accent: #ce7656;
+  --lb-ink: #1c0f0a;
+  --lb-mark: #ce7656;
+  --lb-radius: 4px;
+  --lb-primary-bg: #ce7656;
+  --lb-primary-hover: #d98668;
+  --lb-primary-border: #e09478;
+  --lb-primary-shadow: none;
+  --lb-primary-size: 16px;
+  --lb-secondary-size: 14px;
+  --lb-secondary-bg: #1d201c;
+  --lb-secondary-border: var(--sg-line, rgba(238,236,228,.14));
+  --lb-secondary-hover: #282b25;
+  --lb-deck-bg: transparent;
+  --lb-deck-border: var(--sg-line, rgba(238,236,228,.14));
+  --lb-deck-width: 1px 0 0;
+  --lb-deck-padding: 14px 0 0;
+  --lb-deck-radius: 0;
+}
+
+:root[data-orbit-shell="sillage"] #panel .p-launchbar .p-launch-primary {
+  letter-spacing: .01em;
+}
+
+/* OLED : noir absolu, liseré ambré, zéro halo inutile. */
+:root[data-orbit-shell="oled"] #panel .p-launchbar {
+  --lb-accent: #e7b45f;
+  --lb-ink: #120d05;
+  --lb-mark: #e7b45f;
+  --lb-radius: 3px;
+  --lb-primary-bg: #e7b45f;
+  --lb-primary-hover: #f0c77e;
+  --lb-primary-border: #f5d493;
+  --lb-primary-shadow: none;
+  --lb-primary-size: 14px;
+  --lb-secondary-bg: transparent;
+  --lb-secondary-border: #252525;
+  --lb-secondary-hover: #0e0e0e;
+  --lb-deck-bg: #050505;
+  --lb-deck-border: #1b1b1b;
+  --lb-deck-width: 1px;
+  --lb-deck-padding: 9px;
+  --lb-deck-radius: 4px;
+}
+
+:root[data-orbit-shell="oled"] #panel .p-launchbar .p-launch-primary {
+  letter-spacing: .02em;
+}
+
+/* Ultima transparent : lime acide sur verre fumé, le seul vrai CTA de la fiche. */
+:root[data-orbit-shell="ultima-transparent"] #panel .p-launchbar {
+  --lb-accent: #edf783;
+  --lb-ink: #0a0a0f;
+  --lb-mark: #edf783;
+  --lb-radius: 12px;
+  --lb-primary-bg: linear-gradient(180deg, #f4fca1, #e5ef72);
+  --lb-primary-hover: linear-gradient(180deg, #f8ffb7, #edf783);
+  --lb-primary-border: rgba(255,255,255,.34);
+  --lb-primary-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 14px 28px -20px rgba(0,0,0,.9);
+  --lb-secondary-bg: rgba(255,255,255,.045);
+  --lb-secondary-border: rgba(255,255,255,.1);
+  --lb-secondary-hover: rgba(255,255,255,.1);
+  --lb-deck-bg: rgba(24,24,31,.42);
+  --lb-deck-border: rgba(255,255,255,.11);
+  --lb-deck-width: 1px;
+  --lb-deck-padding: 10px;
+  --lb-deck-radius: 16px;
+  --lb-deck-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  backdrop-filter: blur(18px) saturate(1.3);
+}
+
+@media (max-width: 360px) {
+  :root[data-orbit-shell] #panel .p-launchbar {
+    grid-template-columns: 1fr;
+  }
+
+  :root[data-orbit-shell] #panel .p-launchbar .p-launch-primary {
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-orbit-shell] #panel .p-launchbar .p-launch-primary,
+  :root[data-orbit-shell] #panel .p-launchbar :is(.p-play-session, .p-panel-queue) {
+    transition: none;
+  }
+
+  :root[data-orbit-shell] #panel .p-launchbar .p-launch-primary:active {
+    transform: none;
+  }
+}

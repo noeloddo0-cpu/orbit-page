@@ -1,0 +1,488 @@
+/* Ultima transparent — verre fumé inspiré de FF-ULTIMA (transparent theming). */
+:root[data-orbit-shell="ultima-transparent"] {
+  --ut-void: #07070b;
+  --ut-text: #f5f5f7;
+  --ut-muted: rgba(235, 235, 245, .62);
+  --ut-soft: rgba(235, 235, 245, .42);
+  --ut-pane: rgba(35, 35, 42, .28);
+  --ut-pane-strong: rgba(45, 45, 59, .55);
+  --ut-panel: rgba(24, 24, 31, .84);
+  --ut-line: rgba(255, 255, 255, .11);
+  --ut-line-soft: rgba(255, 255, 255, .06);
+  --ut-accent: #edf783;
+  --ut-accent-2: #79a1c3;
+  --ut-blur: blur(28px) saturate(1.4);
+  --ut-blur-soft: blur(16px) saturate(1.25);
+  --ut-shadow: 0 18px 48px rgba(0, 0, 0, .38);
+  --ut-radius: 12px;
+  --ambient-opacity: .3;
+  color-scheme: dark;
+  scrollbar-color: rgba(255, 255, 255, .22) transparent;
+}
+
+/* Décor : nappe sombre et halos froids, comme un fond d'écran flouté. */
+:root[data-orbit-shell="ultima-transparent"] body {
+  background-color: var(--ut-void);
+  background-image:
+    radial-gradient(70vw 60vh at 82% 4%, rgba(121, 161, 195, .30), transparent 62%),
+    radial-gradient(50vw 46vh at 8% 92%, rgba(237, 247, 131, .12), transparent 66%),
+    radial-gradient(44vw 44vh at 50% 52%, rgba(90, 121, 156, .18), transparent 70%),
+    linear-gradient(150deg, #0b0b12 0%, #07070b 55%, #0a0a10 100%);
+  background-attachment: fixed;
+  color: var(--ut-text);
+}
+
+/* Les écrans laissent voir le décor : c'est lui qui passe sous le verre. */
+:root[data-orbit-shell="ultima-transparent"] :is(#app, #home-screen, #library-screen, #launcher-screen, #films-screen, #film-editor) {
+  background-color: transparent;
+  background-image: none;
+  color: var(--ut-text);
+}
+
+/* Deux graisses : 400 pour le texte, 600 pour les titres. */
+:root[data-orbit-shell="ultima-transparent"] :is(body, button, input, textarea, select, p, li, small, .btn, .field, .chip, .theme-card) {
+  font-weight: 400;
+}
+:root[data-orbit-shell="ultima-transparent"] :is(h1, h2, h3, h4, b, strong, .orbit-brand, .orbit-title, .orbit-kicker, .op-brand, .op-page-title, .film-brand, .intro-name) {
+  font-weight: 600;
+}
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-name,
+:root[data-orbit-shell="ultima-transparent"] .stat .v,
+:root[data-orbit-shell="ultima-transparent"] .tile .ini,
+:root[data-orbit-shell="ultima-transparent"] #add-open,
+:root[data-orbit-shell="ultima-transparent"] #film-add {
+  font-weight: 600;
+}
+
+:root[data-orbit-shell="ultima-transparent"] ::selection {
+  background: var(--ut-accent);
+  color: #0a0a0f;
+}
+:root[data-orbit-shell="ultima-transparent"] :focus-visible {
+  outline: 2px solid var(--ut-accent);
+  outline-offset: 3px;
+}
+:root[data-orbit-shell="ultima-transparent"] a {
+  color: var(--ut-accent-2);
+  text-decoration-color: rgba(121, 161, 195, .45);
+  text-underline-offset: 3px;
+}
+:root[data-orbit-shell="ultima-transparent"] a:hover {
+  color: #a9c6e0;
+  text-decoration-color: currentColor;
+}
+
+/* Accueil. */
+:root[data-orbit-shell="ultima-transparent"] #home-screen .orbit-top {
+  border-bottom: 1px solid var(--ut-line);
+}
+:root[data-orbit-shell="ultima-transparent"] #home-screen .orbit-brand {
+  color: var(--ut-text);
+  letter-spacing: -.02em;
+}
+:root[data-orbit-shell="ultima-transparent"] #home-screen .orbit-kicker {
+  color: var(--ut-accent-2);
+  letter-spacing: .12em;
+}
+:root[data-orbit-shell="ultima-transparent"] #home-screen .orbit-title {
+  color: var(--ut-text);
+  max-width: 18ch;
+  letter-spacing: -.045em;
+  text-shadow: none;
+}
+:root[data-orbit-shell="ultima-transparent"] #home-screen .orbit-lead {
+  color: var(--ut-muted);
+}
+:root[data-orbit-shell="ultima-transparent"] #home-screen .orbit-footer,
+:root[data-orbit-shell="ultima-transparent"] #home-screen .orbit-footer a {
+  color: var(--ut-soft);
+}
+
+/* Cartes d'espaces : voile de verre, filet clair, aucun halo. */
+:root[data-orbit-shell="ultima-transparent"] #section-cards {
+  gap: 12px;
+}
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-card {
+  background: var(--ut-pane);
+  background-image: none;
+  border: 1px solid var(--ut-line);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+  backdrop-filter: var(--ut-blur);
+  color: var(--ut-text);
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-card::before,
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-card::after {
+  display: none;
+}
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-card:hover,
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-card[data-active="true"]:hover {
+  background: var(--ut-pane-strong);
+  border-color: rgba(121, 161, 195, .55);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .22);
+  transform: translateY(-2px);
+}
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-card[aria-disabled="true"] {
+  background: rgba(25, 25, 32, .22);
+  color: var(--ut-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-icon {
+  color: var(--ut-text);
+}
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-card:hover .section-icon {
+  color: var(--ut-accent);
+}
+:root[data-orbit-shell="ultima-transparent"] #section-cards .section-state {
+  color: var(--ut-soft);
+}
+
+/* Barre de bibliothèque, champs, filtres. */
+:root[data-orbit-shell="ultima-transparent"] .bar {
+  background: rgba(12, 12, 17, .52);
+  background-image: none;
+  border-bottom: 1px solid var(--ut-line);
+  box-shadow: none;
+  backdrop-filter: var(--ut-blur);
+}
+:root[data-orbit-shell="ultima-transparent"] :is(.field, #q, #fc, #sort, .op-search) {
+  background: rgba(28, 27, 34, .52);
+  background-image: none;
+  border: 1px solid var(--ut-line);
+  border-radius: 10px;
+  box-shadow: none;
+  color: var(--ut-text);
+  backdrop-filter: var(--ut-blur-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] :is(.field, #q, #fc, #sort, .op-search)::placeholder {
+  color: var(--ut-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] select option {
+  background: #15151c;
+  color: var(--ut-text);
+}
+
+:root[data-orbit-shell="ultima-transparent"] .btn {
+  background: transparent;
+  background-image: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  box-shadow: none;
+  color: var(--ut-text);
+}
+:root[data-orbit-shell="ultima-transparent"] .btn:hover {
+  background: var(--ut-pane-strong);
+  border-color: var(--ut-line-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] :is(#add-open, #film-add) {
+  background: var(--ut-accent);
+  background-image: none;
+  border-color: var(--ut-accent);
+  box-shadow: none;
+  color: #0a0a0f;
+}
+:root[data-orbit-shell="ultima-transparent"] :is(#add-open, #film-add):hover {
+  background: #f5ff9b;
+  border-color: #f5ff9b;
+}
+:root[data-orbit-shell="ultima-transparent"] #chips.chips {
+  background: var(--ut-pane);
+  border-color: var(--ut-line);
+  box-shadow: none;
+  backdrop-filter: var(--ut-blur-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] #chips .glass {
+  background: rgba(45, 45, 59, .72);
+  border: 1px solid rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+:root[data-orbit-shell="ultima-transparent"] #chips .chip {
+  color: var(--ut-muted);
+  font-family: inherit;
+}
+:root[data-orbit-shell="ultima-transparent"] #chips .chip:hover {
+  background: rgba(255, 255, 255, .06);
+  color: var(--ut-text);
+}
+:root[data-orbit-shell="ultima-transparent"] #chips .chip[aria-pressed="true"] {
+  color: var(--ut-text);
+}
+:root[data-orbit-shell="ultima-transparent"] #chips .chip b {
+  color: var(--ut-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] #chips .chip[aria-pressed="true"] b {
+  color: var(--ut-text);
+}
+
+/* Statistiques. */
+:root[data-orbit-shell="ultima-transparent"] .stats {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+:root[data-orbit-shell="ultima-transparent"] .stat {
+  background: var(--ut-pane);
+  background-image: none;
+  border: 1px solid var(--ut-line);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  backdrop-filter: var(--ut-blur-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] .stat-progress {
+  background: rgba(255, 255, 255, .1);
+}
+:root[data-orbit-shell="ultima-transparent"] .stat-progress span {
+  background: var(--ut-accent);
+  background-image: none;
+}
+
+/* Tuiles de jeux. */
+:root[data-orbit-shell="ultima-transparent"] :is(#grid, #resume) .tile {
+  background: var(--ut-pane);
+  background-image: none;
+  border: 1px solid var(--ut-line);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+  backdrop-filter: var(--ut-blur-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] :is(#grid, #resume) .tile:hover,
+:root[data-orbit-shell="ultima-transparent"] :is(#grid, #resume) .tile:focus-visible {
+  border-color: rgba(121, 161, 195, .6);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .26);
+  transform: translateY(-2px);
+}
+:root[data-orbit-shell="ultima-transparent"] .tile .shade {
+  background: linear-gradient(0deg, rgba(7, 7, 11, .92), rgba(7, 7, 11, .1) 70%);
+}
+:root[data-orbit-shell="ultima-transparent"] .tile .ini {
+  color: var(--ut-soft);
+  background: rgba(45, 45, 59, .4);
+}
+
+/* Fiche de jeu, tiroir de réglages, dialogues : verre épais. */
+:root[data-orbit-shell="ultima-transparent"] :is(#panel, #settings-drawer, #play-editor, #add-dialog, #film-editor) {
+  background: var(--ut-panel);
+  background-image: none;
+  border: 1px solid var(--ut-line);
+  border-radius: 16px;
+  box-shadow: var(--ut-shadow);
+  color: var(--ut-text);
+  backdrop-filter: var(--ut-blur);
+}
+:root[data-orbit-shell="ultima-transparent"] #veil {
+  background: rgba(4, 4, 8, .5);
+}
+:root[data-orbit-shell="ultima-transparent"] #panel .p-hero {
+  background-image: none;
+  border-color: var(--ut-line);
+}
+:root[data-orbit-shell="ultima-transparent"] #panel .p-hero-copy span,
+:root[data-orbit-shell="ultima-transparent"] #panel .p-hero:has(img[hidden]) .p-hero-copy span {
+  background: var(--ut-pane);
+  border-color: var(--ut-line);
+  color: var(--ut-text);
+}
+:root[data-orbit-shell="ultima-transparent"] #panel h2,
+:root[data-orbit-shell="ultima-transparent"] #panel .time {
+  font-weight: 600;
+}
+:root[data-orbit-shell="ultima-transparent"] #panel .lbl {
+  font-weight: 400;
+}
+:root[data-orbit-shell="ultima-transparent"] .x {
+  background: rgba(45, 45, 59, .5);
+  border: 1px solid var(--ut-line);
+  color: var(--ut-muted);
+}
+:root[data-orbit-shell="ultima-transparent"] .x:hover {
+  background: rgba(45, 45, 59, .8);
+  color: var(--ut-text);
+}
+
+/* Réglages. */
+:root[data-orbit-shell="ultima-transparent"] .theme-card {
+  background: var(--ut-pane);
+  border-color: var(--ut-line);
+  box-shadow: none;
+  backdrop-filter: var(--ut-blur-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] .theme-card[aria-pressed="true"] {
+  outline: 2px solid var(--ut-accent);
+  outline-offset: -2px;
+}
+:root[data-orbit-shell="ultima-transparent"] .theme-preview-art[data-skin="ultima-transparent"] {
+  background: linear-gradient(145deg, rgba(121, 161, 195, .4), rgba(12, 12, 17, .85));
+  border: 1px solid var(--ut-line);
+  border-radius: 8px;
+}
+:root[data-orbit-shell="ultima-transparent"] .seg button {
+  background: var(--ut-pane);
+  background-image: none;
+  border: 1px solid var(--ut-line);
+  box-shadow: none;
+  color: var(--ut-text);
+}
+:root[data-orbit-shell="ultima-transparent"] .seg button[aria-pressed="true"] {
+  background: var(--ut-accent);
+  border-color: var(--ut-accent);
+  color: #0a0a0f;
+}
+:root[data-orbit-shell="ultima-transparent"] .settings-launcher {
+  background: var(--ut-pane);
+  border: 1px solid var(--ut-line);
+  box-shadow: none;
+  color: var(--ut-text);
+  backdrop-filter: var(--ut-blur-soft);
+}
+
+/* Orbit Play. */
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen {
+  --op-bg: transparent;
+  --op-panel: rgba(28, 28, 36, .62);
+  --op-raised: rgba(45, 45, 59, .55);
+  --op-text: #f5f5f7;
+  --op-muted: rgba(235, 235, 245, .62);
+  --op-line: rgba(255, 255, 255, .11);
+  --op-accent: #edf783;
+  background: transparent;
+  color: var(--op-text);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-topbar {
+  background: rgba(10, 10, 15, .5);
+  border-color: var(--ut-line);
+  backdrop-filter: var(--ut-blur);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-nav button[aria-current="page"] {
+  background: rgba(45, 45, 59, .55);
+  box-shadow: inset 2px 0 0 var(--op-accent);
+  color: var(--ut-text);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen :is(.op-hero, .op-filter-panel, .op-shelf-empty) {
+  background: var(--op-panel);
+  border-color: var(--op-line);
+  box-shadow: none;
+  backdrop-filter: var(--ut-blur);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-hero-art::after {
+  background:
+    linear-gradient(90deg, rgba(7, 7, 11, .95) 0%, rgba(7, 7, 11, .62) 48%, rgba(7, 7, 11, .08) 100%),
+    linear-gradient(0deg, rgba(7, 7, 11, .66), transparent 60%);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-card-button {
+  background: var(--op-raised);
+  border-color: var(--op-line);
+  border-radius: 10px;
+  box-shadow: none;
+  backdrop-filter: var(--ut-blur-soft);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-card-button:hover {
+  border-color: rgba(121, 161, 195, .6);
+  transform: translateY(-2px);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen :is(.op-search, .op-button) {
+  background: rgba(28, 27, 34, .52);
+  background-image: none;
+  border-color: var(--op-line);
+  box-shadow: none;
+  color: var(--op-text);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-button.primary {
+  background: var(--op-accent);
+  border-color: var(--op-accent);
+  color: #0a0a0f;
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-card-status {
+  background: rgba(10, 10, 15, .72);
+  border-color: rgba(255, 255, 255, .18);
+  color: var(--op-text);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-card-fallback {
+  background: var(--op-raised);
+  color: var(--op-muted);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-filter:hover {
+  background: var(--op-raised);
+}
+:root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-filter[aria-pressed="true"] {
+  background: var(--op-raised);
+  border-color: var(--op-accent);
+  color: var(--op-text);
+}
+
+/* Films & séries. */
+:root[data-orbit-shell="ultima-transparent"] :is(#films-screen, #film-editor) {
+  --film-bg: transparent;
+  --film-surface: var(--ut-pane);
+  --film-line: var(--ut-line);
+  --film-text: var(--ut-text);
+  --film-muted: var(--ut-muted);
+  --film-green: var(--ut-accent);
+  background: transparent;
+}
+:root[data-orbit-shell="ultima-transparent"] #films-screen .film-top {
+  border-bottom-color: var(--ut-line);
+}
+:root[data-orbit-shell="ultima-transparent"] #films-screen .film-poster,
+:root[data-orbit-shell="ultima-transparent"] #film-editor .film-poster {
+  background: var(--ut-pane);
+  border-color: var(--ut-line);
+  border-radius: 12px;
+  box-shadow: none;
+}
+:root[data-orbit-shell="ultima-transparent"] #films-screen a {
+  color: var(--ut-accent-2);
+}
+
+/* Décor ambiant : la jaquette survolée devient le fond flouté du verre. */
+:root[data-orbit-shell="ultima-transparent"] #ambient-cover {
+  filter: blur(42px) saturate(1.2);
+}
+
+/* Intro. */
+:root[data-orbit-shell="ultima-transparent"] #intro-screen {
+  background: transparent;
+  backdrop-filter: blur(18px);
+}
+:root[data-orbit-shell="ultima-transparent"] #intro-screen .intro-name {
+  color: var(--ut-text);
+  text-shadow: none;
+}
+:root[data-orbit-shell="ultima-transparent"] #intro-screen .intro-name::after {
+  content: "";
+  display: block;
+  width: 42px;
+  height: 2px;
+  margin: 18px auto 0;
+  background: var(--ut-accent);
+  border-radius: 2px;
+}
+
+/* Qualité légère : verre plus opaque, plus de flou. */
+:root[data-orbit-shell="ultima-transparent"][data-effects-quality="light"] {
+  --ut-blur: none;
+  --ut-blur-soft: none;
+  --ut-pane: rgba(18, 18, 24, .86);
+  --ut-pane-strong: rgba(28, 28, 36, .94);
+  --ut-panel: rgba(18, 18, 24, .97);
+}
+:root[data-orbit-shell="ultima-transparent"][data-effects-quality="light"] #ambient-cover {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  :root[data-orbit-shell="ultima-transparent"] #launcher-screen#launcher-screen .op-nav button[aria-current="page"] {
+    box-shadow: inset 0 -2px 0 var(--op-accent);
+  }
+  :root[data-orbit-shell="ultima-transparent"] #settings-drawer {
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-orbit-shell="ultima-transparent"] :is(#section-cards .section-card, #grid .tile, #resume .tile) {
+    transition: none;
+  }
+  :root[data-orbit-shell="ultima-transparent"] :is(#section-cards .section-card, #grid .tile, #resume .tile):hover {
+    transform: none;
+  }
+}
