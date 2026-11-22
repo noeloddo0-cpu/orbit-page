@@ -1,6 +1,7 @@
 import { createViewingTracker, isVideoActivity } from "./discord-viewing.mjs";
 import { selectArtwork, fillArtwork } from "./game-art.mjs";
 import { steamRoots, installedSteamGames, localPortrait, imageSize } from "./steam-local.mjs";
+import { getSteamAchievements, getSteamAchievementSummary, getSteamPlaytime, steamAccount } from "./steam-achievements.mjs";
 import { withCinemaStatistics } from "./cinema-statistics.mjs";
 import { createCoopIndex } from "./orbit-activity.mjs";
 import { createRequire } from "node:module";
@@ -58,7 +59,8 @@ function migrateFileVersion(file, legacyFile, fallback) {
   return { version: 1, ...fallback };
 }
 let settingsDocument = migrateFileVersion(SETTINGS_FILE, UI_PREFS_FILE, {});
-let recap = migrateFileVersion(RECAP_FILE, path.join(DATA_DIR, "recap.json"), { lastOpened: null, recent: [], gameStats: {} });
+let recap = migrateFileVersion(RECAP_FILE, path.join(DATA_DIR, "recap.json"), { lastOpened: null, recent: [], gameStats: {}, queue: [] });
+recap.queue = Array.isArray(recap.queue) ? recap.queue.filter(name => typeof name === "string" && name.trim()).slice(0, 50) : [];
 function loadThemes() {
   const themes = {};
   try {
@@ -113,10 +115,12 @@ const RAWG_KEY = pick("RAWG_KEY");
 fs.mkdirSync(COVERS, { recursive: true });
 
 /* ---------- État ---------- */
+const NEUTRAL_STATUS = 5;
+const normalizeStatus = value => value !== null && value !== undefined && value !== "" && Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 5 ? Number(value) : NEUTRAL_STATUS;
 let state = { games: [], sessions: [], session: null, favorites: [], profiles: [{ id: "main", name: "Profil principal" }], activeProfileId: "main", meta: {} };
 try {
   const stored = JSON.parse(fs.readFileSync(DATA, "utf8"));
-  state.games = Array.isArray(stored.games) ? stored.games : [];
+  state.games = Array.isArray(stored.games) ? stored.games.map(game => game && typeof game === "object" ? { ...game, s: normalizeStatus(game.s) } : game) : [];
   state.sessions = Array.isArray(stored.sessions) ? stored.sessions : [];
   state.favorites = Array.isArray(stored.favorites) ? stored.favorites : [];
   state.profiles = Array.isArray(stored.profiles) && stored.profiles.length ? stored.profiles : state.profiles;
@@ -179,12 +183,25 @@ function localInstallIndex(force = false) {
   }
   return steamInstallCache;
 }
+let steamPlaytimeCache;
+function localSteamPlaytime(force = false) {
+  if (force || !steamPlaytimeCache || Date.now() - steamPlaytimeCache.at > 60000) {
+    let times = new Map();
+    try { times = getSteamPlaytime(); } catch {}
+    steamPlaytimeCache = { at: Date.now(), times };
+  }
+  return steamPlaytimeCache.times;
+}
 function playDetailsIndex() {
   const installed = localInstallIndex();
+  const steamTimes = localSteamPlaytime();
   return Object.fromEntries(state.games.map(g => {
     const key = ckey(g.n), m = state.meta[metaKey(g.n)] || {};
     const installedId = installed.names.get(key) || (installed.ids.has(m.localSteamId) ? m.localSteamId : null);
-    return [key, { ...m.playDetails, psnMinutes:psnReference[key], installedId, steamAppId: installedId || m.appId || m.localSteamId || null }];
+    const steamAppId = installedId || m.appId || m.localSteamId || null;
+    const steamInfo = steamAppId ? steamTimes.get(String(steamAppId)) : null;
+    return [key, { ...m.playDetails, psnMinutes:psnReference[key], installedId, steamAppId,
+      steamMinutes: steamInfo?.minutes || 0, steamLastPlayed: steamInfo?.lastPlayed || 0 }];
   }));
 }
 function validPortrait(bytes) {
@@ -245,6 +262,43 @@ function importLocalSteam(){
  const filename='steam-'+m.appId+'-portrait'+portrait.extension,target=path.join(COVERS,filename);if(!fs.existsSync(target)||!fs.readFileSync(target).equals(portrait.bytes)){const temp=target+'.tmp';fs.writeFileSync(temp,portrait.bytes);fs.renameSync(temp,target);}m.steamPortrait={f:filename,v:Math.round(fs.statSync(target).mtimeMs)};portraits++;
  }
  saveMeta();writeLibrary();broadcast();return {ok:true,installed:installed.length,added,portraits,total:state.games.length};
+}
+function syncSteamState() {
+  steamInstallCache = null;
+  steamPlaytimeCache = null;
+  const installed = installedSteamGames();
+  const byName = new Map(installed.map(game => [ckey(game.name), game.appId]));
+  const ids = new Set(installed.map(game => game.appId));
+  const times = localSteamPlaytime(true);
+  let linked = 0, playtime = 0;
+  for (const game of state.games) {
+    const key = metaKey(game.n), meta = state.meta[key] || { title: game.n };
+    const appId = byName.get(ckey(game.n)) || (ids.has(Number(meta.localSteamId)) ? Number(meta.localSteamId) : null);
+    const steam = appId ? times.get(String(appId)) : null;
+    const next = { ...meta, localSteamId: appId || meta.localSteamId || null, steamSyncedAt: Date.now() };
+    if (steam) {
+      next.playDetails = { ...(meta.playDetails || {}), steamMinutes: steam.minutes || 0, steamLastPlayed: steam.lastPlayed || 0 };
+      if (steam.minutes) playtime++;
+    }
+    if (appId) linked++;
+    if (JSON.stringify(next) !== JSON.stringify(meta)) state.meta[key] = next;
+  }
+  saveMeta();
+  broadcast();
+  return { ok: true, installed: installed.length, linked, playtime, account: steamAccount(steamRoots())?.accountId || null };
+}
+let steamSummaryCache = { at: 0, value: null };
+function steamSummary(force = false) {
+  if (!force && steamSummaryCache.value && Date.now() - steamSummaryCache.at < 60000) return steamSummaryCache.value;
+  const details = playDetailsIndex(), summaries = {};
+  for (const game of state.games) {
+    const key = ckey(game.n), appId = String(details[key]?.steamAppId || "").match(/^\d{1,10}$/)?.[0];
+    if (!appId) continue;
+    try { summaries[key] = getSteamAchievementSummary(appId, { refresh: force }); }
+    catch { summaries[key] = { ok: false, error: "lecture-impossible", appId }; }
+  }
+  steamSummaryCache = { at: Date.now(), value: summaries };
+  return summaries;
 }
 const HOUR = 3600000;
 const ART_FORMAT_VERSION = 3;
@@ -520,6 +574,8 @@ function findGame(name) {
 function startSession(name, source="discord") {
   let g = findGame(name);
   if (!g) { g = { n: String(name).replace(/[®™©]/g, "").trim(), s: 2, c: 0, m: 0, t: 0 }; state.games.push(g); console.log("Nouveau jeu ajouté :", g.n); }
+  // Lancer un jeu ou démarrer une session ne doit jamais changer son statut.
+  g.s = normalizeStatus(g.s);
   state.session = { id: crypto.randomUUID(), name: g.n, start: Date.now(), mins: 0, source };
   g.t = Date.now(); save();
   console.log("Session démarrée :", g.n);
@@ -672,7 +728,10 @@ http.createServer(async (req, res) => {
       if (!fields || !['game','app'].includes(fields.kind) || typeof fields.note !== 'string' || fields.note.length > 2000) return json(400, {error: 'Fiche invalide.'});
       const validTags = tags => Array.isArray(tags) && tags.length <= 20 && tags.every(t => typeof t === 'string' && t.trim().length > 0 && t.length <= 60);
       if (!validTags(fields.collections) || !validTags(fields.platforms)) return json(400, {error: '20 noms maximum, 60 caractères par nom.'});
-      savePlayMeta(key, {playDetails: {kind: fields.kind, note: fields.note, collections: [...new Set(fields.collections.map(t=>t.trim()))], platforms: [...new Set(fields.platforms.map(t=>t.trim()))]}});
+      const rating = Math.max(0, Math.min(5, Number(fields.rating) || 0));
+      const review = typeof fields.review === 'string' ? fields.review.trim().slice(0, 500) : '';
+      const previous = state.meta[key]?.playDetails || {};
+      savePlayMeta(key, {playDetails: {...previous, kind: fields.kind, note: fields.note, collections: [...new Set(fields.collections.map(t=>t.trim()))], platforms: [...new Set(fields.platforms.map(t=>t.trim()))], rating, review}});
       return json(200, {ok: true});
     } catch { return json(400, {error: 'Impossible d’enregistrer la fiche.'}); }
   }
@@ -738,6 +797,35 @@ http.createServer(async (req, res) => {
       state.meta[metaId] = { ...current, image: "", cover: "/covers/" + encodeURIComponent(filename) + "?v=" + v, coverManual: true, checkedAt: current.checkedAt || Date.now() };
       saveMeta(); broadcast(); return json(200, { ok: true, cover: { f: filename, v } });
     } catch (e) { return json(400, { error: "image impossible à enregistrer" }); }
+  }
+  if (url === "/api/steam/achievements" && req.method === "GET") {
+    try {
+      const params = new URL(req.url, "http://127.0.0.1").searchParams;
+      const name = params.get("name") || "";
+      const mapped = name ? playDetailsIndex()[ckey(name)]?.steamAppId : null;
+      const appId = String(params.get("appId") || mapped || "").match(/^\d{1,10}$/)?.[0];
+      if (!appId) return json(404, { ok: false, error: "appid-introuvable" });
+      return json(200, getSteamAchievements(appId, { refresh: params.get("refresh") === "1" }));
+    } catch (error) {
+      return json(500, { ok: false, error: "lecture-impossible", message: error.message });
+    }
+  }
+  if (url === "/api/steam/summary" && req.method === "GET") {
+    try {
+      const params = new URL(req.url, "http://127.0.0.1").searchParams;
+      const refresh = params.get("refresh") === "1";
+      let summaries = steamSummary(refresh);
+      const appId = String(params.get("appId") || "").match(/^\d{1,10}$/)?.[0];
+      if (appId) {
+        const key = Object.keys(summaries).find(name => String(summaries[name]?.appId) === appId);
+        summaries = key ? { [key]: summaries[key] } : {};
+      }
+      return json(200, { ok: true, summaries });
+    } catch (error) { return json(500, { ok: false, error: "lecture-impossible", message: error.message }); }
+  }
+  if (url === "/api/steam/sync" && req.method === "POST") {
+    try { return json(200, syncSteamState()); }
+    catch (error) { return json(500, { ok: false, error: "synchronisation-impossible", message: error.message }); }
   }
   if (url === "/api/steam/coop" && (req.method==="POST" || req.method==="GET")) {
     return json(200, req.method==="GET" ? coopIndex.snapshot() : coopIndex.start(Object.values(playDetailsIndex()).map(d=>d.steamAppId)));
@@ -877,7 +965,7 @@ http.createServer(async (req, res) => {
     try {
       const value = JSON.parse(await body(req, 12000));
       if (value.lastOpened !== null && (!value.lastOpened || typeof value.lastOpened.name !== "string" || !Number.isFinite(+value.lastOpened.at))) return json(400, { error: "dernier jeu invalide" });
-      recap = { version: 1, lastOpened: value.lastOpened ? { name: value.lastOpened.name.slice(0, 200), at: +value.lastOpened.at, scrollTop: Math.max(0, +value.lastOpened.scrollTop || 0) } : null, recent: Array.isArray(value.recent) ? value.recent.filter(x => x && typeof x.name === "string" && Number.isFinite(+x.at)).slice(0, 20).map(x => ({ name: x.name.slice(0, 200), at: +x.at })) : [], gameStats: value.gameStats && typeof value.gameStats === "object" && !Array.isArray(value.gameStats) ? value.gameStats : {} };
+      recap = { version: 1, lastOpened: value.lastOpened ? { name: value.lastOpened.name.slice(0, 200), at: +value.lastOpened.at, scrollTop: Math.max(0, +value.lastOpened.scrollTop || 0) } : null, recent: Array.isArray(value.recent) ? value.recent.filter(x => x && typeof x.name === "string" && Number.isFinite(+x.at)).slice(0, 20).map(x => ({ name: x.name.slice(0, 200), at: +x.at })) : [], gameStats: value.gameStats && typeof value.gameStats === "object" && !Array.isArray(value.gameStats) ? value.gameStats : {}, queue: Array.isArray(value.queue) ? value.queue.filter(name => typeof name === "string" && name.trim()).map(name => name.slice(0, 200)).slice(0, 50) : [] };
       saveRecap(); return json(200, { ok: true });
     } catch (e) { return json(400, { error: "Récap invalide" }); }
   }
@@ -892,7 +980,7 @@ http.createServer(async (req, res) => {
       if (!Array.isArray(b.games)) return json(400, { error: "games manquant" });
       const known = new Set(state.games.map(g => ckey(g.n)));
       const priorGames=new Map(state.games.map(g=>[ckey(g.n),g]));
-      state.games = b.games.filter(g => g && typeof g.n === "string" && g.n.trim()).map(g => ({ n: g.n, s: g.s | 0, c: g.c | 0, m: Math.max(0, g.m | 0), manualDelta: Number.isSafeInteger(g.manualDelta)?g.manualDelta:(priorGames.get(ckey(g.n))?.manualDelta||0), t: +g.t || 0, firstPlayed: Math.max(0, +g.firstPlayed || 0) }));
+      state.games = b.games.filter(g => g && typeof g.n === "string" && g.n.trim()).map(g => ({ n: g.n, s: normalizeStatus(g.s), c: g.c | 0, m: Math.max(0, g.m | 0), manualDelta: Number.isSafeInteger(g.manualDelta)?g.manualDelta:(priorGames.get(ckey(g.n))?.manualDelta||0), t: +g.t || 0, firstPlayed: Math.max(0, +g.firstPlayed || 0) }));
       if (Array.isArray(b.sessions)) {
         const byId = new Map();
         const keepSession = x => {

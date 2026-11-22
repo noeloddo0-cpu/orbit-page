@@ -10,6 +10,8 @@ import chambreNoire from "./chambre-noire/shell.js";
 import galerie from "./galerie/shell.js";
 import galerieSombre from "./galerie-sombre/shell.js";
 import sillage from "./sillage/shell.js";
+import oled from "./oled/shell.js";
+import ultimaTransparent from "./ultima-transparent/shell.js";
 import { mountCollectionHome } from "./collection-home.js";
 
 const collectionTitles = {
@@ -30,7 +32,9 @@ export const shells = Object.freeze({
   "chambre-noire": chambreNoire,
   galerie,
   "galerie-sombre": galerieSombre,
-  sillage
+  sillage,
+  oled,
+  "ultima-transparent": ultimaTransparent
 });
 export function getShell(id = "apple-tv") { return shells[id] || appleTV; }
 export function mountShell(id, context) {

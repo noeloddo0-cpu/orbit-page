@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/themes/film-detail.css">
 <link rel="stylesheet" href="/themes/film-home.css">
 <link rel="stylesheet" href="/themes/statistics.css">
+<link rel="stylesheet" href="/themes/launchbar.css?v=2">
 <title>Orbit | Ma bibliothèque</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="Orbit | Ma bibliothèque">
@@ -258,6 +259,9 @@ select.field { appearance: none; cursor: pointer; padding-right: 14px; }
 #panel .p-hero:has(img[hidden]) .p-hero-shade { display: none; }
 #panel .p-hero:has(img[hidden]) .p-hero-copy { padding: 0; color: inherit; }
 #panel .p-hero:has(img[hidden]) .p-hero-copy span { background: none; border-color: currentColor; }
+/* La barre de lancement est déclinée par thème dans /themes/launchbar.css. */
+#panel #p-personal { align-self: flex-start; padding: 9px 14px; border-radius: 12px; font-size: 13px; color: var(--fg); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); box-shadow: var(--gl-hi); }
+#panel #p-personal:hover { background: rgba(255,255,255,.12); }
 #p-overview { margin: 0; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
 #panel .game-activity-title { margin: 0; padding-top: 16px; border-top: 1px solid var(--line, currentColor); font-size: 18px; font-weight: 600; }
 #panel .p-stats { gap: 12px 20px; }
@@ -271,6 +275,27 @@ select.field { appearance: none; cursor: pointer; padding-right: 14px; }
 .history-row b { color: var(--fg); font-weight: 500; }
 .p-more { padding: 14px; border-radius: 14px; background: rgba(255,255,255,.045); color: var(--fg); font-size: 13px; line-height: 1.55; }
 .p-more a { color: #8bc3ff; }
+.p-trophies { display:grid; gap:11px; padding:15px; border-radius:15px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.09); }
+.p-trophies[hidden] { display:none; }
+.p-trophy-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.p-trophy-head .lbl { margin:0 0 4px; }
+.p-trophy-summary { color:var(--muted); font-size:12px; line-height:1.4; font-variant-numeric:tabular-nums; }
+.p-trophy-refresh { width:28px; height:28px; font-size:15px; }
+.p-trophy-refresh[disabled] { opacity:.5; cursor:wait; }
+.p-trophy-refresh.syncing { animation:spin 800ms linear infinite; }
+.p-trophy-progress { height:6px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.1); }
+.p-trophy-progress span { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#8bc3ff,#f5f7ff); transition:width .35s ease; }
+.p-trophy-list { display:grid; gap:6px; }
+.p-trophy-row { display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:10px; padding:7px 8px; border-radius:10px; background:rgba(0,0,0,.16); }
+.p-trophy-row img { width:32px; height:32px; border-radius:7px; object-fit:cover; background:rgba(255,255,255,.06); }
+.p-trophy-row b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px; font-weight:600; }
+.p-trophy-row small { display:block; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:11.5px; }
+.p-trophy-date { color:var(--muted); font-size:11px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.p-trophy-row.locked { opacity:.58; }
+.p-trophy-row.next { border:1px dashed rgba(255,255,255,.14); background:rgba(255,255,255,.02); }
+.p-trophy-empty { padding:12px; border-radius:10px; background:rgba(255,255,255,.025); color:var(--muted); font-size:12px; line-height:1.45; }
+.p-trophy-more { align-self:start; }
+@media (max-width:520px) { .p-trophy-row { grid-template-columns:30px minmax(0,1fr); } .p-trophy-date { display:none; } }
 .more-btn { align-self: start; }
 #p-edit { display: grid; gap: 18px; }
 #p-edit[hidden], #p-more[hidden] { display: none; }
@@ -682,23 +707,133 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 :root #chips .chip::after { display:none; }
 :root #chips .chip:focus-visible { outline:2px solid var(--sg-accent,#c2cfad); outline-offset:2px; }
 :root #chips .chip .dot { display:block; flex:none; width:7px; height:7px; }
+/* Orbit Play additions: weekly recap, queue, badges, palette and TV mode. */
+#launcher-screen .op-week{margin-top:22px}
+#launcher-screen .op-week-card{display:grid;grid-template-columns:minmax(0,1.2fr) repeat(4,minmax(0,1fr));gap:1px;overflow:hidden;border:1px solid var(--op-line);border-radius:7px;background:var(--op-line)}
+#launcher-screen .op-week-intro,#launcher-screen .op-week-metric{min-width:0;padding:16px 18px;background:var(--op-panel)}
+#launcher-screen .op-week-intro{display:flex;flex-direction:column;justify-content:space-between;gap:10px}
+#launcher-screen .op-week-intro b{font-size:17px;font-weight:600}
+#launcher-screen .op-week-intro span,#launcher-screen .op-week-metric span{color:var(--op-muted);font-size:12px}
+#launcher-screen .op-week-metric b{display:block;margin-bottom:4px;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+#launcher-screen .op-week-link{border:0;background:none;color:var(--op-accent);padding:0;text-align:left;font:inherit;font-size:13px;cursor:pointer}
+#launcher-screen .op-week-link:hover{text-decoration:underline}
+#launcher-screen .op-card-badges{position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;align-items:flex-end;gap:5px;pointer-events:none}
+#launcher-screen .op-card-trophies,#launcher-screen .op-card-rating{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid rgba(255,255,255,.18);border-radius:3px;background:rgba(14,18,22,.86);color:#edf1f4;font-size:10px;font-weight:600;line-height:1.2}
+#launcher-screen .op-card-rating{color:#f3d58d}
+#launcher-screen .op-queue-shelf{margin-top:34px}
+#launcher-screen .op-queue-list{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--op-line);padding-top:10px}
+#launcher-screen .op-queue-row{display:grid;grid-template-columns:42px minmax(0,1fr) auto auto;align-items:center;gap:11px;padding:7px 9px;border:1px solid transparent;border-radius:5px;background:var(--op-panel)}
+#launcher-screen .op-queue-row.dragging{opacity:.45}
+#launcher-screen .op-queue-row.drag-over{border-color:var(--op-accent)}
+#launcher-screen .op-queue-index{color:var(--op-muted);font-size:12px;font-variant-numeric:tabular-nums;text-align:center}
+#launcher-screen .op-queue-cover{width:34px;aspect-ratio:2/3;overflow:hidden;border-radius:3px;background:#2a3138}
+#launcher-screen .op-queue-cover img{width:100%;height:100%;object-fit:contain}
+#launcher-screen .op-queue-copy{min-width:0}
+#launcher-screen .op-queue-copy b,#launcher-screen .op-queue-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#launcher-screen .op-queue-copy b{font-size:14px;font-weight:600}
+#launcher-screen .op-queue-copy small{color:var(--op-muted);font-size:12px}
+#launcher-screen .op-queue-row button{border:0;background:transparent;color:var(--op-muted);font:inherit;font-size:12px;cursor:pointer;padding:5px}
+#launcher-screen .op-queue-row button:hover{color:var(--op-text);text-decoration:underline}
+#launcher-screen .op-queue-empty{padding:13px 2px;color:var(--op-muted);font-size:13px}
+#launcher-screen .op-advanced{display:flex;flex-direction:column;gap:5px;margin-top:18px}
+#launcher-screen .op-advanced h3{font-size:14px;font-weight:600;margin:20px 0 8px;padding-top:16px;border-top:1px solid var(--op-line)}
+#launcher-screen .op-advanced button{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid transparent;border-radius:5px;background:transparent;color:#bdbdc5;font-size:13px;text-align:left;cursor:pointer}
+#launcher-screen .op-advanced button[aria-pressed="true"]{background:#36363c;border-color:#55555e;color:#fff}
+#launcher-screen .op-advanced small{color:var(--op-muted);font-size:11px}
+#launcher-screen .op-trophy-next{margin:-6px 0 18px;padding:9px 12px;border-left:2px solid var(--op-accent);background:rgba(255,255,255,.025);color:#cbd4db;font-size:13px}
+#launcher-screen .op-trophy-next b{color:#f2f5f7;font-weight:600}
+#launcher-screen .op-panel-queue{margin-top:12px}
+#op-palette{width:min(720px,94vw);max-height:78vh;padding:0;border:1px solid #505058;border-radius:10px;background:#18181d;color:#f2f2f4;overflow:hidden;box-shadow:0 28px 90px rgba(0,0,0,.55);color-scheme:dark}
+#op-palette::backdrop{background:rgba(0,0,0,.62);backdrop-filter:blur(4px)}
+#op-palette .op-palette-box{display:grid;grid-template-rows:auto minmax(0,1fr) auto;max-height:78vh}
+#op-palette input{width:100%;padding:19px 22px;border:0;border-bottom:1px solid #33333b;background:#1d1d23;color:#fff;font:600 19px/1.2 "Source Sans 3","Segoe UI",sans-serif;outline:none}
+#op-palette-list{overflow:auto;padding:8px}
+#op-palette-list button{display:flex;align-items:center;justify-content:space-between;gap:18px;width:100%;padding:11px 13px;border:0;border-radius:6px;background:transparent;color:#ececf0;text-align:left;font:400 15px/1.25 "Source Sans 3","Segoe UI",sans-serif;cursor:pointer}
+#op-palette-list button[aria-selected="true"],#op-palette-list button:hover{background:#33333b}
+#op-palette-list button small{flex:none;color:#a8a8b2;font-size:12px}
+#op-palette-empty{padding:24px;color:#a8a8b2}
+#op-palette .op-palette-foot{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid #33333b;color:#8f8f9a;font-size:11px}
+#op-year{width:min(900px,94vw);max-height:88vh;padding:0;border:1px solid #505058;border-radius:12px;background:#16161b;color:#f2f2f4;overflow:auto;color-scheme:dark}
+#op-year::backdrop{background:rgba(0,0,0,.66);backdrop-filter:blur(4px)}
+#op-year .op-report{display:grid;gap:22px;padding:26px}
+#op-year header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#op-year h2{margin:0;font-size:clamp(28px,4vw,46px);letter-spacing:-.035em}
+#op-year .op-report-sub{margin:4px 0 0;color:#a8b1b8}
+#op-year .op-report-close{border:1px solid #414149;border-radius:5px;background:#27272d;color:#f0f0f3;padding:7px 12px;font:inherit;cursor:pointer}
+#op-year .op-report-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#op-year .op-report-stat{padding:14px;border:1px solid #33333b;border-radius:7px;background:#202026}
+#op-year .op-report-stat b{display:block;font-size:24px;font-weight:600}
+#op-year .op-report-stat span{color:#a8b1b8;font-size:12px}
+#op-year .op-report-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#op-year .op-report-card{padding:16px;border:1px solid #33333b;border-radius:7px;background:#202026}
+#op-year .op-report-card h3{margin:0 0 12px;font-size:16px}
+#op-year .op-report-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:6px 0;border-bottom:1px solid #303038;font-size:13px}
+#op-year .op-report-row:last-child{border-bottom:0}
+#op-year .op-report-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#op-year .op-report-row b{font-weight:600;color:#e7ebee}
+#op-year .op-report-row i{display:block;height:3px;margin-top:5px;border-radius:2px;background:#79bce2;opacity:.65}
+.p-rating{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 14px;color:#e8c987;font-size:14px}
+.p-rating .p-rating-stars{letter-spacing:1px}
+.p-rating .p-rating-review{width:100%;color:#c3c8cc;font-size:13px;line-height:1.45}
+#launcher-screen .tile-rating,#launcher-screen .tile-trophy{position:absolute;z-index:2;right:7px;display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border:1px solid rgba(255,255,255,.22);border-radius:3px;background:rgba(10,13,16,.82);color:#f0f2f4;font-size:10px;font-weight:600;line-height:1.3;pointer-events:none}
+#launcher-screen .tile-rating{top:7px;color:#f1d184}
+#launcher-screen .tile-trophy{bottom:7px}
+#film-tonight #film-tonight-card{position:relative}
+#film-tonight .film-tonight-reason{margin:2px 0 12px;color:var(--film-muted,#9aa2a8);font-size:13px}
+#film-tonight .film-tonight-card{display:grid;grid-template-columns:96px minmax(0,1fr);gap:16px;align-items:start;padding:14px;border:1px solid rgba(255,255,255,.11);border-radius:9px;background:rgba(255,255,255,.035)}
+#film-tonight .film-tonight-poster{width:96px;aspect-ratio:2/3;overflow:hidden;border-radius:6px;background:#25252b}
+#film-tonight .film-tonight-poster img{width:100%;height:100%;object-fit:cover}
+#film-tonight .film-tonight-copy b{display:block;font-size:18px;font-weight:600}
+#film-tonight .film-tonight-copy p{margin:5px 0 12px;color:var(--film-muted,#9aa2a8);font-size:13px}
+#film-tonight .film-tonight-copy button{border:1px solid rgba(255,255,255,.18);border-radius:5px;background:#2a2d33;color:#f3f4f5;padding:7px 12px;font:inherit;cursor:pointer}
+html[data-orbit-tv="1"] #launcher-screen{font-size:18px}
+html[data-orbit-tv="1"] #launcher-screen .op-main{padding-top:44px}
+html[data-orbit-tv="1"] #launcher-screen .op-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:34px 26px}
+html[data-orbit-tv="1"] #launcher-screen .op-card-title{font-size:19px}
+html[data-orbit-tv="1"] #launcher-screen .op-card-hours{font-size:15px}
+html[data-orbit-tv="1"] #launcher-screen .op-hero h2{font-size:clamp(42px,6vw,82px)}
+html[data-orbit-tv="1"] #launcher-screen .op-button{min-height:52px;padding:12px 24px;font-size:17px}
+html[data-orbit-tv="1"] #launcher-screen :focus-visible{outline:3px solid var(--op-accent);outline-offset:5px}
+html[data-orbit-tv="1"] #launcher-screen .op-nav button{padding:20px 16px;font-size:17px}
+html[data-orbit-tv="1"] .orbit-screen{padding:clamp(34px,6vw,90px)}
+html[data-orbit-tv="1"] .tile .nm{font-size:18px}
+html[data-orbit-mini="1"] #launcher-screen #op-week,
+html[data-orbit-mini="1"] #launcher-screen .op-recent{display:none}
+html[data-orbit-mini="1"] #launcher-screen .op-main{padding:18px 14px 40px}
+html[data-orbit-mini="1"] #launcher-screen .op-hub-head{display:none}
+html[data-orbit-mini="1"] #launcher-screen .op-filter-panel{display:none}
+html[data-orbit-mini="1"] #launcher-screen .op-library-layout{grid-template-columns:minmax(0,1fr)}
+html[data-orbit-mini="1"] #launcher-screen .op-topbar{padding:12px 14px;gap:12px}
+html[data-orbit-mini="1"] #launcher-screen .op-brand span{display:none}
+html[data-orbit-mini="1"] #launcher-screen .op-hero{min-height:280px}
+html[data-orbit-mini="1"] #launcher-screen .op-hero-copy{padding:18px}
+html[data-orbit-mini="1"] #launcher-screen .op-hero h2{font-size:28px}
+html[data-orbit-mini="1"] #launcher-screen .op-hero-meta{font-size:12px;margin:10px 0 16px}
+html[data-orbit-mini="1"] #launcher-screen .op-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:16px 10px}
+html[data-orbit-mini="1"] #launcher-screen .op-actions{gap:6px}
+html[data-orbit-mini="1"] #launcher-screen .op-button{min-height:36px;padding:7px 12px;font-size:13px}
+html[data-orbit-mini="1"] #launcher-screen .op-shelf{margin-top:26px}
+html[data-orbit-mini="1"] #launcher-screen .op-card-title{font-size:13px}
+html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template-columns:1fr}
+@media(max-width:900px){#launcher-screen .op-week-card{grid-template-columns:1fr 1fr}#launcher-screen .op-week-intro{grid-column:1/-1}#op-year .op-report-grid{grid-template-columns:1fr 1fr}#op-year .op-report-columns{grid-template-columns:1fr}#launcher-screen .op-queue-row{grid-template-columns:32px minmax(0,1fr) auto}#launcher-screen .op-queue-index{display:none}}
 </style>
 
 <div id="route-veil" aria-hidden="true"></div>
 <div id="intro-screen" role="button" tabindex="0" aria-label="Passer l’introduction Orbit"><div class="intro-lockup"><img class="orbit-mark" data-app-logo src="/icon.svg" alt=""><span class="intro-name" data-app-name>orbit</span></div></div>
 <button class="settings-launcher" id="settings-open" type="button" aria-label="Ouvrir les réglages" title="Réglages" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></button>
 <div id="settings-veil" hidden></div>
-<aside id="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" hidden><header class="settings-head"><div><div class="orbit-kicker">Personnalisation</div><h2 id="settings-title">Réglages</h2></div><button class="btn" id="settings-close" type="button" aria-label="Retour au menu précédent">← Retour</button></header><section class="settings-section"><div class="settings-section-title">Apparence</div><div class="theme-grid" id="theme-grid"></div><button class="btn theme-replay" id="replay-intro" type="button">↻ Rejouer l’intro</button></section><section class="settings-section"><label class="setting-line" for="sound-volume"><span><b>Volume du son</b><small>Petit son à l’ouverture de la bibliothèque</small></span><input id="sound-volume" type="range" min="0" max="100" value="7"></label><label class="setting-line" for="intro-toggle"><span><b>Intro Orbit</b><small>Afficher l’intro au lancement</small></span><input id="intro-toggle" type="checkbox" checked></label><label class="setting-line" for="accent-color"><span><b>Couleur d’accent</b><small>Personnalise la couleur principale</small></span><input id="accent-color" type="color" aria-label="Choisir la couleur d’accent"></label></section><section class="settings-section"><label class="setting-line" for="effects-quality"><span><b>Qualité des effets</b><small>Animations et flou</small></span><select id="effects-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label><label class="setting-line" id="glass-quality-line" for="glass-quality"><span><b>Qualité du verre</b><small>Réfraction des tuiles Liquid Glass</small></span><select id="glass-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label></section><section class="settings-section"><label class="setting-line" for="tile-size"><span><b>Taille des tuiles</b><small>Choisis leur taille dans la bibliothèque</small></span><select id="tile-size" class="field"><option value="small">Petite</option><option value="medium">Moyenne</option><option value="large">Grande</option></select></label></section><section class="settings-section"><div class="settings-section-title">Profils</div><div id="profile-settings-list" class="profile-settings-list"></div><p class="profile-hint">Les profils partagent la même bibliothèque et les mêmes heures.</p><div class="profile-add-row"><input id="profile-name-input" class="field" type="text" maxlength="60" placeholder="Nom du profil" aria-label="Nom du nouveau profil"><button id="profile-add" class="btn" type="button">Ajouter</button></div></section><section class="settings-section"><div class="settings-section-title">Informations</div><p class="profile-hint"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a></p></section><section class="settings-section"><div class="settings-section-title">Affiches de films</div><p class="profile-hint">Orbit cherche les affiches par titre dans TMDB. Ajoute une clé de lecture gratuite pour activer la recherche.</p><label class="setting-line" for="tmdb-key"><span><b>Clé API TMDB</b><small id="tmdb-key-status">Conservée uniquement sur cet appareil</small></span><input class="field" id="tmdb-key" type="password" autocomplete="off" placeholder="Clé de lecture TMDB" aria-label="Clé de lecture API TMDB"></label><div class="profile-add-row data-actions"><button class="btn" id="tmdb-key-save" type="button">Enregistrer la clé</button><button class="btn" id="tmdb-key-clear" type="button">Effacer</button><a class="btn" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Obtenir une clé</a></div></section><section class="settings-section"><div class="settings-section-title">Données et sauvegardes</div><p class="profile-hint">Une copie est créée au lancement et chaque jour sur cet ordinateur.</p><div class="profile-add-row data-actions"><button class="btn" id="data-export" type="button">Exporter</button><button class="btn" id="data-import" type="button">Importer</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-restore" type="button">Restaurer un backup</button><button class="btn" id="data-folder" type="button">Ouvrir le dossier</button></div><p class="profile-hint" id="data-message" role="status" aria-live="polite"></p></section><section id="orbit-update-settings" class="settings-section" hidden><div class="settings-section-title">Mises à jour</div><button type="button" class="btn" id="orbit-update-check">Vérifier les mises à jour</button><p class="profile-hint" role="status" id="orbit-update-status"></p></section><p class="settings-foot">Tes choix sont enregistrés sur cet ordinateur.</p></aside>
+<aside id="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" hidden><header class="settings-head"><div><div class="orbit-kicker">Personnalisation</div><h2 id="settings-title">Réglages</h2></div><button class="btn" id="settings-close" type="button" aria-label="Retour au menu précédent">← Retour</button></header><section class="settings-section"><div class="settings-section-title">Apparence</div><div class="theme-grid" id="theme-grid"></div><button class="btn theme-replay" id="replay-intro" type="button">↻ Rejouer l’intro</button></section><section class="settings-section"><label class="setting-line" for="sound-volume"><span><b>Volume du son</b><small>Petit son à l’ouverture de la bibliothèque</small></span><input id="sound-volume" type="range" min="0" max="100" value="7"></label><label class="setting-line" for="intro-toggle"><span><b>Intro Orbit</b><small>Afficher l’intro au lancement</small></span><input id="intro-toggle" type="checkbox" checked></label><label class="setting-line" for="accent-color"><span><b>Couleur d’accent</b><small>Personnalise la couleur principale</small></span><input id="accent-color" type="color" aria-label="Choisir la couleur d’accent"></label></section><section class="settings-section"><label class="setting-line" for="effects-quality"><span><b>Qualité des effets</b><small>Animations et flou</small></span><select id="effects-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label><label class="setting-line" id="glass-quality-line" for="glass-quality"><span><b>Qualité du verre</b><small>Réfraction des tuiles Liquid Glass</small></span><select id="glass-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label></section><section class="settings-section"><label class="setting-line" for="tile-size"><span><b>Taille des tuiles</b><small>Choisis leur taille dans la bibliothèque</small></span><select id="tile-size" class="field"><option value="small">Petite</option><option value="medium">Moyenne</option><option value="large">Grande</option></select></label><label class="setting-line" for="tv-mode-toggle"><span><b>Mode TV / manette</b><small>Grands textes, focus visible et navigation aux flèches</small></span><input id="tv-mode-toggle" type="checkbox"></label><label class="setting-line" id="mini-mode-line" for="mini-mode-toggle"><span><b>Mini-mode</b><small>Fenêtre compacte, toujours au-dessus des autres</small></span><input id="mini-mode-toggle" type="checkbox"></label></section><section class="settings-section"><div class="settings-section-title">Profils</div><div id="profile-settings-list" class="profile-settings-list"></div><p class="profile-hint">Les profils partagent la même bibliothèque et les mêmes heures.</p><div class="profile-add-row"><input id="profile-name-input" class="field" type="text" maxlength="60" placeholder="Nom du profil" aria-label="Nom du nouveau profil"><button id="profile-add" class="btn" type="button">Ajouter</button></div></section><section class="settings-section"><div class="settings-section-title">Informations</div><p class="profile-hint"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a></p></section><section class="settings-section"><div class="settings-section-title">Affiches de films</div><p class="profile-hint">Orbit cherche les affiches par titre dans TMDB. Ajoute une clé de lecture gratuite pour activer la recherche.</p><label class="setting-line" for="tmdb-key"><span><b>Clé API TMDB</b><small id="tmdb-key-status">Conservée uniquement sur cet appareil</small></span><input class="field" id="tmdb-key" type="password" autocomplete="off" placeholder="Clé de lecture TMDB" aria-label="Clé de lecture API TMDB"></label><div class="profile-add-row data-actions"><button class="btn" id="tmdb-key-save" type="button">Enregistrer la clé</button><button class="btn" id="tmdb-key-clear" type="button">Effacer</button><a class="btn" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Obtenir une clé</a></div></section><section class="settings-section"><div class="settings-section-title">Données et sauvegardes</div><p class="profile-hint">Une copie est créée au lancement et chaque jour sur cet ordinateur.</p><div class="profile-add-row data-actions"><button class="btn" id="data-export" type="button">Exporter</button><button class="btn" id="data-import" type="button">Importer</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-restore" type="button">Restaurer un backup</button><button class="btn" id="data-folder" type="button">Ouvrir le dossier</button></div><p class="profile-hint" id="data-message" role="status" aria-live="polite"></p></section><section id="orbit-update-settings" class="settings-section" hidden><div class="settings-section-title">Mises à jour</div><button type="button" class="btn" id="orbit-update-check">Vérifier les mises à jour</button><p class="profile-hint" role="status" id="orbit-update-status"></p></section><p class="settings-foot">Tes choix sont enregistrés sur cet ordinateur.</p></aside>
 <main id="home-screen" class="orbit-screen on" aria-label="Menu principal"><div class="orbit-home"><div class="orbit-top"><div class="orbit-brand"><img class="orbit-mark" data-app-logo src="/icon.svg" alt=""><span data-app-name>orbit</span></div><button class="btn" id="install-app" type="button" hidden>Installer</button></div><div class="orbit-kicker">Espace personnel</div><h1 class="orbit-title">Choisissez un espace</h1><p class="orbit-lead">Votre collection et vos prochaines découvertes.</p><div class="orbit-cards" id="section-cards"></div><div class="orbit-footer">D’autres sections arriveront ici.<br><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a></div></div></main>
 <main id="films-screen" aria-label="Films et séries"><div class="film-shell"><header class="film-top"><div class="film-brand"><h1>Films & séries</h1><span>Votre journal de visionnage</span></div><div class="film-actions"><button class="btn" id="films-back" type="button">← Menu</button><button class="btn" id="film-posters-auto" type="button">Affiches auto</button><button class="btn" id="film-add" type="button">＋ Ajouter</button></div></header><div id="film-discord" hidden><p id="film-discord-title" role="status"></p><button class="btn" type="button" id="film-discord-action" hidden></button></div><section class="film-overview" hidden aria-label="Statistiques de visionnage"><div class="film-metric"><b id="film-count">0</b><span>Dans la collection</span></div><div class="film-metric"><b id="film-watchlist-count">0</b><span>À voir</span></div><div class="film-metric"><b id="film-watching-count">0</b><span>En cours</span></div><div class="film-metric"><b id="film-watched-count">0</b><span>Vus</span></div><div class="film-metric"><b id="film-average"> - </b><span>Note moyenne</span></div></section><div class="film-controls"><nav class="film-filters" id="film-filters" aria-label="Filtrer les films et séries"><button class="film-filter" type="button" data-film-filter="home" aria-pressed="true">Accueil</button><button class="film-filter" type="button" data-film-filter="all" aria-pressed="false">Collection</button><button class="film-filter" type="button" data-film-filter="film" aria-pressed="false">Films</button><button class="film-filter" type="button" data-film-filter="series" aria-pressed="false">Séries</button><button class="film-filter" type="button" data-film-filter="watchlist" aria-pressed="false">Watchlist</button><button class="film-filter" type="button" data-film-filter="watching" aria-pressed="false">En cours</button><button class="film-filter" type="button" data-film-filter="watched" aria-pressed="false">Vus</button><button class="film-filter" type="button" data-film-filter="diary" aria-pressed="false">Journal</button></nav><div class="film-search-sort" hidden><input class="field" id="film-search" type="search" placeholder="Rechercher un titre…" aria-label="Rechercher un film ou une série"><select class="field" id="film-sort" aria-label="Trier la collection"><option value="recent">Ajouts récents</option><option value="title">Titre</option><option value="year">Année</option><option value="rating">Note</option></select></div></div><div id="cinema-home">
   <section aria-labelledby="fh-continue"><div class="fh-heading"><h2 id="fh-continue">Continuer</h2><button class="fh-action" data-all-watching type="button" hidden>Tout voir</button></div><div data-resume></div></section>
+  <section id="film-tonight" aria-labelledby="fh-tonight"><div class="fh-heading"><h2 id="fh-tonight">Ce soir</h2><button class="fh-action" id="film-tonight-shuffle" type="button">Autre idée</button></div><div id="film-tonight-card"></div></section>
   <section aria-labelledby="fh-picks"><div class="fh-heading"><h2 id="fh-picks">Au hasard dans ta watchlist</h2><button class="fh-action" data-shuffle type="button" hidden>Autre sélection</button><button class="fh-action" data-add type="button" hidden>Ajouter un titre</button></div><div data-picks></div><span data-feedback role="status"></span></section>
 </div><div class="film-grid" hidden id="film-grid" aria-live="polite"></div><p class="tmdb-credit">This product uses the TMDB API but is not endorsed or certified by TMDB. <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">The Movie Database</a></p></div></main>
 <dialog id="film-editor" aria-labelledby="film-editor-title"><form class="film-form" id="film-form"><div class="film-form-head"><h2 id="film-editor-title">Ajouter à la collection</h2><button class="btn" id="film-editor-close" type="button" aria-label="Fermer">Fermer</button></div><section id="film-series-guide" aria-label="Épisodes de la série" hidden></section><input id="film-id" type="hidden"><details class="film-manual-section" open><summary>Paramètres de la fiche · modifiables manuellement</summary><label for="film-title">Titre<input class="field" id="film-title" type="text" maxlength="200" required autocomplete="off"></label><div class="film-form-row"><label for="film-type">Type<select class="field" id="film-type"><option value="film">Film</option><option value="series">Série</option></select></label><label for="film-year">Année<input class="field" id="film-year" type="number" min="1870" max="2200" placeholder="Année de sortie"></label></div><label for="film-release-date">Date de sortie<input class="field" id="film-release-date" type="date"></label><label for="film-poster">Adresse de l’affiche<input class="field" id="film-poster" type="url" placeholder="https://…"></label></details><div class="film-tmdb-tools"><button class="btn" id="film-tmdb-search" type="button">Rechercher la fiche officielle</button><div class="film-tmdb-results" id="film-tmdb-results" aria-live="polite"></div><section class="film-tmdb-detail" id="film-tmdb-detail" hidden><b id="film-tmdb-original"></b><div id="film-tmdb-facts"></div><p id="film-tmdb-overview"></p></section></div><div class="film-form-row"><label for="film-status">État<select class="field" id="film-status"><option value="watchlist">À voir</option><option value="watching">En cours</option><option value="watched">Vu</option></select></label><label for="film-rating">Ta note<select class="field" id="film-rating"><option value="0">Pas de note</option><option value="0.5">0,5 / 5</option><option value="1">1 / 5</option><option value="1.5">1,5 / 5</option><option value="2">2 / 5</option><option value="2.5">2,5 / 5</option><option value="3">3 / 5</option><option value="3.5">3,5 / 5</option><option value="4">4 / 5</option><option value="4.5">4,5 / 5</option><option value="5">5 / 5</option></select></label></div><label for="film-watched-at">Date de visionnage<input class="field" id="film-watched-at" type="date"></label><div class="film-form-row film-progress" id="film-progress" hidden><label for="film-season">Saison suivie<input class="field" id="film-season" type="number" min="1" max="1000" placeholder="Ex. 4"></label><label for="film-episode">Dernier épisode (facultatif)<input class="field" id="film-episode" type="number" min="1" max="10000" placeholder="Ex. 9"></label></div><div class="film-form-actions"><button class="btn" id="film-delete" type="button" hidden>Supprimer</button><div class="right"><button class="btn" id="film-cancel" type="button">Annuler</button><button class="btn" id="film-save" type="submit">Enregistrer</button></div></div></form></dialog>
 <main id="launcher-screen" aria-label="Orbit Play" aria-hidden="true">
-  <header class="op-topbar"><div class="op-brand"><img data-app-logo src="/icon.svg" alt=""><span>Orbit Play</span></div><nav class="op-nav" aria-label="Navigation Orbit Play"><button type="button" data-op-tab="home" aria-current="page">Accueil</button><button type="button" data-op-tab="library">Ma bibliothèque</button></nav><button class="op-return" id="op-return" type="button">← Retour</button></header>
-  <section class="op-main" id="op-home-view"><div class="op-hub-head"><h1 class="op-page-title" id="op-home-title">Reprendre</h1><nav class="op-hub-links" aria-label="Raccourcis du lanceur"><button type="button" id="op-find-game">Rechercher</button><button type="button" data-op-shortcut="installed">Installés</button><button type="button" data-op-shortcut="favorites">Favoris</button></nav></div><div id="op-hero"></div><div id="op-shelves"></div></section>
-  <section class="op-main op-hidden" id="op-library-view"><div class="op-library-head"><h1 class="op-page-title">Bibliothèque</h1><button type="button" id="op-portrait-import" class="op-button">Jaquettes verticales</button><button type="button" id="op-steam-import" class="op-button">Importer Steam</button></div><nav class="op-collection-tabs" aria-label="Collection Orbit Play"><button type="button" data-op-collection="all" aria-pressed="true">Jeux</button><button type="button" data-op-collection="favorites" aria-pressed="false">Favoris</button><button type="button" data-op-collection="installed" aria-pressed="false">Installés</button><button type="button" data-op-collection="missing" aria-pressed="false">Sans jaquette</button><button type="button" data-op-collection="apps" aria-pressed="false">Applications</button><select id="op-custom" class="field" aria-label="Mes collections" hidden></select></nav><div class="op-library-layout"><div class="op-results"><label class="op-sort-label">Trier par <select id="op-sort" aria-label="Trier les jeux Orbit Play"><option value="name">Nom</option><option value="recent">Dernière partie</option><option value="time">Temps joué</option></select></label><div class="op-grid" id="op-grid"></div><p class="op-status" id="op-status" role="status" aria-live="polite"></p></div><aside class="op-filter-panel" aria-label="Filtres Orbit Play"><div class="op-filter-heading"><h2>Filtres</h2><button type="button" id="op-reset">Réinitialiser</button></div><input class="op-search" id="op-search" type="search" placeholder="Rechercher un titre" aria-label="Rechercher dans Orbit Play"><h3>Statut</h3><div class="op-filters" id="op-filters" aria-label="Filtrer les jeux"></div></aside></div></section>
+  <header class="op-topbar"><div class="op-brand"><img data-app-logo src="/icon.svg" alt=""><span>Orbit Play</span></div><nav class="op-nav" aria-label="Navigation Orbit Play"><button type="button" data-op-tab="home" aria-current="page">Accueil</button><button type="button" data-op-tab="library">Jeux</button></nav><button class="op-return" id="op-return" type="button">← Retour</button></header>
+  <section class="op-main" id="op-home-view"><div class="op-hub-head"><h1 class="op-page-title" id="op-home-title">Reprendre</h1><nav class="op-hub-links" aria-label="Raccourcis du lanceur"><button type="button" id="op-find-game">Rechercher</button><button type="button" data-op-shortcut="installed">Jeux</button><button type="button" id="op-tv-toggle">Mode TV</button><button type="button" id="op-stats-link">Statistiques</button></nav></div><div id="op-hero"></div><div id="op-week"></div><div id="op-shelves"></div></section>
+  <section class="op-main op-hidden" id="op-library-view"><div class="op-library-head"><h1 class="op-page-title">Jeux</h1><button type="button" id="op-portrait-import" class="op-button">Jaquettes verticales</button><button type="button" id="op-steam-import" class="op-button">Importer Steam</button></div><div class="op-library-layout"><div class="op-results"><label class="op-sort-label">Trier par <select id="op-sort" aria-label="Trier les jeux Orbit Play"><option value="name">Nom</option><option value="recent">Dernière partie</option><option value="time">Temps joué</option></select></label><div class="op-grid" id="op-grid"></div><p class="op-status" id="op-status" role="status" aria-live="polite"></p></div><aside class="op-filter-panel" aria-label="Filtres Orbit Play"><div class="op-filter-heading"><h2>Filtres</h2><button type="button" id="op-reset">Réinitialiser</button></div><input class="op-search" id="op-search" type="search" placeholder="Rechercher un titre" aria-label="Rechercher dans Orbit Play"><h3>Statut</h3><div class="op-filters" id="op-filters" aria-label="Filtrer les jeux"></div><div id="op-advanced"></div></aside></div></section>
 </main>
 <div id="op-notice" role="status" aria-live="polite"></div>
 <dialog id="op-game-layer" aria-labelledby="p-name"></dialog>
@@ -748,6 +883,8 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
     <label>Plateformes possédées<input class="field" id="play-platforms" placeholder="PC, PS5…" maxlength="300"></label>
     <label>Collections<input class="field" id="play-tags" placeholder="Coop, À jouer ensuite…" maxlength="500"></label>
     <small>Sépare les noms par une virgule.</small>
+    <label>Ma note<select class="field" id="play-rating"><option value="0">Pas de note</option><option value="1">1 / 5</option><option value="1.5">1,5 / 5</option><option value="2">2 / 5</option><option value="2.5">2,5 / 5</option><option value="3">3 / 5</option><option value="3.5">3,5 / 5</option><option value="4">4 / 5</option><option value="4.5">4,5 / 5</option><option value="5">5 / 5</option></select></label>
+    <label>Mini-critique<textarea class="field" id="play-review" rows="3" maxlength="500" placeholder="Ce que tu as aimé, en quelques mots."></textarea></label>
     <label>Note personnelle<textarea class="field" id="play-note" rows="3" maxlength="2000"></textarea></label>
     <button class="btn" type="submit">Enregistrer la fiche</button>
   </form>
@@ -770,7 +907,9 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 <aside id="panel" role="dialog" aria-modal="true" aria-labelledby="p-name" aria-hidden="true">
   <div class="p-top"><div><h2 id="p-name"></h2><div id="p-tags" class="p-tags"></div></div><div class="p-actions"><button class="x" id="p-edit-toggle" type="button" aria-label="Modifier" title="Modifier">⚙</button><button class="x" id="p-close" type="button" aria-label="Fermer">×</button></div></div>
   <div class="p-hero"><img id="p-bg" alt="" hidden><div class="p-hero-shade"></div><div class="p-hero-copy"><span id="p-status"></span><span id="p-completion"></span></div></div>
+  <div class="p-launchbar" id="p-sess" role="group" aria-label="Lancer le jeu"></div>
   <section id="p-read">
+    <div id="p-rating" class="p-rating" hidden></div>
     <div class="more-area">
       <p id="p-overview" hidden></p>
       <div id="p-more" class="p-more" hidden></div>
@@ -779,8 +918,20 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
     <h3 class="game-activity-title">Mon activité</h3>
     <div class="read-stat"><div><div class="lbl">Temps de jeu</div><div class="time" id="p-time"></div></div><div id="p-live"></div></div>
     <div class="p-stats" id="p-stats"></div>
-    <div class="row" id="p-sess"></div><button class="btn" id="p-personal" type="button">Ma fiche Orbit Play</button><p id="p-personal-summary" class="note" hidden></p>
+    <button class="btn" id="p-personal" type="button">Ma fiche Orbit Play</button><p id="p-personal-summary" class="note" hidden></p>
     <div class="history-wrap"><div class="lbl">Historique des sessions</div><div id="p-history" class="history"></div></div>
+    <section id="p-trophies" class="p-trophies" hidden aria-labelledby="p-trophies-title">
+      <div class="p-trophy-head">
+        <div>
+          <div class="lbl" id="p-trophies-title">Trophées Steam</div>
+          <div class="p-trophy-summary" id="p-trophy-summary" aria-live="polite">Synchronisation des trophées.</div>
+        </div>
+        <button class="x p-trophy-refresh" id="p-trophy-refresh" type="button" title="Synchroniser les trophées Steam" aria-label="Synchroniser les trophées Steam">&#8635;</button>
+      </div>
+      <div class="p-trophy-progress" id="p-trophy-progress" role="progressbar" aria-label="Progression des trophées" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="p-trophy-fill"></span></div>
+      <div class="p-trophy-list" id="p-trophy-list"></div>
+      <button class="btn p-trophy-more" id="p-trophy-more" type="button" hidden>Tous les trophées</button>
+    </section>
   </section>
   <section id="p-edit" hidden>
     <div class="lbl">Jaquette</div>
@@ -796,20 +947,159 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 </div><!-- /library-screen -->
 
 <script>
+const RAW = `Alien Returns|T|2
+ARK: Survival Ascended|T|2
+Assassin’s Creed Odyssey|T|2
+Astro’s Playroom|T|2
+Cave Crave|T|2
+Clair Obscur: Expedition 33|T|2
+Cookie Clicker|T|2
+Elden Ring|T|2
+Hello Neighbor 2|T|2
+Hollow Knight|T|2
+Marvel’s Spider-Man: Miles Morales|T|2
+Marvel’s Spider-Man 2|T|2
+Marvel’s Spider-Man Remastered|T|2
+Minecraft|T|2
+My Name is Mayo|T|2
+Phasmophobia|T|2
+Puzzle Drop Carnival|T|2
+Rocket League|T|2
+Stumble Guys (PS5)|T|2
+The Crew Motorfest|T|2
+The Light in the Darkness|T|2
+The Stanley Parable: Ultra Deluxe|T|2
+A Gummy's Life|F|0
+Aimlabs|F|0
+Animal Well|F|0
+Another Crab's Treasure|F|0
+Apex Legends|F|0
+Assassin's Creed III|F|0
+Assassin's Creed Mirage|F|0
+Assassin's Creed Unity|F|0
+Astro Bot|F|0
+Batman: Arkham Asylum|F|0
+Batman: Arkham City|T|1
+Batman: Arkham Knight|F|0
+Balatro|P|0
+BioShock 1–2|F|0
+Black Myth: Wukong|F|0
+Bloodborne|F|0
+Bunny Raiders|F|0
+Cactus Cowboy: Plants at War|F|0
+Call of Duty: Black Ops Cold War|F|0
+Celeste|T|1
+Clicker Heroes|A|0
+Cooking Simulator VR|F|0
+Creed: Rise to Glory|F|0
+Cult of the Lamb|F|0
+Cyberpunk 2077|E|0
+Dark Souls Remastered|P|0
+Dark Souls Trilogy|P|0
+Dead Space|T|1
+Demon's Souls|F|0
+Detroit: Become Human|F|0
+DOOM|F|0
+EA Sports FC 24|A|0
+EA Sports FC 26|A|0
+Ender Lilies: Quietus of the Knights|F|0
+Epic Roller Coasters|F|0
+Far Cry 3|F|0
+Far Cry 5|F|0
+Fall Guys|F|0
+Fears to Fathom|F|0
+F1 23|A|0
+FIFA 23|A|0
+Five Nights at Freddy's: Security Breach|A|0
+Firewatch|F|0
+Fortnite|F|0
+Forza Horizon 5|T|1
+Ghost of Tsushima|F|0
+Ghost of Yōtei|T|1
+Ghostrunner 2|T|1
+God of War (2018)|T|1
+God of War Ragnarök|F|0
+Gorilla Tag|F|0
+Grand Theft Auto V|F|0
+Gran Turismo 7|E|0
+Grid Legends|F|0
+Half-Life 1–2|F|0
+Horizon Forbidden West|T|1
+Horizon Zero Dawn|T|1
+Hollow Knight: Silksong|P|1
+Immortals of Aveum|A|0
+It Takes Two|A|0
+Kingdom Come: Deliverance II|F|0
+LEGO Star Wars II: The Original Trilogy|T|1
+LEGO Star Wars: The Skywalker Saga|T|1
+Life is Strange 2|F|0
+Lies of P|F|0
+Mafia II|F|0
+Mafia: Definitive Edition|F|0
+Metro 2033|F|0
+Minecraft: Set 2|F|0
+Outlast|F|0
+Pavlov|F|0
+Piece Out: Avatar|F|0
+Portal 1–2|F|0
+Red Dead Redemption 2|F|0
+Resident Evil 2|F|0
+Resident Evil 4|F|0
+Resident Evil 9|F|0
+Riders Republic|F|0
+Roblox|F|0
+Road 96|F|0
+Sifu|F|0
+Silent Hill 2|F|0
+Skyrim|F|0
+Star Wars Jedi: Survivor|F|0
+Star Wars Outlaws|F|0
+Steep|F|0
+Still Wakes the Deep|F|0
+Stumble Guys (PS4)|T|2
+Stray|F|0
+Subnautica: Below Zero|F|0
+The First Descendant|A|0
+The Finals|F|0
+The Forest|F|0
+The Last of Us Part I|T|1
+The Last of Us Part II|T|1
+The Last of Us Part II Remastered|T|1
+The Witcher 3: Wild Hunt|T|1
+The Witcher 4|F|0
+Trackmania|F|0
+Undertale|F|0
+Uncharted: The Nathan Drake Collection|F|0
+Until Dawn|F|0
+Vacation Simulator|F|0
+Valiant Hearts: The Great War|F|0
+Valorant|F|0
+Valor Mortis|F|0
+Viewfinder|F|0
+Wolfenstein II|F|0
+Wreckfest|F|0
+Zelda: Ocarina of Time|F|0
+Zelda: The Wind Waker|F|0
+MW4|E|0
+Neon White|F|0`;
 
 const ST = ["En cours", "En pause", "À faire", "Terminé", "Abandonné", "Neutre"];
+const NEUTRAL_STATUS = 5;
 const statusIndex = game => game?.s !== null && game?.s !== undefined && game?.s !== "" && Number.isInteger(Number(game.s)) ? Number(game.s) : -1;
+const normalizeStatus = value => value !== null && value !== undefined && value !== "" && Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) < ST.length ? Number(value) : NEUTRAL_STATUS;
 const CO = ["À définir", "Pas 100 %", "100 % / Platine"];
+const CODE = { E: 0, P: 1, F: 2, T: 3, A: 4 };
 const KEY = "bibliotheque-jeux-v1";
 let SRV = false, applying = false, putT = null, disc = { status: "", playing: null };
 
 function defaults() {
-  return { games: [], sessions: [], session: null, favorites: [], profiles: [{ id: "main", name: "Profil principal" }], activeProfileId: "main" };
+  return { games: RAW.split("\n").map(l => { const p = l.split("|"); return { n: p[0], s: CODE[p[1]], c: +p[2] === 2 ? 2 : +p[2] === 1 ? 1 : 0, m: 0 }; }), sessions: [], session: null, favorites: [], profiles: [{ id: "main", name: "Profil principal" }], activeProfileId: "main" };
 }
 let S;
 try { const t = localStorage.getItem(KEY); S = t ? JSON.parse(t) : defaults(); } catch (e) { S = defaults(); }
 if (!S || !Array.isArray(S.games)) S = defaults();
-S.recap = S.recap && typeof S.recap === "object" ? S.recap : { lastOpened: null, recent: [], gameStats: {} };
+S.recap = S.recap && typeof S.recap === "object" ? S.recap : { lastOpened: null, recent: [], gameStats: {}, queue: [] };
+S.recap.queue = Array.isArray(S.recap.queue) ? S.recap.queue.filter(name => typeof name === "string" && name.trim()).slice(0, 50) : [];
 S.games.forEach((g, i) => { g.id = i; });
 if (!Array.isArray(S.sessions)) S.sessions = [];
 if (!Array.isArray(S.favorites)) S.favorites = [];
@@ -825,6 +1115,32 @@ function save() {
 function storeLocal() {
   try { localStorage.setItem(KEY, JSON.stringify({ games: S.games.map(({ n, s, c, m, t, firstPlayed, manualDelta }) => ({ n, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0 })), session: S.session, sessions: S.sessions, favorites: S.favorites, profiles: S.profiles, activeProfileId: S.activeProfileId, recap:S.recap })); } catch (e) {}
 }
+function setGameStatus(game, status) {
+  if (!game || !Number.isInteger(status) || status < 0 || status >= ST.length || Number(game.s) === status) return false;
+  game.s = status;
+  storeLocal();
+  if (SRV) { clearTimeout(putT); putNow(); }
+  return true;
+}
+function markGameLaunched(game) {
+  if (!setGameStatus(game, NEUTRAL_STATUS)) return false;
+  if (openId === game.id) setTimeout(() => { if (openId === game.id) renderPanel(); }, 0);
+  return true;
+}
+function gameForSteamApp(appId) {
+  if (!appId) return null;
+  return S.games.find(game => {
+    const meta = metaCache.get(ckey(game.n)), details = detailsForName(game.n);
+    return String(meta?.appId || meta?.localSteamId || details?.installedId || "") === String(appId);
+  }) || null;
+}
+document.addEventListener("click", event => {
+  const link = event.target instanceof Element ? event.target.closest('a[href^="steam://run/"]') : null;
+  if (!link) return;
+  const appId = String(link.getAttribute("href") || "").match(/^steam:\/\/run\/(\d{1,10})/)?.[1];
+  const game = appId ? gameForSteamApp(appId) : null;
+  if (game) markGameLaunched(game);
+});
 const $ = id => document.getElementById(id);
 const covers = new Map();
 const steamPortraits = new Map();
@@ -1007,7 +1323,7 @@ function makeTile(g, live, resume = false) {
   wrap.style.setProperty("--stagger-index", String(tileRenderIndex++));
   const t = document.createElement("button");
   t.type = "button"; t.className = "tile" + (resume ? " resume-tile" : "") + (live && live.id === g.id ? " live" : ""); t.dataset.id = g.id;
-  const d = document.createElement("span"); d.className = "dot d-" + g.s; d.textContent = ST[g.s];
+  const status = normalizeStatus(g.s), d = document.createElement("span"); d.className = "dot d-" + status; d.textContent = ST[status];
   const n = document.createElement("span"); n.className = "nm"; n.textContent = g.n;
   const initial = document.createElement("span");
   initial.className = "ini";
@@ -1025,7 +1341,11 @@ function makeTile(g, live, resume = false) {
   }
   const w = document.createElement("span"); w.className = "in";
   const h = document.createElement("span"); h.className = "hr" + (g.m ? " on" : ""); h.textContent = g.m ? fmt(g.m) : "0 h";
-  w.append(n, h); t.append(d, w); t.onclick = () => { setAmbientCover(t); openPanel(g.id); };
+  w.append(n, h); t.append(d, w);
+  const rating=Number(detailsForName(g.n).rating)||0,trophy=trophySummaryLabel(g.n);
+  if(trophy){const badge=document.createElement("span");badge.className="tile-trophy";badge.textContent="\u{1F3C6} "+trophy;badge.title=trophy+" troph\u00e9es Steam";t.append(badge);}
+  if(rating){const badge=document.createElement("span");badge.className="tile-rating";badge.textContent=ratingStars(rating);badge.title="Ma note : "+rating+" / 5";t.append(badge);}
+  t.onclick = () => { setAmbientCover(t); openPanel(g.id); };
   t.addEventListener("focus",()=>setAmbientCover(t));
   if (g.id === openId) t.style.visibility = "hidden";
   wrap.append(t);
@@ -1151,27 +1471,166 @@ function renderMeta(g,m){
   else if(cover)extractAccent(cover,g.n);
 }
 function extractAccent(src,name){const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=1;const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,1,1);const d=x.getImageData(0,0,1,1).data,hex="#"+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,"0")).join("");$("panel").style.setProperty("--game-accent",hex);if(SRV)fetch("/api/meta/accent",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,accent:hex})}).catch(()=>{});}catch(e){}};im.src=src;}
+/* Trophées Steam : lecture du cache local Steam, sans clé API. */
+const trophyCache=new Map(),trophyPending=new Map();let trophyExpanded=false,trophyOpenApp="";
+const trophySummaryCache=new Map();let trophySummaryAt=0,trophySummaryLoading=null;
+async function loadTrophySummaries(force=false){
+  if(!SRV)return trophySummaryCache;
+  if(!force&&trophySummaryCache.size&&Date.now()-trophySummaryAt<60000)return trophySummaryCache;
+  if(trophySummaryLoading&&!force)return trophySummaryLoading;
+  trophySummaryLoading=fetch("/api/steam/summary"+(force?"?refresh=1":""),{cache:"no-store"})
+    .then(r=>r.ok?r.json():null)
+    .then(result=>{
+      if(!result?.summaries)return trophySummaryCache;
+      trophySummaryCache.clear();
+      for(const [key,value] of Object.entries(result.summaries))if(value&&typeof value==="object")trophySummaryCache.set(ckey(key),value);
+      trophySummaryAt=Date.now();
+      window.dispatchEvent(new Event("orbit:trophies"));
+      return trophySummaryCache;
+    })
+    .catch(()=>trophySummaryCache)
+    .finally(()=>{trophySummaryLoading=null;});
+  return trophySummaryLoading;
+}
+function trophySummaryFor(name){return trophySummaryCache.get(ckey(name))||null;}
+function trophySummaryLabel(name){
+  const summary=trophySummaryFor(name);
+  if(!summary||!summary.ok||!Number(summary.total))return "";
+  return `${Number(summary.unlocked)||0} / ${Number(summary.total)}`;
+}
+function ratingStars(value){
+  const rating=Math.max(0,Math.min(5,Number(value)||0));
+  const full=Math.floor(rating),half=rating-full>=.5;
+  return "★★★★★".slice(0,full)+ (half?"☆":"") + "☆☆☆☆☆".slice(0,Math.max(0,5-full-(half?1:0)));
+}
+function queueKeys(){return (S.recap?.queue||[]).map(ckey);}
+function queueGame(game){
+  if(!game)return false;
+  const key=ckey(game.n),queue=Array.isArray(S.recap.queue)?S.recap.queue:[];
+  const exists=queue.some(name=>ckey(name)===key);
+  S.recap.queue=exists?queue.filter(name=>ckey(name)!==key):[...queue,game.n];
+  persistRecap();
+  window.dispatchEvent(new CustomEvent("orbit:queue-changed",{detail:{name:game.n,queued:!exists}}));
+  return !exists;
+}
+function trophySteamApp(g){
+  const id=String(detailsForName(g.n)?.steamAppId||metaCache.get(ckey(g.n))?.appId||"").match(/^\d{1,10}$/);
+  return id?id[0]:"";
+}
+function trophyDate(value){
+  if(!value)return "";
+  const date=new Date(Number(value)*1000);
+  if(!Number.isFinite(+date))return "";
+  return date.toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:date.getFullYear()===new Date().getFullYear()?undefined:"numeric"});
+}
+function trophyMessage(text){
+  const box=document.createElement("div");box.className="p-trophy-empty";box.textContent=text;return box;
+}
+function trophyRow(achievement,{locked=false,next=false}={}){
+  const row=document.createElement("div");row.className="p-trophy-row"+(locked?" locked":"")+(next?" next":"");
+  const image=document.createElement("img");image.alt="";image.loading="lazy";image.decoding="async";
+  image.src=(locked?achievement.iconGray:achievement.icon)||achievement.iconGray||achievement.icon||"";
+  image.onerror=()=>{image.style.visibility="hidden";};
+  const copy=document.createElement("div"),title=document.createElement("b"),description=document.createElement("small");
+  title.textContent=locked&&achievement.hidden?"Trophée secret":achievement.title||"Trophée";
+  description.textContent=locked?(next?"Prochain trophée à débloquer":achievement.hidden?"Continue à jouer pour le découvrir.":achievement.description||"À débloquer"):(achievement.description||"Trophée débloqué");
+  copy.append(title,description);
+  const date=document.createElement("span");date.className="p-trophy-date";date.textContent=locked?"À faire":trophyDate(achievement.unlockTime);
+  row.append(image,copy,date);return row;
+}
+function renderTrophies(g){
+  const section=$("p-trophies"),chip=$("p-trophies-chip");if(!section)return;
+  const appId=trophySteamApp(g);
+  if(!appId){section.hidden=true;if(chip)chip.hidden=true;return;}
+  section.hidden=false;
+  if(trophyOpenApp!==appId){trophyOpenApp=appId;trophyExpanded=false;}
+  const summary=$("p-trophy-summary"),list=$("p-trophy-list"),more=$("p-trophy-more"),fill=$("p-trophy-fill"),progress=$("p-trophy-progress");
+  const info=trophyCache.get(appId);
+  if(!info){
+    summary.textContent=trophyPending.has(appId)?"Synchronisation des trophées Steam…":"Trophées Steam disponibles.";
+    if(chip){chip.hidden=false;chip.textContent="Trophées Steam…";}
+    list.replaceChildren(trophyMessage("Lecture du cache Steam…"));
+    fill.style.width="0%";progress.setAttribute("aria-valuenow","0");more.hidden=true;
+    if(!trophyPending.has(appId))loadTrophies(appId);
+    return;
+  }
+  if(!info.ok){
+    const reasons={"schema-indisponible":"Steam n'a pas encore mis en cache les trophées de ce jeu. Lance-le une fois avec Steam, puis clique sur synchroniser.","compte-steam-introuvable":"Compte Steam introuvable sur ce PC.","appid-introuvable":"Aucun identifiant Steam pour ce jeu.","schema-illisible":"Le cache Steam de ce jeu est illisible."};
+    summary.textContent="Synchronisation impossible";
+    if(chip)chip.hidden=true;
+    list.replaceChildren(trophyMessage(reasons[info.error]||"Les trophées Steam ne sont pas disponibles pour ce jeu."));
+    fill.style.width="0%";progress.setAttribute("aria-valuenow","0");more.hidden=true;return;
+  }
+  const achievements=Array.isArray(info.achievements)?info.achievements:[];
+  const total=Number(info.total)||0,unlocked=Number(info.unlocked)||0,percent=Math.max(0,Math.min(100,Number(info.percent)||0));
+  summary.textContent=total?`${unlocked} / ${total} trophées · ${percent} %`:"Aucun trophée dans ce jeu.";
+  if(total&&!info.synced)summary.textContent+=" · cache Steam introuvable";
+  if(chip){chip.hidden=!total;chip.textContent=total?`${unlocked} / ${total} trophées`:"Trophées Steam";}
+  fill.style.width=percent+"%";progress.setAttribute("aria-valuenow",String(percent));
+  const fragment=document.createDocumentFragment();
+  const unlockedList=achievements.filter(item=>item.unlocked);
+  if(!unlockedList.length){
+    const next=achievements.find(item=>!item.unlocked&&!item.hidden);
+    if(next)fragment.append(trophyRow(next,{locked:true,next:true}));
+    else fragment.append(trophyMessage("Aucun trophée débloqué pour le moment."));
+  }else{
+    for(const item of unlockedList.slice(0,trophyExpanded?achievements.length:4))fragment.append(trophyRow(item));
+    if(!trophyExpanded){
+      const next=achievements.find(item=>!item.unlocked&&!item.hidden);
+      if(next)fragment.append(trophyRow(next,{locked:true,next:true}));
+    }else{
+      for(const item of achievements.filter(item=>!item.unlocked))fragment.append(trophyRow(item,{locked:true}));
+    }
+  }
+  list.replaceChildren(fragment);
+  more.hidden=total<=4;
+  more.textContent=trophyExpanded?"Réduire la liste":`Tous les trophées (${total})`;
+}
+function loadTrophies(appId,refresh=false){
+  if(!SRV)return Promise.resolve();
+  if(!refresh&&trophyPending.has(appId))return trophyPending.get(appId);
+  const button=$("p-trophy-refresh");if(button){button.disabled=true;button.classList.add("syncing");}
+  const request=fetch("/api/steam/achievements?appId="+encodeURIComponent(appId)+(refresh?"&refresh=1":""),{cache:"no-store"})
+    .then(response=>response.json().catch(()=>({ok:false,error:"reponse-illisible"})))
+    .then(result=>trophyCache.set(appId,result))
+    .catch(()=>trophyCache.set(appId,{ok:false,error:"reseau"}))
+    .finally(()=>{
+      trophyPending.delete(appId);
+      const current=$("p-trophy-refresh");if(current){current.disabled=false;current.classList.remove("syncing");}
+      if(openId!==null){const game=S.games.find(item=>item.id===openId);if(game&&trophySteamApp(game)===appId)renderTrophies(game);}
+    });
+  trophyPending.set(appId,request);return request;
+}
 let makeTimeAudit=null;
 function renderPanel() {
   const moreOpen=$("p-more") && !$("p-more").hidden;
   const g=S.games.find(x=>x.id===openId);if(!g)return;
   const d=detailsForName(g.n), summary=$('p-personal-summary');
   summary.textContent=[...(d.platforms||[]),...(d.collections||[]),d.note].filter(Boolean).join(' · ');summary.hidden=!summary.textContent;
+  const rating=$('p-rating'),ratingValue=Number(d.rating)||0;
+  rating.hidden=!ratingValue&&!d.review;
+  rating.replaceChildren();
+  if(ratingValue){const stars=document.createElement('span');stars.className='p-rating-stars';stars.textContent=ratingStars(ratingValue);const value=document.createElement('span');value.textContent=ratingValue.toLocaleString('fr-FR')+' / 5';rating.append(stars,value);}
+  if(d.review){const review=document.createElement('p');review.className='p-rating-review';review.textContent=d.review;rating.append(review);}
   $('p-personal').hidden=!SRV;
   $('p-personal').onclick=()=>window.dispatchEvent(new CustomEvent('orbit:personal-game',{detail:g}));
-  $("p-name").textContent=g.n;$("p-status").textContent=ST[g.s]||ST[0];$("p-completion").textContent=CO[g.c]||CO[0];
+  $("p-name").textContent=g.n;$("p-status").textContent=ST[statusIndex(g)]||ST[NEUTRAL_STATUS];$("p-completion").textContent=CO[g.c]||CO[0];
   $("p-edit").hidden=!panelEditing;$("p-read").hidden=panelEditing;$("p-edit-toggle").setAttribute("aria-label",panelEditing?"Terminer la modification":"Modifier");$("p-edit-toggle").title=panelEditing?"Terminer la modification":"Modifier";
   $("p-edit-toggle").textContent=panelEditing?"✓":"⚙";
   const cu=coverSrc(g.n),th=$("p-cv");th.textContent="";th.classList.toggle("has",!!cu);if(cu){const im=document.createElement("img");im.src=cu;im.alt="";th.append(im);}else th.append("Aucune");$("p-rm").hidden=!cu;
   loadGameArt($("p-bg"), g.n, false);$("panel").style.setProperty("--game-accent","#34343a");
-  seg("p-st",ST,g.s,i=>{g.s=i;storeLocal();if(SRV){clearTimeout(putT);putNow();}panelEditing=false;renderPanel();render();},true);seg("p-co",CO,g.c,i=>{g.c=i;save();panelEditing=false;renderPanel();render();},false);
+  seg("p-st",ST,normalizeStatus(g.s),i=>{g.s=i;storeLocal();if(SRV){clearTimeout(putT);putNow();}panelEditing=false;renderPanel();render();},true);seg("p-co",CO,g.c,i=>{g.c=i;save();panelEditing=false;renderPanel();render();},false);
   const sg=sessGame(),mine=sg&&sg.id===g.id,row=$("p-sess");row.textContent="";
-  const sp=document.createElement("span");sp.textContent=mine?"Session en cours.":"Lance une session pour ajouter ce jeu à Reprendre.";row.append(sp);
-  const play=document.createElement("button");play.type="button";play.className="btn";play.textContent=mine?"Arrêter":"Jouer";play.setAttribute("aria-label",mine?"Arrêter la session de "+g.n:"Démarrer une session pour "+g.n);play.onclick=()=>mine?stopSession(false):startSession(g.id);row.append(play);
-  const launchMeta=metaCache.get(ckey(g.n)),steamId=String(launchMeta?.appId||"").match(/^\d{1,10}$/);let launch;
+  const launchMeta=metaCache.get(ckey(g.n)),steamId=String(launchMeta?.appId||"").match(/^\d{1,10}$/),metaLoading=!launchMeta&&SRV&&!metaFailed.has(ckey(g.n));let launch;
   if(steamId){launch=document.createElement("a");launch.href="steam://run/"+steamId[0];launch.target="_blank";launch.rel="noopener noreferrer";launch.title="Lancer "+g.n+" avec Steam";}
   else{launch=document.createElement("button");launch.type="button";launch.disabled=true;launch.title=!SRV||metaFailed.has(ckey(g.n))?"Aucun identifiant Steam trouvé pour ce jeu.":"Recherche de l’identifiant Steam…";}
-  launch.className="btn steam-launch";launch.textContent="Lancer";launch.setAttribute("aria-label",steamId?"Lancer "+g.n+" avec Steam":"Lancement Steam indisponible pour "+g.n);row.append(launch);
+  launch.className="btn steam-launch p-launch-primary";launch.textContent=steamId?"Lancer le jeu":metaLoading?"Recherche de Steam…":"Lancement indisponible";launch.setAttribute("aria-label",steamId?"Lancer "+g.n+" avec Steam":"Lancement Steam indisponible pour "+g.n);launch.addEventListener("click",()=>markGameLaunched(g));row.append(launch);
+  const play=document.createElement("button");play.type="button";play.className="btn p-play-session";play.textContent=mine?"Arrêter le suivi":"Démarrer le suivi";play.setAttribute("aria-label",mine?"Arrêter la session de "+g.n:"Démarrer une session pour "+g.n);play.onclick=()=>mine?stopSession(false):startSession(g.id);row.append(play);
+  const queued=queueKeys().includes(ckey(g.n)),queue=document.createElement("button");queue.type="button";queue.className="btn p-panel-queue";queue.textContent=queued?"Retirer de la file":"\u00c0 jouer ensuite";queue.setAttribute("aria-pressed",String(queued));queue.onclick=()=>{queueGame(g);renderPanel();renderGrid();toast(queued?g.n+" retir\u00e9 de la file":g.n+" ajout\u00e9 \u00e0 la file");};row.append(queue);
+  const sp=document.createElement("span");sp.className="p-launch-note";
+  if(mine)sp.textContent="Session en cours. Le temps se met à jour automatiquement.";
+  else if(!steamId&&!metaLoading)sp.textContent="Aucun identifiant Steam associé à ce jeu. Tu peux quand même démarrer le suivi du temps.";
+  sp.hidden=!sp.textContent;row.append(sp);
   const sessions=(S.sessions||[]).filter(x=>ckey(x.game)===ckey(g.n)).sort((a,b)=>b.start-a.start),all=[...sessions];if(mine)all.unshift({game:g.n,start:S.session.start,durationMs:Date.now()-S.session.start,live:true});
   if(makeTimeAudit) {
     document.getElementById("time-audit")?.remove();
@@ -1190,7 +1649,7 @@ function renderPanel() {
   overview.textContent = excerpt;
   overview.hidden = moreOpen || !excerpt || description === "Aucune information trouvée pour ce jeu.";
   const failed=!SRV||metaFailed.has(ckey(g.n));$("p-more").hidden=!moreOpen;const moreBtn=$("p-more-btn");moreBtn.setAttribute("aria-expanded",String(moreOpen));moreBtn.hidden=meta ? meta.source==="Aucune source" && overview.hidden && !moreOpen : failed;moreBtn.closest(".more-area").hidden=moreBtn.hidden && overview.hidden;moreBtn.disabled=!meta;moreBtn.classList.toggle("loading",!meta&&!failed);moreBtn.textContent=meta?(moreOpen?"Masquer les infos":"En savoir plus"):failed?"Informations indisponibles":"Chargement des informations…";if(meta)renderMeta(g,meta);fetchMeta(g);
-  if(document.activeElement!==$("p-h")&&document.activeElement!==$("p-m")){$("p-h").value=Math.floor(g.m/60);$("p-m").value=g.m%60;}tick();
+  if(document.activeElement!==$("p-h")&&document.activeElement!==$("p-m")){$("p-h").value=Math.floor(g.m/60);$("p-m").value=g.m%60;}renderTrophies(g);tick();
 }
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const launcherLayer = $("op-game-layer");
@@ -1231,7 +1690,7 @@ function resetPanelStyles(p) {
   [...p.children].forEach(c => { c.style.removeProperty("opacity"); c.style.removeProperty("transform"); });
 }
 function openPanel(id) {
-  const seq = ++closeSeq; panelEditing = false;
+  const seq = ++closeSeq; panelEditing = false; trophyExpanded = false; trophyOpenApp = "";
   closingId = null; document.documentElement.classList.remove("panel-closing");
   if (closeTileAnim) { closeTileAnim.cancel(); closeTileAnim = null; }
   document.querySelectorAll(".tile").forEach(x => { x.style.visibility = ""; x.style.opacity = ""; });
@@ -1243,6 +1702,7 @@ function openPanel(id) {
   resetPanelStyles(p);
   if (!launcherLayer.open) $("veil").classList.add("on");
   p.classList.add("on"); p.setAttribute("aria-hidden", "false");
+  p.scrollTop = 0;
   if (t && reduce) t.style.visibility = "hidden";
   if (t && !reduce) try {
     const from = flip(t, p);
@@ -1313,6 +1773,8 @@ function closePanel() {
 }
 $("p-edit-toggle").onclick=()=>{panelEditing=!panelEditing;renderPanel();};
 $("p-more-btn").onclick=()=>{if($("p-more-btn").disabled)return;const b=$("p-more");b.hidden=!b.hidden;renderPanel();};
+$("p-trophy-refresh").onclick=()=>{const game=S.games.find(item=>item.id===openId),appId=game?trophySteamApp(game):"";if(appId)loadTrophies(appId,true);};
+$("p-trophy-more").onclick=()=>{trophyExpanded=!trophyExpanded;const game=S.games.find(item=>item.id===openId);if(game)renderTrophies(game);};
 $("p-pick").onclick = () => $("p-file").click();
 $("p-file").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; const g = S.games.find(x => x.id === openId); if (!f || !g) return;
@@ -1439,14 +1901,14 @@ $("file").onchange = async e => {
     const m = parseInt(r[3], 10);
     const ex = S.games.find(g => norm(g.n) === norm(name));
     if (ex) { if (s >= 0) ex.s = s; if (c >= 0) ex.c = c; if (!isNaN(m)) ex.m = m; upd++; }
-    else { S.games.push({ id: nextId++, n: name, s: s >= 0 ? s : 0, c: c >= 0 ? c : 0, m: isNaN(m) ? 0 : m }); add++; }
+    else { S.games.push({ id: nextId++, n: name, s: s >= 0 ? s : NEUTRAL_STATUS, c: c >= 0 ? c : 0, m: isNaN(m) ? 0 : m }); add++; }
   }
   save(); render(); toast(`${add} ajouté(s), ${upd} mis à jour`);
 };
 $("exp").onclick = async () => {
   const menu=$("overflow-items");menu.hidden=true;$("overflow-toggle").setAttribute("aria-expanded","false");
   const q = v => `"${String(v).replace(/"/g, '""')}"`;
-  const csv = "Jeu,Statut,Complétion,Minutes\r\n" + S.games.map(g => [q(g.n), q(ST[g.s]), q(CO[g.c]), g.m].join(",")).join("\r\n");
+  const csv = "Jeu,Statut,Complétion,Minutes\r\n" + S.games.map(g => [q(g.n), q(ST[normalizeStatus(g.s)]), q(CO[g.c]), g.m].join(",")).join("\r\n");
   if (!window.claude) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" })); a.download = "bibliotheque-jeux.csv"; a.click(); toast("Export prêt"); return; }
   try {
     const d = window.claude && await window.claude.use("downloads");
@@ -1464,6 +1926,38 @@ $("grid").addEventListener("pointermove", e => {
 $("grid").addEventListener("pointerout",e=>{const t=e.target.closest?.(".tile");if(!t||t.contains(e.relatedTarget))return;t.style.setProperty("--tilt-x","0deg");t.style.setProperty("--tilt-y","0deg");});
 try { const o = localStorage.getItem(KEY + "-sort"); if (o && SORTS[o]) { fq.o = o; $("sort").value = o; } else $("sort").value = "nom"; } catch (e) {}
 if (S.session && !sessGame()) S.session = null;
+function applyTvMode(on,save=true){
+  document.documentElement.dataset.orbitTv=on?"1":"";
+  const toggle=document.getElementById("tv-mode-toggle");if(toggle)toggle.checked=!!on;
+  if(save)try{localStorage.setItem("orbit-tv-mode",on?"1":"0");}catch(e){}
+  if(on)toast("Mode TV activ\u00e9 : fl\u00e8ches ou manette pour naviguer.");
+}
+window.__orbitTvMode={get enabled(){return document.documentElement.dataset.orbitTv==="1";},set:on=>applyTvMode(!!on),toggle:()=>{const next=document.documentElement.dataset.orbitTv!=="1";applyTvMode(next);return next;}};
+try{applyTvMode(localStorage.getItem("orbit-tv-mode")==="1",false);}catch(e){}
+document.getElementById("tv-mode-toggle")?.addEventListener("change",event=>applyTvMode(event.target.checked));
+function applyMiniMode(on){
+  document.documentElement.dataset.orbitMini=on?"1":"";
+  const toggle=document.getElementById("mini-mode-toggle");if(toggle)toggle.checked=!!on;
+}
+window.__orbitMiniMode={
+  get enabled(){return document.documentElement.dataset.orbitMini==="1";},
+  set:async on=>{
+    let value=!!on;
+    try{if(window.tracker?.miniMode?.set)value=!!(await window.tracker.miniMode.set(!!on));}catch(e){}
+    applyMiniMode(value);
+    return value;
+  },
+  toggle:async()=>window.__orbitMiniMode.set(!window.__orbitMiniMode.enabled)
+};
+if(window.tracker?.miniMode){
+  window.tracker.miniMode.get?.().then(on=>applyMiniMode(!!on)).catch(()=>{});
+  window.tracker.miniMode.onChanged?.(on=>applyMiniMode(on));
+  document.getElementById("mini-mode-toggle")?.addEventListener("change",event=>window.__orbitMiniMode.set(event.target.checked));
+}else{
+  const line=document.getElementById("mini-mode-line");if(line)line.hidden=true;
+}
+window.addEventListener("orbit:trophies",()=>{if(openId!==null)renderPanel();else renderGrid();});
+window.addEventListener("orbit:queue-changed",()=>{if(openId!==null)renderPanel();else renderGrid();});
 render();
 
 /* Mode pont Discord : actif seulement quand la page est servie par bridge.js */
@@ -1476,12 +1970,13 @@ function applyServer(st, first) {
   applying = true;
   try {
     const old = new Map(S.games.map(g => [ckey(g.n), g.id]));
-    S.games = st.games.map(g => ({ n: g.n, s: g.s, c: g.c, m: g.m, manualDelta:g.manualDelta||0, t: g.t || 0, firstPlayed: g.firstPlayed || 0, id: old.has(ckey(g.n)) ? old.get(ckey(g.n)) : nextId++ }));
+    S.games = st.games.map(g => ({ n: g.n, s: normalizeStatus(g.s), c: g.c, m: g.m, manualDelta:g.manualDelta||0, t: g.t || 0, firstPlayed: g.firstPlayed || 0, id: old.has(ckey(g.n)) ? old.get(ckey(g.n)) : nextId++ }));
     const previousSession=S.session?{id:S.session.id,start:S.session.start}:null;
     const sg = st.session ? S.games.find(g => ckey(g.n) === ckey(st.session.name)) : null;
     S.session = sg ? { id: sg.id, start: st.session.start, mins:st.session.mins, source:st.session.source } : null;
     S.sessions = Array.isArray(st.sessions) ? st.sessions : S.sessions;
     if (st.recap && typeof st.recap === "object") S.recap = st.recap;
+    S.recap.queue = Array.isArray(S.recap.queue) ? S.recap.queue.filter(name=>typeof name==="string"&&name.trim()).slice(0,50) : (S.recap.queue||[]);
     if(sg&&(!previousSession||previousSession.id!==sg.id||previousSession.start!==st.session.start))recordResume(sg,st.session.start);
     if (Array.isArray(st.favorites) && (!first || st.favorites.length)) S.favorites = [...new Set(st.favorites.map(ckey).filter(Boolean))];
     if (Array.isArray(st.profiles) && st.profiles.length && (!first || st.profiles.length > 1 || st.profiles[0].id !== "main")) S.profiles = st.profiles;
@@ -1510,6 +2005,7 @@ function applyServer(st, first) {
       const st = await r.json();
       if (!Array.isArray(st.games)) throw new Error('Bibliothèque invalide');
       applyServer(st, false); SRV = true; connected = true;
+      loadTrophySummaries();
       const es = new EventSource('/api/events');
       es.addEventListener("cinema-viewing",event=>{
         window.orbitViewing=JSON.parse(event.data);
@@ -1599,9 +2095,17 @@ function applyServer(st, first) {
     returnToDefaultTheme:()=>changeTheme("apple-tv"),
     offerDefaultTheme:message=>{if(window.confirm(message))changeTheme("apple-tv");}
   }});
-  window.__orbitLauncherBridge={getData:()=>({games:S.games,favorites:S.favorites,recent:S.recap?.recent||[],session:S.session?{name:S.games.find(game=>game.id===S.session.id)?.n||"",start:S.session.start,source:S.session.source||"manual"}:null}),
+  window.__orbitLauncherBridge={getData:()=>({games:S.games,favorites:S.favorites,recent:S.recap?.recent||[],recap:S.recap||{},sessions:S.sessions||[],films:window.__orbitFilms?.()||[],session:S.session?{name:S.games.find(game=>game.id===S.session.id)?.n||"",start:S.session.start,source:S.session.source||"manual"}:null}),
     favorite:id=>shellContext().actions.toggleFavorite(id),notify:toast,startTracking:id=>{if(!S.session)startSession(id);},stopTracking:()=>{if(S.session&&S.session.source!=="discord")stopSession(false);},
-    detailsFor:detailsForName,played:id=>{const g=S.games.find(g=>g.id===id);if(g)recordResume(g);},coverFor:coverSrc,portraitFor:steamPortraitSrc,loadGameArt,formatTime:fmt,openGame:(id,onReturn)=>{const game=S.games.find(item=>String(item.id)===String(id));if(!game)return;playWhoosh();openLauncherPanel(game.id,onReturn);},goHome:()=>{playThemeSound("back");showScreen("home");},goToLibrary:()=>showScreen("library")};window.dispatchEvent(new Event("orbit:launcher-ready"));
+    detailsFor:detailsForName,played:id=>{const g=S.games.find(g=>g.id===id);if(g){recordResume(g);markGameLaunched(g);}},coverFor:coverSrc,portraitFor:steamPortraitSrc,loadGameArt,formatTime:fmt,openGame:(id,onReturn)=>{const game=S.games.find(item=>String(item.id)===String(id));if(!game)return;playWhoosh();openLauncherPanel(game.id,onReturn);},goHome:()=>{playThemeSound("back");showScreen("home");},goToLibrary:()=>showScreen("library"),
+    openLauncher:()=>showScreen("launcher"),openFilms:()=>showScreen("films"),openSettings:()=>openSettings(),
+    openFilm:id=>{const item=(window.__orbitFilms?.()||[]).find(value=>value.id===id);if(!item)return;if(!filmsScreen.classList.contains("on"))showScreen("films");viewFilm(item);},
+    queueGame:id=>{const game=S.games.find(item=>item.id===id||ckey(item.n)===ckey(id));return game?queueGame(game):false;},
+    queueMove:(from,to)=>{const queue=Array.isArray(S.recap.queue)?[...S.recap.queue]:[];if(from<0||to<0||from>=queue.length||to>=queue.length||from===to)return false;const [item]=queue.splice(from,1);queue.splice(to,0,item);S.recap.queue=queue;persistRecap();window.dispatchEvent(new CustomEvent("orbit:queue-changed"));return true;},
+    queueRemove:id=>{const game=S.games.find(item=>item.id===id||ckey(item.n)===ckey(id));if(!game)return false;S.recap.queue=(S.recap.queue||[]).filter(name=>ckey(name)!==ckey(game.n));persistRecap();window.dispatchEvent(new CustomEvent("orbit:queue-changed"));return true;},
+    trophyFor:name=>trophySummaryFor(name),loadTrophies:force=>loadTrophySummaries(force),openStatistics:()=>document.getElementById("activity-stats")?.click(),
+    toggleTvMode:()=>window.__orbitTvMode?.toggle?.()||false,isTvMode:()=>window.__orbitTvMode?.enabled||false,
+    toggleMiniMode:()=>window.__orbitMiniMode?.toggle?.()||Promise.resolve(false),isMiniMode:()=>window.__orbitMiniMode?.enabled||false};window.dispatchEvent(new Event("orbit:launcher-ready"));
   async function activateShell(id,initial=false){
     if(!shellRegistry)return;
     const screen=launcherScreen.classList.contains("on")?launcherScreen:filmsScreen.classList.contains("on")?filmsScreen:library.classList.contains("on")?library:home,app=document.getElementById("app"),appTop=app.scrollTop,gridTop=$("grid").scrollTop,gridLeft=$("grid").scrollLeft,shelfPositions=[...document.querySelectorAll(".shell-shelf-track")].map(x=>x.scrollLeft),query=$("q").value,reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1624,6 +2128,7 @@ function applyServer(st, first) {
   }
   try{shellRegistry=await import("/themes/index.js");await activateShell(themeBoot.theme,true);}catch(e){console.warn("Shell Orbit indisponible",e);if(themeBoot.theme!=="apple-tv"){themeBoot.theme="apple-tv";themeBoot.apply(false);document.documentElement.dataset.orbitShell="apple-tv";document.documentElement.dataset.theme="default";const css=document.getElementById("orbit-shell-style");if(css)css.textContent=(window.__ORBIT_SHELL_CSS||{})["apple-tv"]||"";try{shellMounted=shellRegistry?.mountShell("apple-tv",shellContext(true));}catch{}saveUiPrefs();}}
   let filmItems=[],filmFilter="home",cinemaStatistics=null;
+  window.__orbitFilms=()=>filmItems;
   let updateFilmHome;
   function selectFilmTab(tab){
     filmFilter=tab;renderFilms();
@@ -1653,6 +2158,27 @@ function applyServer(st, first) {
   filmDialog.addEventListener("close",()=>filmDetail?.refresh());
   function createFilmCard(item,diaryDate=""){const card=document.createElement("button");card.type="button";card.className="film-card";card.setAttribute("aria-label",`${item.title}${item.year?`, ${item.year}`:""}, ${diaryDate?`vu le ${filmDate(diaryDate)}`:item.status==="watched"?"vu":item.status==="watching"?"en cours":"à voir"}`);const poster=document.createElement("span");poster.className="film-poster";const fallback=document.createElement("span");fallback.className="film-placeholder";const initials=document.createElement("span");initials.textContent=item.title.split(/\s+/).filter(Boolean).slice(0,2).map(word=>word[0]).join("").toLocaleUpperCase("fr");fallback.append(initials);poster.append(fallback);if(item.poster){const img=document.createElement("img");img.loading="lazy";img.referrerPolicy="no-referrer";img.alt=`Affiche de ${item.title}`;img.onload=()=>poster.classList.add("has-image");img.onerror=()=>img.remove();img.src=item.poster;poster.append(img);}const meta=document.createElement("span");meta.className="film-poster-meta";const type=document.createElement("span");type.className="film-poster-type";type.textContent=item.type==="series"?"Série":"Film";const status=document.createElement("span");const watchingSeries=item.type==="series"&&item.status==="watching";status.textContent=diaryDate?"Visionné":watchingSeries?(item.season?(item.episode?`S${item.season} · E${item.episode}`:`S${item.season} vue`):"En cours"):item.rating>0?`${Number(item.rating).toLocaleString("fr-FR")} / 5`:item.status==="watched"?"Vu":item.status==="watching"?"En cours":"À voir";meta.append(type,status);poster.append(meta);const title=document.createElement("span");title.className="film-card-title";title.textContent=item.title;const year=document.createElement("span");year.className="film-card-year";year.textContent=diaryDate?`Vu le ${filmDate(diaryDate)}`:item.year||(item.watchedAt?filmDate(item.watchedAt):"");card.append(poster,title,year);card.dataset.filmId=item.id;card.addEventListener("click",()=>viewFilm(filmItems.find(x=>x.id===item.id)||item,card,diaryDate));return card;}
   function renderFilmDiary(query){const entries=[];for(const item of filmItems){if(query&&!item.title.toLocaleLowerCase("fr").includes(query))continue;const dates=Array.isArray(item.watchedDates)?[...new Set(item.watchedDates.filter(date=>/^\d{4}-\d{2}-\d{2}$/.test(date)))]:[];if(!dates.length&&/^\d{4}-\d{2}-\d{2}$/.test(item.watchedAt||""))dates.push(item.watchedAt);for(const date of dates)entries.push({date,item});}entries.sort((a,b)=>b.date.localeCompare(a.date)||a.item.title.localeCompare(b.item.title,"fr"));const days=new Map();for(const entry of entries){if(!days.has(entry.date))days.set(entry.date,[]);days.get(entry.date).push(entry.item);}if(!days.size){const empty=document.createElement("div");empty.className="film-empty";empty.innerHTML="<b>Aucun visionnage daté</b><span>Les dates de ton export Letterboxd apparaîtront ici.</span>";filmGrid.append(empty);return;}for(const [date,items] of days){const section=document.createElement("section");section.className="film-journal-day";const head=document.createElement("header");head.className="film-journal-heading";const title=document.createElement("h2");title.textContent=new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});const count=document.createElement("span");count.textContent=`${items.length} ${items.length===1?"visionnage":"visionnages"}`;head.append(title,count);const grid=document.createElement("div");grid.className="film-journal-grid";for(const item of items)grid.append(createFilmCard(item,date));section.append(head,grid);filmGrid.append(section);}}
+  let tonightSeed=0;
+  function renderTonight(force=false){
+    const box=$("film-tonight-card"),section=$("film-tonight");if(!box||!section)return;
+    if(force)tonightSeed++;
+    const hour=new Date().getHours(),evening=hour>=19||hour<2;
+    const watchlist=filmItems.filter(item=>item.status==="watchlist"&&item.title);
+    if(!watchlist.length){section.hidden=true;box.replaceChildren();return;}
+    const films=watchlist.filter(item=>item.type==="film");
+    const series=watchlist.filter(item=>item.type==="series");
+    let pool=evening?(films.length?films:watchlist):(series.length?series:watchlist);
+    const withRuntime=pool.filter(item=>Number(item.runtime)>0);
+    if(withRuntime.length)pool=withRuntime;
+    const pick=pool[(tonightSeed+new Date().getDate())%pool.length];
+    const runtime=Number(pick.runtime)||0;
+    const reason=pick.type==="film"?(runtime?`${evening?"Ce soir":"Pour aujourd’hui"} · ${runtime} min`:"Film à voir quand tu as le temps"):(evening?"Une série pour finir la soirée":"Un épisode pour la pause");
+    const card=createFilmCard(pick),label=card.querySelector(".film-card-year");
+    if(label)label.textContent=reason;card.classList.add("film-tonight-pick");
+    card.setAttribute("aria-label",`Ce soir : ${pick.title}. ${reason}. Ouvrir la fiche.`);
+    section.hidden=false;box.replaceChildren(card);
+  }
+  $("film-tonight-shuffle")?.addEventListener("click",()=>renderTonight(true));
   function renderFilms(){
     filmDetail?.refresh();
     window.dispatchEvent(new Event("orbit:cinema-changed"));
@@ -1670,7 +2196,7 @@ function applyServer(st, first) {
     filmGrid.hidden=onHome;
     filmsScreen.querySelector(".film-search-sort").hidden=onHome;
     filmsScreen.querySelector(".film-overview").hidden=onHome;
-    if(onHome){updateFilmHome?.(filmItems);return;}
+    if(onHome){updateFilmHome?.(filmItems);renderTonight();return;}
     filmGrid.replaceChildren();
     if(filmFilter==="diary"){renderFilmDiary(query);return;}
     if(!visible.length){const empty=document.createElement("div");empty.className="film-empty";const title=document.createElement("b"),message=document.createElement("span");title.textContent=filmItems.length?"Aucun résultat":"Ta collection commence ici";message.textContent=filmItems.length?"Essaie un autre filtre ou un autre titre.":"Ajoute un film ou une série pour créer ta liste à voir.";empty.append(title,message);filmGrid.append(empty);return;}

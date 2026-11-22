@@ -1,4 +1,4 @@
-const CACHE="orbit-shell-v13";
+const CACHE="orbit-shell-v17";
 const CORE=["/","/manifest.webmanifest","/app-config.json","/icon.svg","/launcher.css","/launcher.js","/themes/orbit-play/assets/SourceSans3-400-latin.woff2","/themes/orbit-play/assets/SourceSans3-400-latin-ext.woff2","/themes/orbit-play/assets/SourceSans3-600-latin.woff2","/themes/orbit-play/assets/SourceSans3-600-latin-ext.woff2","/themes/sillage/assets/BarlowSemiCondensed-400-latin.woff2","/themes/sillage/assets/BarlowSemiCondensed-400-latin-ext.woff2","/themes/sillage/assets/BarlowSemiCondensed-600-latin.woff2","/themes/sillage/assets/BarlowSemiCondensed-600-latin-ext.woff2"];
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("orbit-shell-")&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));

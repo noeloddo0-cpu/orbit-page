@@ -1,0 +1,84 @@
+{
+  "id": "oled",
+  "name": "OLED",
+  "description": "Noir absolu, surfaces quasi noires et un seul accent ambré. Pensé pour les écrans OLED.",
+  "tokens": {
+    "--bg": "#000000",
+    "--surface": "#070707",
+    "--surface-2": "#0e0e0e",
+    "--fg": "#ececec",
+    "--muted": "#8e8e8e",
+    "--accent": "#e7b45f",
+    "--line": "#1b1b1b",
+    "--glass": "#0a0a0a",
+    "--radius-card": "8px",
+    "--radius-panel": "10px",
+    "--radius-control": "6px",
+    "--shadow-card": "none",
+    "--shadow-panel": "none",
+    "--theme-blur": "none",
+    "--theme-glow": "none",
+    "--space-unit": "8px",
+    "--font-family": "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif",
+    "--font-weight": "400",
+    "--title-size": "clamp(34px,4.6vw,58px)",
+    "--tile-scale": "1.01",
+    "--focus-ring": "0 0 0 2px #e7b45f"
+  },
+  "animations": {
+    "introStyle": "fade",
+    "introDurationMs": 1200,
+    "screenDurationMs": 220,
+    "themeChangeMs": 260,
+    "hoverDurationMs": 140,
+    "hoverScale": 1.01,
+    "focusScale": 1,
+    "easing": "cubic-bezier(.2,.7,.2,1)",
+    "stepped": false
+  },
+  "sounds": {
+    "intro": {
+      "wave": "sine",
+      "startHz": 196,
+      "endHz": 220,
+      "durationMs": 220,
+      "gain": 0.012
+    },
+    "click": {
+      "wave": "triangle",
+      "startHz": 330,
+      "endHz": 280,
+      "durationMs": 24,
+      "gain": 0.012
+    },
+    "open": {
+      "wave": "sine",
+      "startHz": 220,
+      "endHz": 294,
+      "durationMs": 70,
+      "gain": 0.015
+    },
+    "back": {
+      "wave": "sine",
+      "startHz": 262,
+      "endHz": 208,
+      "durationMs": 60,
+      "gain": 0.012
+    }
+  },
+  "typography": {
+    "family": "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif",
+    "weight": 400,
+    "titleSize": "clamp(34px,4.6vw,58px)",
+    "bodySize": "15px"
+  },
+  "effects": {
+    "backdropFilter": "none",
+    "grain": false,
+    "grainOpacity": 0,
+    "scanlines": false,
+    "reflections": false,
+    "blurOnLowPower": true,
+    "contrast": "dark"
+  }
+}
