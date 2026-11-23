@@ -611,6 +611,45 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 .shell-nav-item:focus-visible { outline:2px solid var(--accent);outline-offset:3px; }
 .profile-settings-list { display:grid;gap:7px;margin:8px 0 12px; }
 .profile-hint { margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.45; }
+.data-health-report { display:grid;gap:7px;margin:10px 0 12px;padding:13px 14px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.035);font-size:12px;line-height:1.4; }
+.data-health-row { display:flex;align-items:baseline;justify-content:space-between;gap:14px; }
+.data-health-row span { color:var(--muted); }
+.data-health-row b { font-variant-numeric:tabular-nums;font-weight:650;text-align:right; }
+.data-health-row.warn b { color:#ffbd73; }
+.data-health-row.good b { color:#9fd28a; }
+.data-health-empty { margin:0;color:var(--muted); }
+.history-head { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px; }
+.history-head .lbl { margin-bottom:0; }
+#p-history-all { flex:0 0 auto;padding:7px 10px;font-size:12px; }
+#session-manager { width:min(980px,calc(100% - 24px));max-height:calc(100dvh - 28px);padding:24px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(155deg,var(--surface-2,#1b1b21),var(--bg,#0d0d10));color:var(--fg);box-shadow:0 30px 100px rgba(0,0,0,.62); }
+#session-manager::backdrop { background:rgba(0,0,0,.62);backdrop-filter:blur(4px); }
+.session-manager-head { display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px; }
+.session-manager-head h2 { margin:0 0 4px;font-size:22px; }
+.session-manager-head .note { margin:0; }
+.session-manager-tools { display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line); }
+.session-manager-message { flex:1 1 220px;text-align:right; }
+.session-table-wrap { margin:14px 0;overflow:auto;max-height:min(52dvh,520px);border:1px solid var(--line);border-radius:14px; }
+.session-table { width:100%;min-width:760px;border-collapse:collapse;font-size:12px; }
+.session-table th { position:sticky;top:0;z-index:1;padding:10px 9px;text-align:left;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--surface-2,#18181d);border-bottom:1px solid var(--line); }
+.session-table td { padding:9px;vertical-align:middle;border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent); }
+.session-table tr:last-child td { border-bottom:0; }
+.session-table tr.is-selected td { background:color-mix(in srgb,var(--orbit-accent,#b9c6ff) 8%,transparent); }
+.session-table .session-note-cell { max-width:220px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.session-source { display:inline-block;padding:2px 7px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:10px;white-space:nowrap; }
+.session-actions { display:flex;flex-wrap:wrap;gap:4px; }
+.session-actions button { padding:4px 7px;border-radius:7px;font-size:10px; }
+.session-actions button[data-action="delete"] { color:#ff9c8d; }
+.session-empty { margin:0;padding:16px;color:var(--muted);font-size:13px;text-align:center; }
+.session-form { margin-top:16px;padding-top:16px;border-top:1px solid var(--line); }
+.session-form h3 { margin:0 0 12px;font-size:16px; }
+.session-form-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin-bottom:10px; }
+.session-form label { display:grid;gap:5px;font-size:11px;color:var(--muted); }
+.session-form label[hidden] { display:none; }
+.session-form-actions { display:flex;gap:8px;margin-top:12px; }
+.session-undo { position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom,0px));z-index:70;display:flex;align-items:center;gap:14px;max-width:calc(100% - 24px);padding:10px 12px 10px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2,#1b1b21);color:var(--fg);box-shadow:0 16px 48px rgba(0,0,0,.55);transform:translateX(-50%);font-size:13px; }
+.session-undo[hidden] { display:none; }
+.session-undo .btn { padding:6px 10px;font-size:12px;white-space:nowrap; }
+@media(max-width:640px) { .session-manager-head { align-items:flex-start; } .session-form-grid { grid-template-columns:1fr; } .session-manager-message { text-align:left; } }
 .profile-setting { display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);text-align:left;cursor:pointer; }
 .profile-setting[aria-pressed="true"] { border-color:color-mix(in srgb,var(--accent) 65%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent); }
 .profile-setting-state { color:var(--muted);font-size:12px; }
@@ -822,7 +861,7 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
 <div id="intro-screen" role="button" tabindex="0" aria-label="Passer l’introduction Orbit"><div class="intro-lockup"><img class="orbit-mark" data-app-logo src="/icon.svg" alt=""><span class="intro-name" data-app-name>orbit</span></div></div>
 <button class="settings-launcher" id="settings-open" type="button" aria-label="Ouvrir les réglages" title="Réglages" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></button>
 <div id="settings-veil" hidden></div>
-<aside id="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" hidden><header class="settings-head"><div><div class="orbit-kicker">Personnalisation</div><h2 id="settings-title">Réglages</h2></div><button class="btn" id="settings-close" type="button" aria-label="Retour au menu précédent">← Retour</button></header><section class="settings-section"><div class="settings-section-title">Apparence</div><div class="theme-grid" id="theme-grid"></div><button class="btn theme-replay" id="replay-intro" type="button">↻ Rejouer l’intro</button></section><section class="settings-section"><label class="setting-line" for="sound-volume"><span><b>Volume du son</b><small>Petit son à l’ouverture de la bibliothèque</small></span><input id="sound-volume" type="range" min="0" max="100" value="7"></label><label class="setting-line" for="intro-toggle"><span><b>Intro Orbit</b><small>Afficher l’intro au lancement</small></span><input id="intro-toggle" type="checkbox" checked></label><label class="setting-line" for="accent-color"><span><b>Couleur d’accent</b><small>Personnalise la couleur principale</small></span><input id="accent-color" type="color" aria-label="Choisir la couleur d’accent"></label></section><section class="settings-section"><label class="setting-line" for="effects-quality"><span><b>Qualité des effets</b><small>Animations et flou</small></span><select id="effects-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label><label class="setting-line" id="glass-quality-line" for="glass-quality"><span><b>Qualité du verre</b><small>Réfraction des tuiles Liquid Glass</small></span><select id="glass-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label></section><section class="settings-section"><label class="setting-line" for="tile-size"><span><b>Taille des tuiles</b><small>Choisis leur taille dans la bibliothèque</small></span><select id="tile-size" class="field"><option value="small">Petite</option><option value="medium">Moyenne</option><option value="large">Grande</option></select></label><label class="setting-line" for="tv-mode-toggle"><span><b>Mode TV / manette</b><small>Grands textes, focus visible et navigation aux flèches</small></span><input id="tv-mode-toggle" type="checkbox"></label><label class="setting-line" id="mini-mode-line" for="mini-mode-toggle"><span><b>Mini-mode</b><small>Fenêtre compacte, toujours au-dessus des autres</small></span><input id="mini-mode-toggle" type="checkbox"></label></section><section class="settings-section"><div class="settings-section-title">Profils</div><div id="profile-settings-list" class="profile-settings-list"></div><p class="profile-hint">Les profils partagent la même bibliothèque et les mêmes heures.</p><div class="profile-add-row"><input id="profile-name-input" class="field" type="text" maxlength="60" placeholder="Nom du profil" aria-label="Nom du nouveau profil"><button id="profile-add" class="btn" type="button">Ajouter</button></div></section><section class="settings-section"><div class="settings-section-title">Informations</div><p class="profile-hint"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a></p></section><section class="settings-section"><div class="settings-section-title">Affiches de films</div><p class="profile-hint">Orbit cherche les affiches par titre dans TMDB. Ajoute une clé de lecture gratuite pour activer la recherche.</p><label class="setting-line" for="tmdb-key"><span><b>Clé API TMDB</b><small id="tmdb-key-status">Conservée uniquement sur cet appareil</small></span><input class="field" id="tmdb-key" type="password" autocomplete="off" placeholder="Clé de lecture TMDB" aria-label="Clé de lecture API TMDB"></label><div class="profile-add-row data-actions"><button class="btn" id="tmdb-key-save" type="button">Enregistrer la clé</button><button class="btn" id="tmdb-key-clear" type="button">Effacer</button><a class="btn" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Obtenir une clé</a></div></section><section class="settings-section"><div class="settings-section-title">Données et sauvegardes</div><p class="profile-hint">Une copie est créée au lancement et chaque jour sur cet ordinateur.</p><div class="profile-add-row data-actions"><button class="btn" id="data-export" type="button">Exporter</button><button class="btn" id="data-import" type="button">Importer</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-restore" type="button">Restaurer un backup</button><button class="btn" id="data-folder" type="button">Ouvrir le dossier</button></div><p class="profile-hint" id="data-message" role="status" aria-live="polite"></p></section><section id="orbit-update-settings" class="settings-section" hidden><div class="settings-section-title">Mises à jour</div><button type="button" class="btn" id="orbit-update-check">Vérifier les mises à jour</button><p class="profile-hint" role="status" id="orbit-update-status"></p></section><p class="settings-foot">Tes choix sont enregistrés sur cet ordinateur.</p></aside>
+<aside id="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" hidden><header class="settings-head"><div><div class="orbit-kicker">Personnalisation</div><h2 id="settings-title">Réglages</h2></div><button class="btn" id="settings-close" type="button" aria-label="Retour au menu précédent">← Retour</button></header><section class="settings-section"><div class="settings-section-title">Apparence</div><div class="theme-grid" id="theme-grid"></div><button class="btn theme-replay" id="replay-intro" type="button">↻ Rejouer l’intro</button></section><section class="settings-section"><label class="setting-line" for="sound-volume"><span><b>Volume du son</b><small>Petit son à l’ouverture de la bibliothèque</small></span><input id="sound-volume" type="range" min="0" max="100" value="7"></label><label class="setting-line" for="intro-toggle"><span><b>Intro Orbit</b><small>Afficher l’intro au lancement</small></span><input id="intro-toggle" type="checkbox" checked></label><label class="setting-line" for="accent-color"><span><b>Couleur d’accent</b><small>Personnalise la couleur principale</small></span><input id="accent-color" type="color" aria-label="Choisir la couleur d’accent"></label></section><section class="settings-section"><label class="setting-line" for="effects-quality"><span><b>Qualité des effets</b><small>Animations et flou</small></span><select id="effects-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label><label class="setting-line" id="glass-quality-line" for="glass-quality"><span><b>Qualité du verre</b><small>Réfraction des tuiles Liquid Glass</small></span><select id="glass-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label></section><section class="settings-section"><label class="setting-line" for="tile-size"><span><b>Taille des tuiles</b><small>Choisis leur taille dans la bibliothèque</small></span><select id="tile-size" class="field"><option value="small">Petite</option><option value="medium">Moyenne</option><option value="large">Grande</option></select></label><label class="setting-line" for="tv-mode-toggle"><span><b>Mode TV / manette</b><small>Grands textes, focus visible et navigation aux flèches</small></span><input id="tv-mode-toggle" type="checkbox"></label><label class="setting-line" id="mini-mode-line" for="mini-mode-toggle"><span><b>Mini-mode</b><small>Fenêtre compacte, toujours au-dessus des autres</small></span><input id="mini-mode-toggle" type="checkbox"></label></section><section class="settings-section"><div class="settings-section-title">Profils</div><div id="profile-settings-list" class="profile-settings-list"></div><p class="profile-hint">Les profils partagent la même bibliothèque et les mêmes heures.</p><div class="profile-add-row"><input id="profile-name-input" class="field" type="text" maxlength="60" placeholder="Nom du profil" aria-label="Nom du nouveau profil"><button id="profile-add" class="btn" type="button">Ajouter</button></div></section><section class="settings-section"><div class="settings-section-title">Informations</div><p class="profile-hint"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a> · <a href="https://github.com/noeloddo0-cpu/orbit-page/blob/main/CHANGELOG.md" target="_blank" rel="noreferrer">Nouveautés</a></p></section><section class="settings-section"><div class="settings-section-title">Affiches de films</div><p class="profile-hint">Orbit cherche les affiches par titre dans TMDB. Ajoute une clé de lecture gratuite pour activer la recherche.</p><label class="setting-line" for="tmdb-key"><span><b>Clé API TMDB</b><small id="tmdb-key-status">Conservée uniquement sur cet appareil</small></span><input class="field" id="tmdb-key" type="password" autocomplete="off" placeholder="Clé de lecture TMDB" aria-label="Clé de lecture API TMDB"></label><div class="profile-add-row data-actions"><button class="btn" id="tmdb-key-save" type="button">Enregistrer la clé</button><button class="btn" id="tmdb-key-clear" type="button">Effacer</button><a class="btn" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Obtenir une clé</a></div></section><section class="settings-section"><div class="settings-section-title">Données et sauvegardes</div><p class="profile-hint">Une copie vérifiée est créée au lancement et chaque jour. Les cinq sauvegardes manuelles les plus récentes sont protégées de la rotation.</p><div class="profile-add-row data-actions"><button class="btn" id="data-export" type="button">Exporter</button><button class="btn" id="data-import" type="button">Importer</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-restore" type="button">Restaurer un backup</button><button class="btn" id="data-folder" type="button">Ouvrir le dossier</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-backup-now" type="button">Créer une sauvegarde</button><button class="btn" id="data-verify" type="button">Tester la dernière</button></div><p class="profile-hint" id="data-message" role="status" aria-live="polite"></p></section><section class="settings-section"><div class="settings-section-title">Santé et diagnostic</div><p class="profile-hint">Analyse locale, sans envoi de données. Aucun jeton ni clé n’est inclus dans le diagnostic.</p><div class="profile-add-row data-actions"><button class="btn" id="health-run" type="button">Analyser les données</button><button class="btn" id="health-copy" type="button">Copier le diagnostic</button></div><div id="health-report" class="data-health-report" hidden></div><p class="profile-hint" id="health-message" role="status" aria-live="polite">Analyse non lancée.</p></section><section id="orbit-update-settings" class="settings-section" hidden><div class="settings-section-title">Mises à jour</div><button type="button" class="btn" id="orbit-update-check">Vérifier les mises à jour</button><p class="profile-hint" role="status" id="orbit-update-status"></p></section><p class="settings-foot">Tes choix sont enregistrés sur cet ordinateur.</p></aside>
 <main id="home-screen" class="orbit-screen on" aria-label="Menu principal"><div class="orbit-home"><div class="orbit-top"><div class="orbit-brand"><img class="orbit-mark" data-app-logo src="/icon.svg" alt=""><span data-app-name>orbit</span></div><button class="btn" id="install-app" type="button" hidden>Installer</button></div><div class="orbit-kicker">Espace personnel</div><h1 class="orbit-title">Choisissez un espace</h1><p class="orbit-lead">Votre collection et vos prochaines découvertes.</p><div class="orbit-cards" id="section-cards"></div><div class="orbit-footer">D’autres sections arriveront ici.<br><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a></div></div></main>
 <main id="films-screen" aria-label="Films et séries"><div class="film-shell"><header class="film-top"><div class="film-brand"><h1>Films & séries</h1><span>Votre journal de visionnage</span></div><div class="film-actions"><button class="btn" id="films-back" type="button">← Menu</button><button class="btn" id="film-posters-auto" type="button">Affiches auto</button><button class="btn" id="film-add" type="button">＋ Ajouter</button></div></header><div id="film-discord" hidden><p id="film-discord-title" role="status"></p><button class="btn" type="button" id="film-discord-action" hidden></button></div><section class="film-overview" hidden aria-label="Statistiques de visionnage"><div class="film-metric"><b id="film-count">0</b><span>Dans la collection</span></div><div class="film-metric"><b id="film-watchlist-count">0</b><span>À voir</span></div><div class="film-metric"><b id="film-watching-count">0</b><span>En cours</span></div><div class="film-metric"><b id="film-watched-count">0</b><span>Vus</span></div><div class="film-metric"><b id="film-average"> - </b><span>Note moyenne</span></div></section><div class="film-controls"><nav class="film-filters" id="film-filters" aria-label="Filtrer les films et séries"><button class="film-filter" type="button" data-film-filter="home" aria-pressed="true">Accueil</button><button class="film-filter" type="button" data-film-filter="all" aria-pressed="false">Collection</button><button class="film-filter" type="button" data-film-filter="film" aria-pressed="false">Films</button><button class="film-filter" type="button" data-film-filter="series" aria-pressed="false">Séries</button><button class="film-filter" type="button" data-film-filter="watchlist" aria-pressed="false">Watchlist</button><button class="film-filter" type="button" data-film-filter="watching" aria-pressed="false">En cours</button><button class="film-filter" type="button" data-film-filter="watched" aria-pressed="false">Vus</button><button class="film-filter" type="button" data-film-filter="diary" aria-pressed="false">Journal</button></nav><div class="film-search-sort" hidden><input class="field" id="film-search" type="search" placeholder="Rechercher un titre…" aria-label="Rechercher un film ou une série"><select class="field" id="film-sort" aria-label="Trier la collection"><option value="recent">Ajouts récents</option><option value="title">Titre</option><option value="year">Année</option><option value="rating">Note</option></select></div></div><div id="cinema-home">
   <section aria-labelledby="fh-continue"><div class="fh-heading"><h2 id="fh-continue">Continuer</h2><button class="fh-action" data-all-watching type="button" hidden>Tout voir</button></div><div data-resume></div></section>
@@ -919,7 +958,7 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
     <div class="read-stat"><div><div class="lbl">Temps de jeu</div><div class="time" id="p-time"></div></div><div id="p-live"></div></div>
     <div class="p-stats" id="p-stats"></div>
     <button class="btn" id="p-personal" type="button">Ma fiche Orbit Play</button><p id="p-personal-summary" class="note" hidden></p>
-    <div class="history-wrap"><div class="lbl">Historique des sessions</div><div id="p-history" class="history"></div></div>
+    <div class="history-wrap"><div class="history-head"><div class="lbl">Historique des sessions</div><button class="btn" id="p-history-all" type="button">Voir toutes les sessions</button></div><div id="p-history" class="history"></div></div>
     <section id="p-trophies" class="p-trophies" hidden aria-labelledby="p-trophies-title">
       <div class="p-trophy-head">
         <div>
@@ -943,6 +982,37 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
     <button class="del" id="p-del" type="button">Supprimer ce jeu</button>
   </section>
 </aside>
+<dialog id="session-manager" aria-labelledby="session-manager-title">
+  <div class="session-manager-head">
+    <div><div class="orbit-kicker">Historique complet</div><h2 id="session-manager-title">Sessions</h2><p class="note" id="session-manager-sub"></p></div>
+    <button class="btn" id="session-manager-close" type="button">Fermer</button>
+  </div>
+  <div class="session-manager-tools">
+    <button class="btn" id="session-merge" type="button" disabled>Fusionner la sélection</button>
+    <span class="note" id="session-selection">Aucune session sélectionnée.</span>
+    <span class="note session-manager-message" id="session-manager-message" role="status" aria-live="polite"></span>
+  </div>
+  <div class="session-table-wrap">
+    <table class="session-table">
+      <thead><tr><th scope="col" aria-label="Sélection"></th><th scope="col">Début</th><th scope="col">Fin</th><th scope="col">Durée</th><th scope="col">Source</th><th scope="col">Note</th><th scope="col">Actions</th></tr></thead>
+      <tbody id="session-rows"></tbody>
+    </table>
+    <p class="session-empty" id="session-empty" hidden>Aucune session enregistrée pour ce jeu.</p>
+  </div>
+  <form id="session-form" class="session-form" hidden>
+    <h3 id="session-form-title">Modifier la session</h3>
+    <input id="session-form-id" type="hidden"><input id="session-form-mode" type="hidden">
+    <div class="session-form-grid">
+      <label id="session-start-line">Début<input class="field" id="session-start" type="datetime-local" step="60" required></label>
+      <label id="session-end-line">Fin<input class="field" id="session-end" type="datetime-local" step="60"></label>
+      <label id="session-split-line" hidden>Point de découpe<input class="field" id="session-split-at" type="datetime-local" step="60"></label>
+      <label>Source<select class="field" id="session-source"><option value="manual">Manuel</option><option value="discord">Discord</option><option value="import">Importée</option></select></label>
+    </div>
+    <label>Note<textarea class="field" id="session-note" rows="2" maxlength="1000" placeholder="Facultatif"></textarea></label>
+    <div class="session-form-actions"><button class="btn" type="submit">Enregistrer</button><button class="btn" type="button" id="session-form-cancel">Annuler</button></div>
+  </form>
+</dialog>
+<div id="session-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="session-undo-text"></span><button class="btn" id="session-undo-button" type="button">Annuler la suppression</button></div>
 <div id="toast" role="status"></div>
 </div><!-- /library-screen -->
 
@@ -1638,6 +1708,7 @@ function renderPanel() {
   }
   const stats=$("p-stats");stats.textContent="";const total=all.reduce((a,x)=>a+sessionDuration(x),0),sessionDates=all.map(x=>Number(x.start)||0).filter(Boolean),lastPlayedAt=Math.max(Number(g.t)||0,...sessionDates),firstPlayedAt=Number(g.firstPlayed)|| (sessionDates.length?Math.min(...sessionDates):0),dateText=value=>value?new Date(value).toLocaleDateString("fr-FR"):"Aucune";statCard(stats,"Sessions",String(all.length),"p-session-count");if(firstPlayedAt)statCard(stats,"Première partie",dateText(firstPlayedAt),"p-first-play");if(lastPlayedAt)statCard(stats,"Dernière partie",dateText(lastPlayedAt),"p-last-play");if(all.length)statCard(stats,"Session la plus longue",fmt(Math.floor(all.reduce((a,x)=>Math.max(a,sessionDuration(x)),0)/60000)),"p-session-longest");if(all.length)statCard(stats,"Moyenne",fmt(all.length?Math.floor(total/all.length/60000):0),"p-session-average");
   const hist=$("p-history");hist.textContent="";if(!all.length){const empty=document.createElement("div");empty.className="history-empty";empty.textContent="Aucune session enregistrée";hist.append(empty);}else all.slice(0,5).forEach(x=>{const r=document.createElement("div"),when=document.createElement("span"),dur=document.createElement("b");r.className="history-row";when.textContent=new Date(x.start).toLocaleString("fr-FR");dur.textContent=x.live?"En cours · "+fmt(Math.floor(sessionDuration(x)/60000)):fmt(Math.floor(sessionDuration(x)/60000));r.append(when,dur);hist.append(r);});
+  const allSessionsButton=$("p-history-all");if(allSessionsButton){allSessionsButton.hidden=!sessions.length;allSessionsButton.onclick=()=>openSessionManager(g);}
   const meta=metaCache.get(ckey(g.n));
   const year = String(meta?.releaseDate || "").match(/\b(?:19|20)\d{2}\b/)?.[0];
   const studio = meta?.developers?.[0];
@@ -1991,6 +2062,143 @@ function applyServer(st, first) {
     else render();
   } finally { applying = false; }
 }
+const sessionManagerDialog=$("session-manager"),sessionManagerRows=$("session-rows"),sessionManagerEmpty=$("session-empty"),sessionManagerSub=$("session-manager-sub"),sessionManagerTitle=$("session-manager-title"),sessionManagerMessage=$("session-manager-message"),sessionMergeButton=$("session-merge"),sessionSelection=$("session-selection");
+const sessionForm=$("session-form"),sessionFormTitle=$("session-form-title"),sessionFormId=$("session-form-id"),sessionFormMode=$("session-form-mode"),sessionStartInput=$("session-start"),sessionEndInput=$("session-end"),sessionSplitInput=$("session-split-at"),sessionSourceInput=$("session-source"),sessionNoteInput=$("session-note");
+const sessionUndoBar=$("session-undo"),sessionUndoText=$("session-undo-text");
+let sessionManagerGame=null,sessionManagerList=[],sessionSelected=new Set(),sessionUndoData=null,sessionUndoTimer=0;
+const sessionSourceLabels={manual:"Manuel",discord:"Discord",import:"Importée"};
+const sessionDateText=value=>{const date=new Date(Number(value));return Number.isFinite(date.getTime())?date.toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"}):"—";};
+const sessionInputDate=value=>{const date=new Date(Number(value));if(!Number.isFinite(date.getTime()))return "";const pad=number=>String(number).padStart(2,"0");return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;};
+const sessionInputTime=value=>{const parsed=Date.parse(String(value||""));return Number.isFinite(parsed)?parsed:NaN;};
+async function sessionApi(method,target,body){
+  const response=await fetch(target,{method,headers:body===undefined?undefined:{"Content-Type":"application/json"},body:body===undefined?undefined:JSON.stringify(body)});
+  let data={};try{data=await response.json();}catch{}
+  return {ok:response.ok,status:response.status,data};
+}
+async function checkedSessionRequest(method,target,body){
+  let result=await sessionApi(method,target,body);
+  if(result.status===409&&result.data?.requiresConfirmation){
+    const reasons=[];
+    if(result.data.longSession)reasons.push("La session dépasse 24 heures.");
+    if(result.data.conflicts?.length)reasons.push(`${result.data.conflicts.length} session(s) se chevauchent.`);
+    if(!window.confirm(`${reasons.join(" ")}\n\nEnregistrer quand même ?`))return {ok:false,canceled:true,data:{}};
+    result=await sessionApi(method,target,{...body,confirm:true});
+  }
+  return result;
+}
+function hideSessionUndo(){clearTimeout(sessionUndoTimer);sessionUndoData=null;sessionUndoBar.hidden=true;}
+function showSessionUndo(session){
+  clearTimeout(sessionUndoTimer);sessionUndoData=session;sessionUndoText.textContent=`Session supprimée · ${sessionDateText(session.start)} · ${fmt(Math.floor(sessionDuration(session)/60000))}`;sessionUndoBar.hidden=false;
+  sessionUndoTimer=setTimeout(hideSessionUndo,10000);
+}
+function updateSessionSelection(){
+  const ids=[...sessionSelected],minutes=sessionManagerList.filter(session=>sessionSelected.has(session.id)).reduce((total,session)=>total+Math.floor(sessionDuration(session)/60000),0);
+  sessionMergeButton.disabled=ids.length<2;
+  sessionSelection.textContent=ids.length?`${ids.length} sélectionnée${ids.length>1?"s":""} · ${fmt(minutes)}`:"Aucune session sélectionnée.";
+}
+function renderSessionRows(){
+  sessionManagerRows.replaceChildren();
+  sessionManagerList.forEach(session=>{
+    const row=document.createElement("tr"),selectCell=document.createElement("td"),check=document.createElement("input");
+    check.type="checkbox";check.checked=sessionSelected.has(session.id);check.setAttribute("aria-label",`Sélectionner la session du ${sessionDateText(session.start)}`);
+    check.addEventListener("change",()=>{if(check.checked)sessionSelected.add(session.id);else sessionSelected.delete(session.id);row.classList.toggle("is-selected",check.checked);updateSessionSelection();});
+    selectCell.append(check);row.append(selectCell);
+    const startCell=document.createElement("td"),endCell=document.createElement("td"),durationCell=document.createElement("td"),sourceCell=document.createElement("td"),noteCell=document.createElement("td"),actionsCell=document.createElement("td");
+    startCell.textContent=sessionDateText(session.start);endCell.textContent=session.end?sessionDateText(session.end):"—";durationCell.textContent=fmt(Math.floor(sessionDuration(session)/60000));
+    const source=document.createElement("span");source.className="session-source";source.textContent=sessionSourceLabels[session.source]||session.source||"Manuel";if(session.dated===false)source.textContent+=" · non datée";sourceCell.append(source);
+    noteCell.className="session-note-cell";noteCell.textContent=String(session.note||"").trim()||"—";noteCell.title=session.note||"";
+    actionsCell.className="session-actions";
+    const editButton=document.createElement("button");editButton.type="button";editButton.dataset.action="edit";editButton.textContent="Modifier";editButton.addEventListener("click",()=>showSessionForm(session,"edit"));
+    const splitButton=document.createElement("button");splitButton.type="button";splitButton.dataset.action="split";splitButton.textContent="Découper";splitButton.addEventListener("click",()=>showSessionForm(session,"split"));
+    const deleteButton=document.createElement("button");deleteButton.type="button";deleteButton.dataset.action="delete";deleteButton.textContent="Supprimer";deleteButton.addEventListener("click",()=>deleteManagedSession(session));
+    actionsCell.append(editButton,splitButton,deleteButton);
+    row.append(startCell,endCell,durationCell,sourceCell,noteCell,actionsCell);row.classList.toggle("is-selected",check.checked);
+    sessionManagerRows.append(row);
+  });
+  sessionManagerEmpty.hidden=sessionManagerList.length>0;
+  const total=sessionManagerList.reduce((sum,session)=>sum+Math.floor(sessionDuration(session)/60000),0);
+  sessionManagerSub.textContent=sessionManagerList.length?`${sessionManagerList.length} session${sessionManagerList.length>1?"s":""} · ${fmt(total)} cumulées`:"Aucune session enregistrée pour ce jeu.";
+  updateSessionSelection();
+}
+async function loadSessionManager(){
+  if(!sessionManagerGame)return;
+  sessionManagerMessage.textContent="Chargement…";
+  try{
+    const response=await fetch(`/api/v1/sessions?game=${encodeURIComponent(sessionManagerGame.n)}&limit=1000`,{cache:"no-store"});
+    if(!response.ok)throw new Error();
+    const data=await response.json();
+    sessionManagerList=Array.isArray(data.sessions)?data.sessions:[];sessionSelected.clear();renderSessionRows();sessionManagerMessage.textContent="";
+  }catch{sessionManagerMessage.textContent="Impossible de charger les sessions.";}
+}
+async function refreshSessionState(){
+  try{const response=await fetch("/api/state",{cache:"no-store"});if(!response.ok)return;const state=await response.json();if(Array.isArray(state.games))applyServer(state,false);}catch{}
+}
+async function openSessionManager(game){
+  if(!SRV){toast("L’historique complet est disponible dans l’application de bureau.");return;}
+  sessionManagerGame=game;sessionSelected.clear();sessionForm.hidden=true;sessionManagerMessage.textContent="";sessionManagerTitle.textContent="Sessions · "+game.n;
+  if(!sessionManagerDialog.open)sessionManagerDialog.showModal();
+  await loadSessionManager();
+}
+function showSessionForm(session,mode){
+  sessionForm.hidden=false;sessionFormMode.value=mode;sessionFormId.value=session.id;
+  const split=mode==="split";
+  sessionFormTitle.textContent=split?"Découper la session":"Modifier la session";
+  $("session-start-line").hidden=split;$("session-end-line").hidden=split;$("session-split-line").hidden=!split;
+  sessionStartInput.required=!split;sessionEndInput.required=!split;sessionSplitInput.required=split;
+  sessionStartInput.value=sessionInputDate(session.start);sessionEndInput.value=session.end?sessionInputDate(session.end):sessionInputDate(Number(session.start)+sessionDuration(session));
+  sessionSplitInput.value=sessionInputDate(Number(session.start)+Math.max(60000,Math.floor(sessionDuration(session)/2)));
+  sessionSourceInput.value=session.source||"manual";sessionNoteInput.value=session.note||"";
+  sessionSourceInput.closest("label").hidden=split;sessionNoteInput.closest("label").hidden=split;
+  sessionForm.scrollIntoView({block:"nearest"});
+}
+async function deleteManagedSession(session){
+  const revision=Number.isInteger(session.revision)?`?revision=${session.revision}`:"";
+  const result=await sessionApi("DELETE",`/api/v1/sessions/${encodeURIComponent(session.id)}${revision}`);
+  if(!result.ok){sessionManagerMessage.textContent=result.data?.error||"Suppression impossible.";return;}
+  showSessionUndo(result.data?.session||session);
+  await loadSessionManager();await refreshSessionState();
+  sessionManagerMessage.textContent="Session supprimée. L’annulation reste possible pendant 10 secondes.";
+  toast("Session supprimée.");
+}
+sessionForm.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const mode=sessionFormMode.value,id=sessionFormId.value,current=sessionManagerList.find(session=>session.id===id);
+  let result;
+  if(mode==="split"){
+    const at=sessionInputTime(sessionSplitInput.value);
+    if(!Number.isFinite(at)){sessionManagerMessage.textContent="Choisis une date et une heure valides.";return;}
+    result=await sessionApi("POST",`/api/v1/sessions/${encodeURIComponent(id)}/split`,{at});
+  }else{
+    const start=sessionInputTime(sessionStartInput.value),end=sessionInputTime(sessionEndInput.value);
+    if(!Number.isFinite(start)||!Number.isFinite(end)){sessionManagerMessage.textContent="Choisis un début et une fin valides.";return;}
+    if(end<start){sessionManagerMessage.textContent="La fin doit être après le début.";return;}
+    result=await checkedSessionRequest("PATCH",`/api/v1/sessions/${encodeURIComponent(id)}`,{start,end,source:sessionSourceInput.value,note:sessionNoteInput.value.trim(),...(current?{revision:current.revision}:{})});
+  }
+  if(result.canceled){sessionManagerMessage.textContent="Modification annulée.";return;}
+  if(!result.ok){sessionManagerMessage.textContent=result.data?.error||"Enregistrement impossible.";return;}
+  sessionForm.hidden=true;
+  await loadSessionManager();await refreshSessionState();
+  sessionManagerMessage.textContent=mode==="split"?"Session découpée.":"Session mise à jour.";
+});
+$("session-form-cancel").addEventListener("click",()=>{sessionForm.hidden=true;sessionManagerMessage.textContent="";});
+sessionMergeButton.addEventListener("click",async()=>{
+  const ids=[...sessionSelected];
+  if(ids.length<2)return;
+  sessionMergeButton.disabled=true;
+  const result=await sessionApi("POST","/api/v1/sessions/merge",{ids});
+  if(!result.ok){sessionManagerMessage.textContent=result.data?.error||"Fusion impossible.";updateSessionSelection();return;}
+  await loadSessionManager();await refreshSessionState();
+  sessionManagerMessage.textContent="Sessions fusionnées sans double comptage.";
+});
+$("session-undo-button").addEventListener("click",async()=>{
+  if(!sessionUndoData)return;
+  const result=await sessionApi("POST","/api/v1/sessions",{...sessionUndoData,restore:true});
+  if(!result.ok){sessionManagerMessage.textContent=result.data?.error||"Annulation impossible.";return;}
+  hideSessionUndo();await loadSessionManager();await refreshSessionState();
+  sessionManagerMessage.textContent="Suppression annulée.";
+});
+$("session-manager-close").addEventListener("click",()=>sessionManagerDialog.close());
+sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionManagerDialog)sessionManagerDialog.close();});
 (async function initServer() {
   if (window.tracker?.loadLibrary) {
     try { const saved = await window.tracker.loadLibrary(); if (Array.isArray(saved?.games)) applyServer(saved, false); }
@@ -2075,6 +2283,39 @@ function applyServer(st, first) {
   document.getElementById("data-import").addEventListener("click",()=>runDataAction(()=>window.tracker.importData(),"Import terminé."));
   document.getElementById("data-restore").addEventListener("click",()=>runDataAction(()=>window.tracker.restoreBackup(),"Sauvegarde restaurée."));
   document.getElementById("data-folder").addEventListener("click",()=>runDataAction(()=>window.tracker.openBackupFolder(),"Dossier de sauvegarde ouvert."));
+  document.getElementById("data-backup-now").addEventListener("click",()=>runDataAction(()=>window.tracker?.backupNow?window.tracker.backupNow():Promise.resolve({ok:false,message:"Disponible après la prochaine mise à jour d’Orbit."}),"Sauvegarde créée et vérifiée."));
+  document.getElementById("data-verify").addEventListener("click",()=>runDataAction(()=>window.tracker?.verifyLatestBackup?window.tracker.verifyLatestBackup():Promise.resolve({ok:false,message:"Disponible après la prochaine mise à jour d’Orbit."}),"Dernière sauvegarde vérifiée."));
+  const healthReport=$("health-report"),healthMessage=$("health-message");
+  const healthRow=(label,value,state="")=>{const row=document.createElement("div");row.className="data-health-row"+(state?" "+state:"");const name=document.createElement("span");name.textContent=label;const amount=document.createElement("b");amount.textContent=value;row.append(name,amount);return row;};
+  async function analyzeHealth(){
+    healthMessage.textContent="Analyse en cours…";
+    try{
+      const response=await fetch("/api/health");if(!response.ok)throw new Error();
+      const health=await response.json(),report=healthReport;
+      report.textContent="";report.hidden=false;
+      report.append(healthRow("Jeux et sessions",`${health.data.games} · ${health.data.sessions}`));
+      report.append(healthRow("Films et séries",`${health.data.films} · ${health.data.series}`));
+      report.append(healthRow("Sessions orphelines",String(health.anomalies.orphanSessions),health.anomalies.orphanSessions?"warn":"good"));
+      report.append(healthRow("Métadonnées orphelines",String(health.anomalies.orphanMeta),health.anomalies.orphanMeta?"warn":"good"));
+      report.append(healthRow("Jeux sans jaquette",String(health.anomalies.gamesWithoutCover),health.anomalies.gamesWithoutCover?"warn":"good"));
+      report.append(healthRow("Films sans affiche",String(health.anomalies.filmsWithoutPoster),health.anomalies.filmsWithoutPoster?"warn":"good"));
+      report.append(healthRow("Applications classées",`${health.anomalies.apps} · ${health.anomalies.gamesWithoutKind} sans type`));
+      report.append(healthRow("Doublons probables",String(health.anomalies.duplicateGames),health.anomalies.duplicateGames?"warn":"good"));
+      report.append(healthRow("Heures de jeu / sessions datées",`${Math.round(health.time.gameMinutes/60)} h · ${Math.round(health.time.sessionMinutes/60)} h`));
+      report.append(healthRow("Dernière sauvegarde",health.data.lastBackup?`${new Date(health.data.lastBackup.at).toLocaleDateString("fr-FR")} · ${health.data.lastBackup.verified===true?"vérifiée":health.data.lastBackup.verified===false?"échec":"ancienne"}`:"Aucune"));
+      healthMessage.textContent="Analyse terminée. Aucune donnée n’a été modifiée.";
+    }catch{healthMessage.textContent="Analyse impossible : le pont Orbit ne répond pas.";}
+  }
+  document.getElementById("health-run").addEventListener("click",analyzeHealth);
+  document.getElementById("health-copy").addEventListener("click",async()=>{
+    try{
+      const response=await fetch("/api/diagnostics");if(!response.ok)throw new Error();
+      const diagnostics=await response.json(),text=JSON.stringify(diagnostics,null,2);
+      try{await navigator.clipboard.writeText(text);}catch{const area=document.createElement("textarea");area.value=text;document.body.append(area);area.select();document.execCommand("copy");area.remove();}
+      healthMessage.textContent="Diagnostic copié. Aucun jeton ni clé n’y figure.";
+      toast("Diagnostic copié.");
+    }catch{healthMessage.textContent="Copie impossible : le pont Orbit ne répond pas.";}
+  });
   function playThemeSound(kind){
     if(config.sound&&config.sound.enabled===false)return;const volume=Math.max(0,Math.min(1,Number(config.sound&&config.sound.volume)||0));if(volume===0)return;const cue=themeBoot.current().sounds?.[kind];if(!cue)return;const AudioContextClass=window.AudioContext||window.webkitAudioContext;if(!AudioContextClass)return;
     try{audioContext=audioContext||new AudioContextClass();const ctx=audioContext,osc=ctx.createOscillator(),gain=ctx.createGain(),now=ctx.currentTime,duration=Math.max(.04,Math.min(1.5,(+cue.durationMs||140)/1000)),peak=Math.min(.2,volume*Math.max(.02,+cue.gain||.08)*4);osc.type=["sine","triangle","square","sawtooth"].includes(cue.wave)?cue.wave:"sine";osc.frequency.setValueAtTime(Math.max(20,+cue.startHz||440),now);osc.frequency.exponentialRampToValueAtTime(Math.max(20,+cue.endHz||330),now+duration);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),now+Math.min(.025,duration*.25));gain.gain.exponentialRampToValueAtTime(.0001,now+duration);osc.connect(gain);gain.connect(ctx.destination);const start=()=>{try{osc.start(now);osc.stop(now+duration+.01);}catch(e){}};if(ctx.state==="suspended")ctx.resume().then(start).catch(()=>{});else start();}catch(e){}

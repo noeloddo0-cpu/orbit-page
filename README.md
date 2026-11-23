@@ -14,12 +14,12 @@ Une nouvelle bibliothèque commence vide. Dans **Orbit Play → Importer Steam**
 
 ## Dans l’application
 
-| Espace | Ce que tu peux y faire |
-| --- | --- |
-| **Bibliothèque** | Classer tes jeux par statut, suivre les heures et consulter les sessions du jour, de la semaine ou du mois. |
-| **Orbit Play** | Parcourir les jaquettes verticales, lancer les jeux Steam installés, créer des collections et noter les plateformes que tu possèdes. Les applications ont leur propre onglet. |
-| **Films et séries** | Tenir une liste à voir, noter tes visionnages, suivre une saison ou un épisode et retrouver un film par date dans le journal. |
-| **Réglages** | Choisir l’apparence, exporter tes données, restaurer une sauvegarde ou vérifier les mises à jour. |
+| Espace              | Ce que tu peux y faire                                                                                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bibliothèque**    | Classer tes jeux par statut, suivre les heures et consulter les sessions du jour, de la semaine ou du mois.                                                                   |
+| **Orbit Play**      | Parcourir les jaquettes verticales, lancer les jeux Steam installés, créer des collections et noter les plateformes que tu possèdes. Les applications ont leur propre onglet. |
+| **Films et séries** | Tenir une liste à voir, noter tes visionnages, suivre une saison ou un épisode et retrouver un film par date dans le journal.                                                 |
+| **Réglages**        | Choisir l’apparence, exporter tes données, restaurer une sauvegarde ou vérifier les mises à jour.                                                                             |
 
 ## Relier tes services
 
@@ -27,7 +27,7 @@ Une nouvelle bibliothèque commence vide. Dans **Orbit Play → Importer Steam**
 
 **Steam.** L’import lit les bibliothèques Steam installées sur cet ordinateur. Les boutons **Importer Steam** et **Jaquettes verticales** permettent de récupérer les jeux et leurs couvertures. Si plusieurs titres se ressemblent, ouvre **Ma fiche** pour choisir l’image ou en importer une.
 
-**TMDB.** Dans **Réglages → Affiches de films**, ajoute ton jeton de lecture TMDB pour chercher les fiches et les affiches. This product uses the TMDB API but is not endorsed or certified by TMDB.
+**TMDB.** Dans **Réglages → Affiches de films**, ajoute ton jeton de lecture TMDB pour chercher les fiches et les affiches. Cette application utilise l’API TMDB, sans approbation ni certification de TMDB.
 
 ## Lancer depuis le code
 
@@ -35,10 +35,13 @@ Avec Node.js 24 LTS et npm, dans le dossier du projet sur Windows :
 
 ```powershell
 npm ci
+npm run check
 npm run app
 ```
 
 Pour essayer la version navigateur, lance `npm start` après `npm ci`, puis ouvre [Orbit sur cet ordinateur](http://127.0.0.1:3181/). Le lancement natif des jeux et les actions de sauvegarde Electron sont disponibles dans l’application de bureau.
+
+La copie de référence est **`Orbit-GitHub`**. La copie `discord-bridge` est conservée comme archive de lecture seule : ne la modifie plus à la main. Les builds de release partent d’un clone propre de ce dépôt.
 
 ## Données et sauvegardes
 
@@ -46,14 +49,17 @@ L’application de bureau conserve tes données dans `%APPDATA%\orbit`. La ferme
 
 Pour transférer ta collection, utilise **Réglages → Données et sauvegardes → Exporter** sur le premier PC, puis **Importer** sur le second. Garde l’export dans un emplacement privé. La version navigateur lancée avec `npm start` écrit ses données dans le dossier du projet par défaut.
 
+Depuis la version 1.0.32, chaque sauvegarde contient un manifeste et des empreintes SHA-256. Le bouton **Tester la dernière** relit les fichiers sans rien restaurer. Les fichiers abîmés sont conservés en `.corrupt-<horodatage>` avant toute réparation automatique. Le panneau **Santé et diagnostic** donne les compteurs et les anomalies sans modifier les données.
+
 ## Construire une version Windows
 
 ```powershell
-npm test
+npm ci
+npm run check
 npm run dist:installer
 ```
 
-L’installateur est créé dans `dist/`. Le dépôt comprend aussi une action GitHub pour le construire sur Windows et préparer une version en brouillon. [Guide de publication](docs/PUBLICATION.md)
+L’installateur est créé dans `dist/`. Le dépôt comprend aussi une action GitHub pour le construire sur Windows et préparer une version en brouillon. La procédure complète, le contenu attendu et le retour arrière sont décrits dans le [guide de publication](docs/RELEASE.md). Les changements visibles sont dans le [changelog](CHANGELOG.md).
 
 ## Projet et crédits
 

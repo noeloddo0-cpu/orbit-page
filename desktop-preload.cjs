@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('tracker', {
   importData: () => ipcRenderer.invoke('data:import'),
   restoreBackup: () => ipcRenderer.invoke('data:restore'),
   openBackupFolder: () => ipcRenderer.invoke('data:open-folder'),
+  backupNow: () => ipcRenderer.invoke('data:backup-now'),
+  verifyLatestBackup: () => ipcRenderer.invoke('data:verify-latest'),
+  listBackups: () => ipcRenderer.invoke('data:list-backups'),
   miniMode: {
     get: () => ipcRenderer.invoke('orbit:mini-get'),
     set: on => ipcRenderer.invoke('orbit:mini-set', !!on),

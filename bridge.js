@@ -6,6 +6,7 @@ import { withCinemaStatistics } from "./cinema-statistics.mjs";
 import { createCoopIndex } from "./orbit-activity.mjs";
 import { createRequire } from "node:module";
 import { shells as SHELL_REGISTRY } from "./themes/index.js";
+import { createLogger } from "./orbit-log.mjs";
 const require = createRequire(import.meta.url);
 const __dirname = require("node:path").dirname(require("node:url").fileURLToPath(import.meta.url));
 
@@ -18,6 +19,11 @@ const path = require("path");
 const crypto = require("crypto");
 const DATA_DIR = process.env.GAME_TRACKER_DATA_DIR || __dirname;
 const ASSET_DIR = process.env.GAME_TRACKER_ASSET_DIR || __dirname;
+const logger = createLogger({ dir: DATA_DIR, component: 'bridge', console: process.env.ORBIT_LOG_CONSOLE === '1' });
+const startedAt = Date.now();
+const APP_VERSION = (() => { try { return JSON.parse(fs.readFileSync(path.join(ASSET_DIR, 'package.json'), 'utf8')).version || ''; } catch { return ''; } })();
+process.on('uncaughtException', error => logger.error('Exception non gérée', { error }));
+process.on('unhandledRejection', error => logger.error('Rejet non géré', { error }));
 
 /* ---------- Config (.env) ---------- */
 function loadEnv() {
@@ -117,11 +123,32 @@ fs.mkdirSync(COVERS, { recursive: true });
 /* ---------- État ---------- */
 const NEUTRAL_STATUS = 5;
 const normalizeStatus = value => value !== null && value !== undefined && value !== "" && Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 5 ? Number(value) : NEUTRAL_STATUS;
-let state = { games: [], sessions: [], session: null, favorites: [], profiles: [{ id: "main", name: "Profil principal" }], activeProfileId: "main", meta: {} };
+const legacySessionId = session => "legacy-" + crypto.createHash("sha1").update(`${session?.game || ""}|${session?.start || ""}`).digest("hex").slice(0, 20);
+const normalizeSession = session => {
+  if (!session || typeof session !== "object") return null;
+  const game = String(session.game || "").trim(), start = Number(session.start);
+  if (!game || !Number.isFinite(start)) return null;
+  const end = Number.isFinite(Number(session.end)) ? Number(session.end) : null;
+  const durationMs = Math.max(0, Number(session.durationMs) || (end !== null ? end - start : 0) || Number(session.minutes) * 60000 || 0);
+  return {
+    ...session,
+    id: typeof session.id === "string" && session.id ? session.id.slice(0, 100) : legacySessionId(session),
+    game, start, end,
+    durationMs,
+    minutes: Math.max(0, Number(session.minutes) || Math.floor(durationMs / 60000)),
+    source: ["manual", "discord", "import"].includes(session.source) ? session.source : "manual",
+    note: typeof session.note === "string" ? session.note.slice(0, 1000) : "",
+    dated: session.dated !== false,
+    revision: Number.isInteger(session.revision) && session.revision > 0 ? session.revision : 1,
+    updatedAt: Number(session.updatedAt) || end || start
+  };
+};
+let state = { games: [], sessions: [], deletedSessions: [], session: null, favorites: [], profiles: [{ id: "main", name: "Profil principal" }], activeProfileId: "main", meta: {} };
 try {
   const stored = JSON.parse(fs.readFileSync(DATA, "utf8"));
   state.games = Array.isArray(stored.games) ? stored.games.map(game => game && typeof game === "object" ? { ...game, s: normalizeStatus(game.s) } : game) : [];
-  state.sessions = Array.isArray(stored.sessions) ? stored.sessions : [];
+  state.sessions = Array.isArray(stored.sessions) ? stored.sessions.map(normalizeSession).filter(Boolean) : [];
+  state.deletedSessions = Array.isArray(stored.deletedSessions) ? stored.deletedSessions.filter(item => item && typeof item.id === "string").slice(-5000) : [];
   state.favorites = Array.isArray(stored.favorites) ? stored.favorites : [];
   state.profiles = Array.isArray(stored.profiles) && stored.profiles.length ? stored.profiles : state.profiles;
   state.activeProfileId = typeof stored.activeProfileId === "string" ? stored.activeProfileId : state.profiles[0].id;
@@ -136,6 +163,92 @@ try { psnReference=JSON.parse(fs.readFileSync(path.join(DATA_DIR,"psn-reference.
 const coopIndex=createCoopIndex(DATA_DIR,atomicWrite);
 const disc = { status: "démarrage", playing: null };
 const ckey = n => String(n || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[®™©]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+const gameIdFor = name => "name-" + crypto.createHash("sha1").update(ckey(name)).digest("hex").slice(0, 16);
+const sessionDuration = session => Math.max(0, Number(session?.durationMs) || (Number.isFinite(Number(session?.end)) ? Number(session.end) - Number(session.start) : 0) || Number(session?.minutes) * 60000 || 0);
+const sessionEnd = session => Number.isFinite(Number(session?.end)) ? Number(session.end) : Number(session.start) + sessionDuration(session);
+function isTombstoned(session) {
+  if (!session) return false;
+  const ids = new Set([session.id, legacySessionId(session)].filter(Boolean));
+  return state.deletedSessions.some(item => ids.has(item.id));
+}
+function addTombstone(session, reason = "delete") {
+  const ids = new Set([session?.id, legacySessionId(session || {})].filter(Boolean));
+  for (const id of ids) {
+    if (!state.deletedSessions.some(item => item.id === id)) state.deletedSessions.push({ id, deletedAt: Date.now(), reason });
+  }
+  if (state.deletedSessions.length > 5000) state.deletedSessions = state.deletedSessions.slice(-5000);
+}
+function removeTombstone(id) {
+  state.deletedSessions = state.deletedSessions.filter(item => item.id !== id);
+}
+state.sessions = state.sessions
+  .filter(session => !isTombstoned(session))
+  .map(session => ({ ...session, gameId: session.gameId || gameIdFor(session.game) }));
+function canonicalGameName(name) {
+  const found = state.games.find(game => ckey(game.n) === ckey(name));
+  return found ? found.n : "";
+}
+function timestamp(value) {
+  const number = Number(value);
+  if (Number.isFinite(number) && number > 0) return number;
+  const parsed = Date.parse(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+function sessionConflicts(candidate, excludeId = null) {
+  const start = Number(candidate.start), end = sessionEnd(candidate);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
+  return state.sessions
+    .filter(other => other.id !== excludeId && other.id !== candidate.id)
+    .filter(other => {
+      const otherStart = Number(other.start), otherEnd = sessionEnd(other);
+      return Number.isFinite(otherStart) && Number.isFinite(otherEnd) && start < otherEnd && end > otherStart;
+    })
+    .slice(0, 20)
+    .map(other => ({ id: other.id, game: other.game, start: other.start, end: other.end, durationMs: sessionDuration(other) }));
+}
+function sessionIssues(candidate, excludeId = null, confirm = false) {
+  const conflicts = sessionConflicts(candidate, excludeId);
+  const longSession = sessionDuration(candidate) > 24 * 60 * 60 * 1000;
+  return { conflicts, longSession, requiresConfirmation: !confirm && (conflicts.length > 0 || longSession) };
+}
+function buildSession(raw, previous = null) {
+  const source = raw.source !== undefined ? raw.source : previous?.source ?? "manual";
+  if (!["manual", "discord", "import"].includes(source)) return { error: "source invalide" };
+  const game = canonicalGameName(raw.game !== undefined ? raw.game : previous?.game);
+  if (!game) return { error: "jeu inconnu" };
+  const start = raw.start !== undefined ? timestamp(raw.start) : Number(previous?.start);
+  if (!Number.isFinite(start) || start <= 0) return { error: "date de début invalide" };
+  let end = raw.end !== undefined ? (raw.end === null ? null : timestamp(raw.end)) : (previous ? (previous.end ?? null) : null);
+  if (end !== null && (!Number.isFinite(end) || end < start)) return { error: "date de fin invalide" };
+  const previousDuration = previous ? sessionDuration(previous) : null;
+  let durationMs;
+  if (raw.durationMs !== undefined) durationMs = Number(raw.durationMs);
+  else if (raw.end !== undefined && end !== null) durationMs = end - start;
+  else if (raw.start !== undefined && end !== null) durationMs = end - start;
+  else if (raw.minutes !== undefined) durationMs = Number(raw.minutes) * 60000;
+  else if (previousDuration !== null) { durationMs = previousDuration; if (end === null && durationMs > 0) end = start + durationMs; }
+  else durationMs = end !== null ? end - start : 0;
+  if (!Number.isFinite(durationMs) || durationMs < 0) return { error: "durée invalide" };
+  if (durationMs > 10 * 365 * 24 * 60 * 60 * 1000) return { error: "durée trop grande" };
+  if (end === null && durationMs > 0) end = start + durationMs;
+  const explicitId = typeof raw.id === "string" && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(raw.id) ? raw.id : null;
+  const id = explicitId || previous?.id || crypto.randomUUID();
+  const note = raw.note !== undefined ? String(raw.note || "").slice(0, 1000) : (previous?.note || "");
+  const dated = raw.dated !== undefined ? raw.dated !== false : previous ? previous.dated !== false : true;
+  const sameGame = previous && ckey(previous.game) === ckey(game);
+  return {
+    session: {
+      id, gameId: raw.gameId || (sameGame ? previous.gameId : null) || gameIdFor(game), game, start, end, durationMs,
+      minutes: Math.floor(durationMs / 60000), source, note, dated,
+      revision: previous ? previous.revision : 1, updatedAt: Date.now()
+    }
+  };
+}
+function persistSessions() {
+  const ok = writeLibrary();
+  if (ok) broadcast();
+  return ok;
+}
 state.favorites = [...new Set(state.favorites.map(ckey).filter(Boolean))];
 state.profiles = state.profiles.filter(p => p && typeof p.id === "string" && typeof p.name === "string" && p.id && p.name).slice(0, 20);
 if (!state.profiles.length) state.profiles = [{ id: "main", name: "Profil principal" }];
@@ -150,13 +263,13 @@ function save() {
 function writeLibrary() {
   clearTimeout(saveTimer);
   onCoverLibraryChange();
-  try { atomicWrite(DATA, { version: 1, games: state.games, sessions: state.sessions, favorites: state.favorites, profiles: state.profiles, activeProfileId: state.activeProfileId }); return true; }
-  catch (e) { console.log("Sauvegarde impossible :", e.message); return false; }
+  try { atomicWrite(DATA, { version: 1, games: state.games, sessions: state.sessions, deletedSessions: state.deletedSessions, favorites: state.favorites, profiles: state.profiles, activeProfileId: state.activeProfileId }); return true; }
+  catch (e) { logger.error("Sauvegarde impossible", { error: e }); return false; }
 }
-function saveRecap() { try { atomicWrite(RECAP_FILE, recap); } catch (e) { console.log("Sauvegarde du récap impossible :", e.message); } }
+function saveRecap() { try { atomicWrite(RECAP_FILE, recap); } catch (e) { logger.error("Sauvegarde du récap impossible", { error: e }); } }
 function saveMeta() {
   try { fs.writeFileSync(META_FILE + ".tmp", JSON.stringify(state.meta, null, 1)); fs.renameSync(META_FILE + ".tmp", META_FILE); }
-  catch (e) { console.log("Cache infos impossible :", e.message); }
+  catch (e) { logger.error("Cache infos impossible", { error: e }); }
 }
 function coverIndex() {
   const found = {};
@@ -422,6 +535,84 @@ const payload = () => ({ games: state.games, sessions: state.sessions, session: 
 const clients = new Set();
 function broadcast() { const d = "data: " + JSON.stringify(payload()) + "\n\n"; for (const r of clients) r.write(d); }
 const metaKey = name => crypto.createHash("sha1").update(ckey(name)).digest("hex");
+let healthCache = { at: 0, value: null };
+function lastBackupSummary() {
+  const root = path.join(DATA_DIR, 'backups');
+  try {
+    const names = fs.readdirSync(root, { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && /^\d{4}-\d{2}-\d{2}T/.test(entry.name))
+      .map(entry => entry.name).sort().reverse();
+    if (!names.length) return null;
+    let manifest = null;
+    try { manifest = JSON.parse(fs.readFileSync(path.join(root, names[0], 'backup-manifest.json'), 'utf8')); } catch {}
+    return {
+      name: names[0],
+      at: manifest?.createdAt || new Date(fs.statSync(path.join(root, names[0])).mtimeMs).toISOString(),
+      verified: manifest ? manifest.verified === true : null,
+      reason: manifest?.reason || 'automatic',
+      counts: manifest?.counts || {},
+      covers: manifest?.covers || 0
+    };
+  } catch { return null; }
+}
+function healthReport() {
+  if (healthCache.value && Date.now() - healthCache.at < 5000) return healthCache.value;
+  const artwork = artworkIndices();
+  const covered = new Set([...Object.keys(artwork.covers), ...Object.keys(artwork.steamCovers)]);
+  const knownNames = new Set(state.games.map(game => ckey(game.n)));
+  const metaKeys = new Set(state.games.map(game => metaKey(game.n)));
+  const duplicateMap = new Map();
+  for (const game of state.games) {
+    const key = ckey(game.n);
+    if (!duplicateMap.has(key)) duplicateMap.set(key, []);
+    duplicateMap.get(key).push(game.n);
+  }
+  const duplicateGames = [...duplicateMap.entries()].filter(([, names]) => names.length > 1).map(([key, names]) => ({ key, names }));
+  const orphanSessions = state.sessions.filter(session => !knownNames.has(ckey(session.game)));
+  const orphanMeta = Object.entries(state.meta).filter(([key]) => !metaKeys.has(key));
+  const missingCovers = state.games.filter(game => !covered.has(ckey(game.n)));
+  const filmsWithoutPoster = cinema.items.filter(item => item.type === 'film' && !item.poster);
+  const gamesWithoutKind = state.games.filter(game => !['game', 'app'].includes(state.meta[metaKey(game.n)]?.playDetails?.kind));
+  const apps = state.games.filter(game => state.meta[metaKey(game.n)]?.playDetails?.kind === 'app');
+  const statusCounts = {};
+  for (const game of state.games) statusCounts[normalizeStatus(game.s)] = (statusCounts[normalizeStatus(game.s)] || 0) + 1;
+  let coversFiles = 0;
+  try { coversFiles = fs.readdirSync(COVERS).filter(name => ['.jpg', '.jpeg', '.png', '.webp'].includes(path.extname(name).toLowerCase())).length; } catch {}
+  const sessionMinutes = Math.round(state.sessions.reduce((total, session) => total + Math.max(0, Number(session.durationMs) || Number(session.minutes) * 60000 || 0), 0) / 60000);
+  const gameMinutes = state.games.reduce((total, game) => total + Math.max(0, Number(game.m) || 0), 0);
+  const value = {
+    app: { version: APP_VERSION, schemaVersion: Number(state.schemaVersion) || 1, startedAt: new Date(startedAt).toISOString(), uptimeMs: Date.now() - startedAt, platform: process.platform, arch: process.arch, node: process.versions.node, electron: process.versions.electron || null },
+    data: {
+      games: state.games.length, sessions: state.sessions.length, favorites: state.favorites.length,
+      films: cinema.items.filter(item => item.type === 'film').length,
+      series: cinema.items.filter(item => item.type === 'series').length,
+      covers: coversFiles, backups: (() => { try { return fs.readdirSync(path.join(DATA_DIR, 'backups'), { withFileTypes: true }).filter(entry => entry.isDirectory()).length; } catch { return 0; } })(),
+      lastBackup: lastBackupSummary()
+    },
+    anomalies: {
+      orphanSessions: orphanSessions.length,
+      orphanSessionsSample: orphanSessions.slice(0, 10).map(session => ({ game: session.game, start: session.start })),
+      orphanMeta: orphanMeta.length,
+      orphanMetaSample: orphanMeta.slice(0, 10).map(([key, meta]) => ({ key, title: meta?.title || '' })),
+      gamesWithoutCover: missingCovers.length,
+      gamesWithoutCoverSample: missingCovers.slice(0, 10).map(game => game.n),
+      filmsWithoutPoster: filmsWithoutPoster.length,
+      filmsWithoutPosterSample: filmsWithoutPoster.slice(0, 10).map(item => item.title),
+      gamesWithoutKind: gamesWithoutKind.length,
+      apps: apps.length,
+      duplicateGames: duplicateGames.length,
+      duplicateGamesSample: duplicateGames.slice(0, 10),
+      sessionsWithoutId: state.sessions.filter(session => !session.id || String(session.id).startsWith("legacy-")).length
+    },
+    time: { gameMinutes, sessionMinutes, importedOrManualMinutes: Math.max(0, gameMinutes - sessionMinutes) },
+    statusCounts,
+    discord: { status: disc.status, playing: disc.playing },
+    paths: { data: DATA_DIR, assets: ASSET_DIR, logs: path.join(DATA_DIR, 'logs') },
+    generatedAt: new Date().toISOString()
+  };
+  healthCache = { at: Date.now(), value };
+  return value;
+}
 function migrateLegacyCovers() {
   let changed = false;
   for (const game of state.games) {
@@ -592,7 +783,11 @@ function endSession() {
   if (!state.session) return;
   tickSession();
   const current = { ...state.session }, ended = Date.now();
-  state.sessions.push({ id: current.id, source:current.source, game: current.name, start: current.start, end: ended, durationMs: Math.max(0, ended - current.start), minutes: Math.max(0, current.mins) });
+  const completed = normalizeSession({ id: current.id, source: current.source, game: current.name, start: current.start, end: ended, durationMs: Math.max(0, ended - current.start), minutes: Math.max(0, current.mins), updatedAt: ended });
+  if (completed) {
+    completed.gameId = gameIdFor(completed.game);
+    state.sessions.push(completed);
+  }
   const g = state.games.find(x => x.n === current.name); if (g) g.t = ended;
   console.log("Session terminée :", current.name);
   state.session = null;
@@ -830,6 +1025,13 @@ http.createServer(async (req, res) => {
   if (url === "/api/steam/coop" && (req.method==="POST" || req.method==="GET")) {
     return json(200, req.method==="GET" ? coopIndex.snapshot() : coopIndex.start(Object.values(playDetailsIndex()).map(d=>d.steamAppId)));
   }
+  if (url === "/api/health" && req.method === "GET") return json(200, healthReport());
+  if (url === "/api/diagnostics" && req.method === "GET") return json(200, {
+    generatedAt: new Date().toISOString(),
+    health: healthReport(),
+    environment: { platform: process.platform, arch: process.arch, node: process.versions.node, electron: process.versions.electron || null, pid: process.pid },
+    logs: logger.recent(50)
+  });
   if (url === "/api/state" && req.method === "GET") return json(200, payload());
   if (url === "/api/cinema/tmdb-key" && req.method === "GET") return json(200, { configured: fs.existsSync(TMDB_KEY_FILE) && !!fs.readFileSync(TMDB_KEY_FILE, "utf8").trim() });
   if (url === "/api/cinema/tmdb-key" && req.method === "POST") {
@@ -969,6 +1171,123 @@ http.createServer(async (req, res) => {
       saveRecap(); return json(200, { ok: true });
     } catch (e) { return json(400, { error: "Récap invalide" }); }
   }
+  if (url === "/api/v1/sessions" && req.method === "GET") {
+    const params = parsed.searchParams, game = params.get("game"), gameId = params.get("gameId");
+    const from = params.get("from") ? timestamp(params.get("from")) : null, to = params.get("to") ? timestamp(params.get("to")) : null;
+    if (from !== null && !Number.isFinite(from)) return json(400, { error: "from invalide" });
+    if (to !== null && !Number.isFinite(to)) return json(400, { error: "to invalide" });
+    const limit = Math.min(1000, Math.max(1, Number(params.get("limit")) || 100));
+    const offset = Math.max(0, Number(params.get("offset")) || 0);
+    const list = state.sessions
+      .filter(session => !game || ckey(session.game) === ckey(game))
+      .filter(session => !gameId || session.gameId === gameId || ckey(session.game) === ckey(gameId))
+      .filter(session => from === null || session.start >= from)
+      .filter(session => to === null || session.start <= to)
+      .sort((a, b) => b.start - a.start);
+    return json(200, { sessions: list.slice(offset, offset + limit), total: list.length, limit, offset, hasMore: offset + limit < list.length });
+  }
+  if (url === "/api/v1/sessions" && req.method === "POST") {
+    try {
+      const b = JSON.parse(await body(req, 100000));
+      const explicitId = typeof b.id === "string" && b.id ? b.id : null;
+      if (explicitId && state.deletedSessions.some(item => item.id === explicitId) && b.restore !== true) return json(409, { error: "session supprimée", deleted: true });
+      if (explicitId && state.sessions.some(session => session.id === explicitId)) return json(409, { error: "identifiant déjà utilisé" });
+      const built = buildSession({ ...b, ...(explicitId ? { id: explicitId } : {}) });
+      if (built.error) return json(400, { error: built.error });
+      const issues = sessionIssues(built.session, null, b.confirm === true);
+      if (issues.requiresConfirmation) return json(409, { error: "confirmation requise", requiresConfirmation: true, conflicts: issues.conflicts, longSession: issues.longSession });
+      state.sessions.push(built.session);
+      state.sessions.sort((a, b) => a.start - b.start);
+      removeTombstone(built.session.id);
+      removeTombstone(legacySessionId(built.session));
+      if (!persistSessions()) return json(500, { error: "écriture impossible" });
+      return json(201, { ok: true, session: built.session });
+    } catch (e) { return json(400, { error: "session invalide" }); }
+  }
+  if (url === "/api/v1/sessions/merge" && req.method === "POST") {
+    try {
+      const b = JSON.parse(await body(req, 100000));
+      const ids = [...new Set((Array.isArray(b.ids) ? b.ids : Array.isArray(b.sessionIds) ? b.sessionIds : []).filter(id => typeof id === "string"))];
+      if (ids.length < 2) return json(400, { error: "au moins deux sessions sont nécessaires" });
+      const selected = ids.map(id => state.sessions.find(session => session.id === id));
+      const missing = ids.filter((id, index) => !selected[index]);
+      if (missing.length) return json(404, { error: "session introuvable", missing });
+      const game = selected[0].game;
+      if (selected.some(session => ckey(session.game) !== ckey(game))) return json(400, { error: "les sessions doivent concerner le même jeu" });
+      const intervals = selected.map(session => [Number(session.start), sessionEnd(session)]).filter(([start, end]) => Number.isFinite(start) && Number.isFinite(end) && end > start).sort((a, b) => a[0] - b[0]);
+      if (!intervals.length) return json(400, { error: "durées invalides" });
+      let cursor = null, durationMs = 0;
+      for (const [start, end] of intervals) {
+        if (cursor === null) { cursor = end; durationMs += end - start; }
+        else if (start <= cursor) { if (end > cursor) { durationMs += end - cursor; cursor = end; } }
+        else { durationMs += end - start; cursor = end; }
+      }
+      const start = Math.min(...intervals.map(([value]) => value)), end = Math.max(...intervals.map(([, value]) => value));
+      const source = selected.every(session => session.source === selected[0].source) ? selected[0].source : "manual";
+      const note = [...new Set(selected.map(session => String(session.note || "").trim()).filter(Boolean))].join(" · ").slice(0, 1000);
+      const merged = {
+        id: crypto.randomUUID(), gameId: selected[0].gameId || gameIdFor(game), game, start, end, durationMs,
+        minutes: Math.floor(durationMs / 60000), source, note, dated: selected.every(session => session.dated !== false),
+        revision: 1, updatedAt: Date.now(), mergedFrom: ids.slice(0, 100)
+      };
+      state.sessions = state.sessions.filter(session => !ids.includes(session.id));
+      for (const session of selected) addTombstone(session, "merge");
+      state.sessions.push(merged);
+      state.sessions.sort((a, b) => a.start - b.start);
+      if (!persistSessions()) return json(500, { error: "écriture impossible" });
+      return json(201, { ok: true, session: merged, merged: ids.length });
+    } catch (e) { return json(400, { error: "fusion impossible" }); }
+  }
+  const splitSession = url.match(/^\/api\/v1\/sessions\/([^/]+)\/split$/);
+  if (splitSession && req.method === "POST") {
+    try {
+      const id = decodeURIComponent(splitSession[1]), current = state.sessions.find(session => session.id === id);
+      if (!current) return json(404, { error: "session introuvable" });
+      const b = JSON.parse(await body(req, 100000));
+      const start = Number(current.start), end = sessionEnd(current);
+      const at = b.at !== undefined ? timestamp(b.at) : start + Math.floor(sessionDuration(current) / 2);
+      if (!Number.isFinite(at) || at <= start || at >= end) return json(400, { error: "le point de découpe doit être compris dans la session" });
+      const now = Date.now();
+      const first = { ...current, id: crypto.randomUUID(), start, end: at, durationMs: at - start, minutes: Math.floor((at - start) / 60000), revision: 1, updatedAt: now, splitFrom: current.id };
+      const second = { ...current, id: crypto.randomUUID(), start: at, end, durationMs: end - at, minutes: Math.floor((end - at) / 60000), revision: 1, updatedAt: now, splitFrom: current.id };
+      state.sessions = state.sessions.filter(session => session.id !== current.id);
+      addTombstone(current, "split");
+      state.sessions.push(first, second);
+      state.sessions.sort((a, b) => a.start - b.start);
+      if (!persistSessions()) return json(500, { error: "écriture impossible" });
+      return json(201, { ok: true, sessions: [first, second], totalDurationMs: sessionDuration(first) + sessionDuration(second) });
+    } catch (e) { return json(400, { error: "découpage impossible" }); }
+  }
+  const singleSession = url.match(/^\/api\/v1\/sessions\/([^/]+)$/);
+  if (singleSession && req.method === "PATCH") {
+    try {
+      const id = decodeURIComponent(singleSession[1]), current = state.sessions.find(session => session.id === id);
+      if (!current) return json(404, { error: "session introuvable" });
+      const b = JSON.parse(await body(req, 100000));
+      if (b.revision !== undefined && Number(b.revision) !== current.revision) return json(409, { error: "conflit de révision", current });
+      const built = buildSession({ ...b, id: current.id }, current);
+      if (built.error) return json(400, { error: built.error });
+      built.session.id = current.id;
+      built.session.revision = current.revision + 1;
+      built.session.updatedAt = Date.now();
+      const issues = sessionIssues(built.session, current.id, b.confirm === true);
+      if (issues.requiresConfirmation) return json(409, { error: "confirmation requise", requiresConfirmation: true, conflicts: issues.conflicts, longSession: issues.longSession });
+      state.sessions[state.sessions.findIndex(session => session.id === current.id)] = built.session;
+      state.sessions.sort((a, b) => a.start - b.start);
+      if (!persistSessions()) return json(500, { error: "écriture impossible" });
+      return json(200, { ok: true, session: built.session });
+    } catch (e) { return json(400, { error: "édition impossible" }); }
+  }
+  if (singleSession && req.method === "DELETE") {
+    const id = decodeURIComponent(singleSession[1]), current = state.sessions.find(session => session.id === id);
+    const revision = parsed.searchParams.get("revision");
+    if (!current) return json(200, { ok: true, alreadyDeleted: state.deletedSessions.some(item => item.id === id) });
+    if (revision !== null && Number(revision) !== current.revision) return json(409, { error: "conflit de révision", current });
+    state.sessions = state.sessions.filter(session => session.id !== current.id);
+    addTombstone(current, "delete");
+    if (!persistSessions()) return json(500, { error: "écriture impossible" });
+    return json(200, { ok: true, session: current });
+  }
   if (url === "/api/session/start" && req.method === "POST") {
     try { const b = JSON.parse(await body(req, 2000)), name = String(b.name || "").trim(); if (!name) return json(400, { error: "jeu manquant" }); if (state.session) endSession(); startSession(name,"manual"); broadcast(); return json(200, { ok: true }); }
     catch (e) { return json(400, { error: "session impossible à démarrer" }); }
@@ -982,17 +1301,18 @@ http.createServer(async (req, res) => {
       const priorGames=new Map(state.games.map(g=>[ckey(g.n),g]));
       state.games = b.games.filter(g => g && typeof g.n === "string" && g.n.trim()).map(g => ({ n: g.n, s: normalizeStatus(g.s), c: g.c | 0, m: Math.max(0, g.m | 0), manualDelta: Number.isSafeInteger(g.manualDelta)?g.manualDelta:(priorGames.get(ckey(g.n))?.manualDelta||0), t: +g.t || 0, firstPlayed: Math.max(0, +g.firstPlayed || 0) }));
       if (Array.isArray(b.sessions)) {
-        const byId = new Map();
-        const keepSession = x => {
-          if (!x || typeof x.game !== "string" || !Number.isFinite(+x.start)) return;
-          const session = { ...(["manual","discord"].includes(x.source)?{source:x.source}:{}), ...(typeof x.id === "string" ? { id: x.id } : {}), game: x.game, start: +x.start, end: Number.isFinite(+x.end) ? +x.end : null, durationMs: Math.max(0, +x.durationMs || 0), minutes: Math.max(0, +x.minutes || 0) };
-          const key = session.id ? `id:${session.id}` : `${ckey(session.game)}:${session.start}`;
-          const previous = byId.get(key);
-          byId.set(key, previous ? { ...previous, end: Math.max(previous.end || 0, session.end || 0) || null, durationMs: Math.max(previous.durationMs, session.durationMs), minutes: Math.max(previous.minutes, session.minutes) } : session);
-        };
-        state.sessions.forEach(keepSession);
-        b.sessions.forEach(keepSession);
-        state.sessions = [...byId.values()].sort((a, b) => a.start - b.start);
+        const seen = new Set();
+        state.sessions = b.sessions
+          .map(normalizeSession)
+          .filter(Boolean)
+          .map(session => ({ ...session, gameId: session.gameId || gameIdFor(session.game) }))
+          .filter(session => !isTombstoned(session))
+          .filter(session => {
+            if (seen.has(session.id)) return false;
+            seen.add(session.id);
+            return true;
+          })
+          .sort((a, b) => a.start - b.start);
       }
       if (Array.isArray(b.favorites)) state.favorites = [...new Set(b.favorites.map(ckey).filter(Boolean))];
       if (Array.isArray(b.profiles)) {
@@ -1020,6 +1340,7 @@ http.createServer(async (req, res) => {
   }
   res.writeHead(404); res.end("Not found");
 }).listen(PORT, "127.0.0.1", () => {
+  logger.info('Pont démarré', { port: PORT, version: APP_VERSION, games: state.games.length, sessions: state.sessions.length });
   console.log(`Bibliothèque : http://127.0.0.1:${PORT}/`);
   console.log(`Token : ${TOKEN ? "ok" : "ABSENT"} · ID utilisateur : ${USER_ID ? "ok" : "ABSENT"} · ID serveur : ${GUILD_ID ? "ok" : "non précisé (1er serveur)"}`);
   onCoverLibraryChange();

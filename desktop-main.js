@@ -6,9 +6,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { checkRelease, downloadRelease, newer } from './orbit-updates.mjs';
 import { installedSteamGames } from './steam-local.mjs';
+import { createBackup, latestBackup, listBackups, preserveCorrupt, restoreFilesFromBackup, verifyBackup } from './orbit-backup.mjs';
+import { createLogger } from './orbit-log.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let dataDir;
+let logger;
 let assetDir = here;
 let appPort;
 let setupWindow;
@@ -82,17 +85,16 @@ function validData(name, value) {
   return name === 'recap.json' && (value.lastOpened === null || typeof value.lastOpened === 'object') && Array.isArray(value.recent) && value.gameStats && typeof value.gameStats === 'object';
 }
 async function readValid(file, name) { try { const value = JSON.parse(await readFile(file, 'utf8')); return validData(name, value) ? value : null; } catch { return null; } }
-async function backupData(force = false) {
+async function backupData(force = false, reason = 'automatic') {
   const backupRoot = path.join(dataDir, 'backups'); await mkdir(backupRoot, { recursive: true });
   const dirs = (await readdir(backupRoot, { withFileTypes: true })).filter(x => x.isDirectory()).map(x => x.name).sort().reverse();
-  if (!force && dirs.length && Date.now() - (await stat(path.join(backupRoot, dirs[0]))).mtimeMs < 24 * 60 * 60 * 1000) return;
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-'), destination = path.join(backupRoot, stamp); await mkdir(destination, { recursive: true });
-  for (const name of DATA_FILES) { const source = path.join(dataDir, name); if (await exists(source)) await copyFile(source, path.join(destination, name)); }
-  if (await exists(path.join(dataDir, 'meta.json'))) await copyFile(path.join(dataDir, 'meta.json'), path.join(destination, 'meta.json'));
-  const sourceCovers = path.join(dataDir, 'covers'), backupCovers = path.join(destination, 'covers');
-  try { await mkdir(backupCovers, { recursive: true }); for (const item of await readdir(sourceCovers)) await copyFile(path.join(sourceCovers, item), path.join(backupCovers, item)); } catch {}
-  const all = (await readdir(backupRoot, { withFileTypes: true })).filter(x => x.isDirectory()).map(x => x.name).sort().reverse();
-  for (const old of all.slice(10)) await rm(path.join(backupRoot, old), { recursive: true, force: true });
+  if (!force && dirs.length && Date.now() - (await stat(path.join(backupRoot, dirs[0]))).mtimeMs < 24 * 60 * 60 * 1000) return null;
+  try {
+    return await createBackup({ dataDir, reason, appVersion: app.getVersion(), logger });
+  } catch (error) {
+    logger?.error('Sauvegarde impossible', { reason, error });
+    throw error;
+  }
 }
 async function recoverCorruptFiles() {
   const backupRoot = path.join(dataDir, 'backups'); let dirs = [];
@@ -100,6 +102,8 @@ async function recoverCorruptFiles() {
   const restored = [];
   for (const name of DATA_FILES) {
     const current = path.join(dataDir, name); if (!(await exists(current)) || await readValid(current, name)) continue;
+    const preserved = await preserveCorrupt(current);
+    logger?.warn('Fichier de données abîmé conservé', { file: name, preserved });
     for (const dir of dirs) { const candidate = path.join(backupRoot, dir, name), value = await readValid(candidate, name); if (!value) continue; await atomicJson(current, value); restored.push(name); break; }
     if (name === 'settings.json' && !restored.includes(name)) {
       try { const legacy = JSON.parse(await readFile(path.join(dataDir, 'ui-preferences.json'), 'utf8')); if (legacy && typeof legacy === 'object' && !Array.isArray(legacy)) { const value = { version: 1, ...legacy }; await atomicJson(current, value); restored.push('settings.json depuis les anciens réglages'); } } catch {}
@@ -116,11 +120,29 @@ async function getDataBundle() {
   return bundle;
 }
 async function writeImportBundle(bundle) {
-  for (const name of DATA_FILES) if (bundle[name] !== undefined && bundle[name] !== null) await atomicJson(path.join(dataDir, name), bundle[name]);
-  await atomicJson(path.join(dataDir, 'meta.json'), bundle.meta && typeof bundle.meta === 'object' && !Array.isArray(bundle.meta) ? bundle.meta : {});
-  const coverDir = path.join(dataDir, 'covers'); await mkdir(coverDir, { recursive: true });
-  for (const name of await readdir(coverDir)) if (IMAGE_EXTENSIONS.has(path.extname(name).toLowerCase())) await rm(path.join(coverDir, name), { force: true });
-  for (const file of bundle.covers) await writeFile(path.join(coverDir, file.name), Buffer.from(file.data, 'base64'));
+  const stage = path.join(dataDir, '.orbit-staging-' + new Date().toISOString().replace(/[:.]/g, '-'));
+  await mkdir(path.join(stage, 'covers'), { recursive: true });
+  try {
+    for (const name of DATA_FILES) if (bundle[name] !== undefined && bundle[name] !== null) await atomicJson(path.join(stage, name), bundle[name]);
+    await atomicJson(path.join(stage, 'meta.json'), bundle.meta && typeof bundle.meta === 'object' && !Array.isArray(bundle.meta) ? bundle.meta : {});
+    for (const file of bundle.covers) await writeFile(path.join(stage, 'covers', file.name), Buffer.from(file.data, 'base64'));
+    for (const name of DATA_FILES) {
+      const source = path.join(stage, name);
+      if (!(await exists(source))) continue;
+      const target = path.join(dataDir, name), temp = target + '.import-tmp';
+      await copyFile(source, temp); await rename(temp, target);
+    }
+    const metaTemp = path.join(dataDir, 'meta.json.import-tmp');
+    await copyFile(path.join(stage, 'meta.json'), metaTemp); await rename(metaTemp, path.join(dataDir, 'meta.json'));
+    const coverDir = path.join(dataDir, 'covers'); await mkdir(coverDir, { recursive: true });
+    for (const name of await readdir(coverDir)) if (IMAGE_EXTENSIONS.has(path.extname(name).toLowerCase())) await rm(path.join(coverDir, name), { force: true });
+    for (const file of bundle.covers) {
+      const target = path.join(coverDir, file.name), temp = target + '.import-tmp';
+      await copyFile(path.join(stage, 'covers', file.name), temp); await rename(temp, target);
+    }
+  } finally {
+    await rm(stage, { recursive: true, force: true }).catch(() => {});
+  }
 }
 async function findAvailablePort() {
   return await new Promise((resolve, reject) => {
@@ -228,7 +250,19 @@ function openLibrary({ hidden = false } = {}) {
       void shell.openExternal(url).catch(() => {});
       return { action: 'deny' };
     }
-    return { action: 'allow' };
+    try {
+      const target = new URL(url);
+      if (target.protocol === 'http:' || target.protocol === 'https:') void shell.openExternal(url).catch(() => {});
+    } catch {}
+    return { action: 'deny' };
+  });
+  libraryWindow.webContents.on('will-navigate', (event, url) => {
+    if (url.startsWith(`http://127.0.0.1:${appPort}/`)) return;
+    event.preventDefault();
+    try {
+      const target = new URL(url);
+      if (target.protocol === 'http:' || target.protocol === 'https:') void shell.openExternal(url).catch(() => {});
+    } catch {}
   });
   libraryWindow.loadURL(`http://127.0.0.1:${appPort}/`);
   libraryWindow.once('ready-to-show', () => { if (!hidden && libraryWindow && !libraryWindow.isDestroyed()) libraryWindow.show(); });
@@ -320,10 +354,16 @@ ipcMain.handle('data:import', async () => {
   if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
   try {
     const bundle = JSON.parse(await readFile(result.filePaths[0], 'utf8')); if (!validImport(bundle)) return { ok: false, message: 'Ce fichier ne ressemble pas à une sauvegarde Orbit complète.' };
-    const answer = await dialog.showMessageBox(libraryWindow, { type: 'warning', buttons: ['Annuler', 'Importer'], defaultId: 0, cancelId: 0, title: 'Remplacer les données ?', message: 'L’import va remplacer les jeux, les réglages et le récapitulatif actuels.' });
+    const answer = await dialog.showMessageBox(libraryWindow, { type: 'warning', buttons: ['Annuler', 'Importer'], defaultId: 0, cancelId: 0, title: 'Remplacer les données ?', message: 'L’import va remplacer les jeux, les réglages et le récapitulatif actuels.', detail: 'Une sauvegarde de l’état actuel sera créée avant l’import. En cas d’échec, Orbit restaure automatiquement cette sauvegarde.' });
     if (answer.response !== 1) return { ok: false, canceled: true };
-    await backupData(true); await writeImportBundle(bundle); app.relaunch(); app.exit(0); return { ok: true, restarting: true };
-  } catch (error) { return { ok: false, message: `Import impossible : ${error.message}` }; }
+    const backup = await backupData(true, 'before-import');
+    try { await writeImportBundle(bundle); }
+    catch (error) {
+      if (backup?.directory) await restoreFilesFromBackup(backup.directory, dataDir);
+      throw error;
+    }
+    app.relaunch(); app.exit(0); return { ok: true, restarting: true };
+  } catch (error) { logger?.error('Import impossible', { error }); return { ok: false, message: `Import impossible : ${error.message}` }; }
 });
 ipcMain.handle('data:restore', async () => {
   const backupRoot = path.join(dataDir, 'backups');
@@ -333,11 +373,24 @@ ipcMain.handle('data:restore', async () => {
   if (!chosen.startsWith(root)) return { ok: false, message: 'Choisis un dossier situé dans les sauvegardes Orbit.' };
   try {
     const docs = {}; for (const name of DATA_FILES) { docs[name] = await readValid(path.join(chosen, name), name); if (name !== 'cinema.json' && !docs[name]) return { ok: false, message: `La sauvegarde ne contient pas un fichier ${name} valide.` }; }
-    const answer = await dialog.showMessageBox(libraryWindow, { type: 'warning', buttons: ['Annuler', 'Restaurer'], defaultId: 0, cancelId: 0, title: 'Restaurer cette sauvegarde ?', message: 'Les données actuelles seront remplacées. Une sauvegarde de l’état actuel sera créée avant la restauration.' });
+    const verification = await verifyBackup(chosen);
+    const manifest = verification.manifest;
+    const counts = manifest?.counts || {};
+    const detail = manifest
+      ? `Sauvegarde du ${new Date(manifest.createdAt).toLocaleString('fr-FR')} · ${counts.games || 0} jeux · ${counts.sessions || 0} sessions · ${counts.films || 0} films · ${counts.series || 0} séries · vérification : ${verification.ok ? 'réussie' : 'ÉCHEC'}`
+      : 'Cette ancienne sauvegarde ne contient pas de manifeste de vérification.';
+    if (!verification.ok && !verification.legacy) return { ok: false, message: 'Cette sauvegarde est corrompue ou incomplète. Elle ne sera pas restaurée.', detail };
+    const answer = await dialog.showMessageBox(libraryWindow, { type: 'warning', buttons: ['Annuler', 'Restaurer'], defaultId: 0, cancelId: 0, title: 'Restaurer cette sauvegarde ?', message: 'Les données actuelles seront remplacées. Une sauvegarde de l’état actuel sera créée avant la restauration.', detail });
     if (answer.response !== 1) return { ok: false, canceled: true };
     const bundle={...docs,meta:{}};try{bundle.meta=JSON.parse(await readFile(path.join(chosen,'meta.json'),'utf8'));}catch{};bundle.covers=[];try{for(const name of await readdir(path.join(chosen,'covers')))if(IMAGE_EXTENSIONS.has(path.extname(name).toLowerCase()))bundle.covers.push({name,data:(await readFile(path.join(chosen,'covers',name))).toString('base64')});}catch{}
-    await backupData(true); await writeImportBundle(bundle); app.relaunch(); app.exit(0); return { ok: true, restarting: true };
-  } catch (error) { return { ok: false, message: `Restauration impossible : ${error.message}` }; }
+    const backup = await backupData(true, 'before-restore');
+    try { await writeImportBundle(bundle); }
+    catch (error) {
+      if (backup?.directory) await restoreFilesFromBackup(backup.directory, dataDir);
+      throw error;
+    }
+    app.relaunch(); app.exit(0); return { ok: true, restarting: true };
+  } catch (error) { logger?.error('Restauration impossible', { error }); return { ok: false, message: `Restauration impossible : ${error.message}` }; }
 });
 function fromLibrary(event) {
   return !!libraryWindow && event.sender === libraryWindow.webContents && event.senderFrame === event.sender.mainFrame &&
@@ -363,7 +416,7 @@ ipcMain.handle('orbit:update', async (event, installVersion) => {
     await libraryWindow.webContents.executeJavaScript('window.__orbitFlush?.()');
     const flush = await fetch('http://127.0.0.1:'+appPort+'/api/flush',{method:'POST'});
     if (!flush.ok) throw Error('Enregistrement de la session impossible.');
-    await backupData(true);
+    await backupData(true, 'before-update');
     const error = await shell.openPath(target);
     if (error) throw Error('Impossible d’ouvrir l’installateur.');
     app.quit();
@@ -373,10 +426,34 @@ ipcMain.handle('orbit:update', async (event, installVersion) => {
 });
 
 ipcMain.handle('data:open-folder', async () => { const folder = path.join(dataDir, 'backups'); await mkdir(folder, { recursive: true }); const message = await shell.openPath(folder); return message ? { ok: false, message } : { ok: true }; });
+ipcMain.handle('data:backup-now', async () => {
+  try {
+    const backup = await backupData(true, 'manual');
+    return { ok: true, name: backup.name, verified: backup.verified, counts: backup.manifest.counts, covers: backup.manifest.covers, size: backup.manifest.files.reduce((total, file) => total + file.size, 0) };
+  } catch (error) { return { ok: false, message: `Sauvegarde impossible : ${error.message}` }; }
+});
+ipcMain.handle('data:verify-latest', async () => {
+  try {
+    const latest = await latestBackup(path.join(dataDir, 'backups'));
+    if (!latest) return { ok: false, message: 'Aucune sauvegarde pour le moment.' };
+    const verification = await verifyBackup(latest.directory);
+    return { ok: verification.ok || verification.legacy, legacy: verification.legacy, verified: verification.ok, name: latest.name, createdAt: latest.createdAt, checked: verification.checked, errors: verification.errors.slice(0, 10), counts: latest.counts, covers: latest.covers, message: verification.legacy ? 'Ancienne sauvegarde sans manifeste : vérification détaillée impossible.' : verification.ok ? 'Sauvegarde vérifiée : tous les fichiers sont intacts.' : 'Sauvegarde incomplète ou corrompue.' };
+  } catch (error) { return { ok: false, message: `Vérification impossible : ${error.message}` }; }
+});
+ipcMain.handle('data:list-backups', async () => {
+  try {
+    const backups = await listBackups(path.join(dataDir, 'backups'));
+    return { ok: true, backups: backups.slice(0, 30).map(({ directory, ...backup }) => backup) };
+  } catch (error) { return { ok: false, message: error.message, backups: [] }; }
+});
 
 app.whenReady().then(async () => {
   if (!hasSingleInstanceLock) return;
   dataDir = app.getPath('userData');
+  logger = createLogger({ dir: dataDir, component: 'desktop' });
+  process.on('uncaughtException', error => logger?.error('Exception non gérée', { error }));
+  process.on('unhandledRejection', error => logger?.error('Rejet non géré', { error }));
+  logger.info('Démarrage Orbit', { version: app.getVersion(), packaged: app.isPackaged });
   await findEditableAssets();
   await seedData();
   const restored = await recoverCorruptFiles();
@@ -384,8 +461,8 @@ app.whenReady().then(async () => {
   const invalid = [];
   for (const name of DATA_FILES) if (!(await readValid(path.join(dataDir, name), name))) invalid.push(name);
   if (invalid.length) { dialog.showErrorBox('Données à protéger', `Orbit n’a pas trouvé de sauvegarde valide pour : ${invalid.join(', ')}. Le fichier abîmé est conservé. Rien ne sera écrasé. Contacte-moi avant de relancer l’app.`); app.quit(); return; }
-  await backupData(true);
-  backupTimer = setInterval(() => backupData(true).catch(() => {}), 24 * 60 * 60 * 1000);
+  await backupData(true, 'automatic');
+  backupTimer = setInterval(() => backupData(true, 'automatic').catch(() => {}), 24 * 60 * 60 * 1000);
   const configPath = path.join(dataDir, 'config.json');
   const envPathFile = path.join(dataDir, 'discord-env-path.txt');
   let config = {};
