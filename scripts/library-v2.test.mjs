@@ -110,7 +110,7 @@ async function fixture() {
   const meta = {
     _schema: 2,
     _aliases: { [legacyMetaKey('Hades')]: hadesId, [legacyMetaKey('Portal 2')]: portalId },
-    _orphans: {},
+    _orphans: { 'orphelin-test': { title: 'Ancien jeu', description: 'conservé' } },
     [hadesId]: {
       title: 'Hades',
       description: 'Fiche conservée après renommage.',
@@ -225,6 +225,10 @@ test('renommer, favoriser, supprimer et restaurer un jeu v2 conserve ses donnée
   assert.deepEqual(state.data.favorites, [hadesId]);
   assert.equal(state.data.covers.hades.f, 'hades.jpg');
   assert.equal(state.data.steamCovers.hades.f, 'hades.png');
+  const health = await request('GET', '/api/health');
+  assert.equal(health.status, 200);
+  assert.equal(health.data.anomalies.orphanMeta, 1, 'les métadonnées de _orphans restent visibles dans la santé');
+  assert.equal(health.data.anomalies.orphanMetaSample[0].title, 'Ancien jeu');
 
   const renamed = await request('PATCH', `/api/v1/games/${hadesId}`, { name: 'Hades II' });
   assert.equal(renamed.status, 200);

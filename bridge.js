@@ -759,7 +759,12 @@ function healthReport() {
     if (state.schemaVersion === LIBRARY_VERSION) return !session.gameId || !gameIds.has(session.gameId);
     return !knownNames.has(ckey(session.game));
   });
-  const orphanMeta = Object.entries(state.meta).filter(([key]) => !metaKeys.has(key) && !Object.hasOwn(state.metaAliases, key));
+  const orphanMeta = [
+    ...new Map([
+      ...Object.entries(state.meta).filter(([key]) => !metaKeys.has(key) && !Object.hasOwn(state.metaAliases, key)),
+      ...(state.schemaVersion === LIBRARY_VERSION ? Object.entries(state.metaOrphans) : [])
+    ]).entries()
+  ];
   const missingCovers = state.games.filter(game => !covered.has(ckey(game.n || game.name)));
   const filmsWithoutPoster = cinema.items.filter(item => item.type === 'film' && !item.poster);
   const gamesWithoutKind = state.games.filter(game => !['game', 'app'].includes(gameMeta(game)?.playDetails?.kind));
