@@ -60,6 +60,26 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
 3. Publier l’installateur et son SHA-256 dans la version GitHub.
 4. Taguer `v1.0.32` et pousser le tag.
 
+## Migration v2 des données réelles
+
+La migration a été appliquée le 23 novembre 2026 après sauvegarde vérifiée. La sauvegarde de référence est `%APPDATA%\orbit\backups\2026-11-23T00-44-14-486Z`.
+
+Contrôle effectué après migration :
+
+- 273 jeux et 198 sessions conservés ;
+- aucun champ de jeu modifié, aucun horaire de session modifié ;
+- 2 favoris, 619 jaquettes et 277 alias conservés ;
+- 19 métadonnées orphelines dans `_orphans` et 4 doublons archivés dans `_archived`, sans suppression ;
+- 16 sessions orphelines toujours signalées, jamais supprimées.
+
+Pour revenir en arrière :
+
+```powershell
+node scripts\migrate-v2.mjs --rollback latest
+```
+
+Le script utilise `%APPDATA%\orbit` par défaut. La commande remplace l’état courant par la sauvegarde vérifiée et conserve l’état remplacé dans un nouveau dossier de sauvegarde.
+
 ## Retour arrière
 
 - Conserver l’installateur précédent et son SHA-256.
