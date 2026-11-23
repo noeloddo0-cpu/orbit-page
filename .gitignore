@@ -21,6 +21,8 @@ electron-runtime/
 config.json
 discord-env-path.txt
 tmdb-api-key.txt
+secrets.json
+*.tmp-secret
 library.json
 games.json
 meta.json

@@ -16,7 +16,7 @@ Une nouvelle bibliothèque commence vide. Dans **Orbit Play → Importer Steam**
 
 | Espace              | Ce que tu peux y faire                                                                                                                                                        |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Bibliothèque**    | Classer tes jeux par statut, suivre les heures et consulter les sessions du jour, de la semaine ou du mois.                                                                   |
+| **Bibliothèque**    | Classer tes jeux par statut, suivre les heures et consulter, modifier ou supprimer toutes tes sessions.                                                                       |
 | **Orbit Play**      | Parcourir les jaquettes verticales, lancer les jeux Steam installés, créer des collections et noter les plateformes que tu possèdes. Les applications ont leur propre onglet. |
 | **Films et séries** | Tenir une liste à voir, noter tes visionnages, suivre une saison ou un épisode et retrouver un film par date dans le journal.                                                 |
 | **Réglages**        | Choisir l’apparence, exporter tes données, restaurer une sauvegarde ou vérifier les mises à jour.                                                                             |
@@ -50,6 +50,8 @@ L’application de bureau conserve tes données dans `%APPDATA%\orbit`. La ferme
 Pour transférer ta collection, utilise **Réglages → Données et sauvegardes → Exporter** sur le premier PC, puis **Importer** sur le second. Garde l’export dans un emplacement privé. La version navigateur lancée avec `npm start` écrit ses données dans le dossier du projet par défaut.
 
 Depuis la version 1.0.32, chaque sauvegarde contient un manifeste et des empreintes SHA-256. Le bouton **Tester la dernière** relit les fichiers sans rien restaurer. Les fichiers abîmés sont conservés en `.corrupt-<horodatage>` avant toute réparation automatique. Le panneau **Santé et diagnostic** donne les compteurs et les anomalies sans modifier les données.
+
+Le pont local n’accepte les modifications qu’avec le jeton aléatoire injecté dans la page ; une page externe ne peut pas piloter Orbit. Les secrets saisis dans l’application sont chiffrés par Windows. Si tu lances `npm start` en dehors d’Electron, utilise un `.env` de développement : le coffre `safeStorage` n’est disponible que dans l’application de bureau.
 
 ## Construire une version Windows
 

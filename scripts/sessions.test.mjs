@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const sleep = delay => new Promise(resolve => setTimeout(resolve, delay));
+const BRIDGE_TOKEN = 'sessions-test-token';
 
 async function fixture() {
   const dataDir = await mkdtemp(path.join(os.tmpdir(), 'orbit-sessions-'));
@@ -37,7 +38,7 @@ async function start(dataDir) {
   const port = 42000 + Math.floor(Math.random() * 1200);
   const child = spawn(process.execPath, [path.join(root, 'bridge.js')], {
     cwd: root,
-    env: { ...process.env, BRIDGE_PORT: String(port), GAME_TRACKER_DATA_DIR: dataDir, GAME_TRACKER_ASSET_DIR: root, ORBIT_LOG_CONSOLE: '0' },
+    env: { ...process.env, BRIDGE_PORT: String(port), GAME_TRACKER_DATA_DIR: dataDir, GAME_TRACKER_ASSET_DIR: root, ORBIT_LOG_CONSOLE: '0', ORBIT_BRIDGE_TOKEN: BRIDGE_TOKEN },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   let stderr = '';
@@ -79,9 +80,11 @@ function stop(child) {
 
 async function api(port) {
   return async (method, target, body) => {
+    const headers = { 'X-Orbit-Token': BRIDGE_TOKEN };
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
     const response = await fetch(`http://127.0.0.1:${port}${target}`, {
       method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body)
     });
     const text = await response.text();

@@ -1,5 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell, safeStorage, Tray, Menu, nativeImage } from 'electron';
 import { mkdir, readFile, writeFile, copyFile, access, readdir, rename, rm, stat } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -8,6 +9,7 @@ import { checkRelease, downloadRelease, newer } from './orbit-updates.mjs';
 import { installedSteamGames } from './steam-local.mjs';
 import { createBackup, latestBackup, listBackups, preserveCorrupt, restoreFilesFromBackup, verifyBackup } from './orbit-backup.mjs';
 import { createLogger } from './orbit-log.mjs';
+import { initSecrets, migrateSecrets, getSecret, setSecret } from './orbit-secrets.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let dataDir;
@@ -156,8 +158,20 @@ async function findAvailablePort() {
 }
 async function startBridge(config) {
   if (bridgeStarted) return;
+  if (!process.env.ORBIT_BRIDGE_TOKEN) process.env.ORBIT_BRIDGE_TOKEN = randomBytes(32).toString('hex');
   if (config?.envFilePath) process.env.GAME_TRACKER_ENV_FILE = config.envFilePath;
-  else if (config?.botToken) await writeFile(path.join(dataDir, 'config.json'), JSON.stringify(config, null, 2), 'utf8');
+  else if (config?.botToken) {
+    const botToken = config.botToken.trim();
+    let stored = false;
+    try {
+      stored = await setSecret('discordToken', botToken);
+      if (stored) stored = (await getSecret('discordToken')) === botToken;
+    } catch (error) { logger?.warn('Secret Discord non chiffré', { error: error.message }); }
+    const next = { discordUserId: config.discordUserId || '', guildId: config.guildId || '' };
+    if (!stored) next.botToken = botToken;
+    await mkdir(dataDir, { recursive: true, mode: 0o700 });
+    await writeFile(path.join(dataDir, 'config.json'), JSON.stringify(next, null, 2), { encoding: 'utf8', mode: 0o600 });
+  }
   process.env.GAME_TRACKER_DATA_DIR = dataDir;
   process.env.GAME_TRACKER_ASSET_DIR = assetDir;
   appPort = await findAvailablePort();
@@ -238,6 +252,19 @@ function createTray() {
   tray.on('click', showLibrary);
   tray.on('double-click', showLibrary);
 }
+function openExternalAllowed(url) {
+  try {
+    const target = new URL(url);
+    if (target.protocol === 'steam:' && /^\/run\/\d{1,10}\/?$/.test(target.pathname)) {
+      void shell.openExternal(url).catch(() => {});
+      return;
+    }
+    if (target.protocol !== 'https:') return;
+    const allowed = ['github.com', 'www.themoviedb.org', 'themoviedb.org', 'store.steampowered.com', 'steamcommunity.com', 'rawg.io', 'www.igdb.com'];
+    const host = target.hostname.toLowerCase();
+    if (allowed.some(domain => host === domain || host.endsWith('.' + domain))) void shell.openExternal(target.href).catch(() => {});
+  } catch {}
+}
 function openLibrary({ hidden = false } = {}) {
   createTray();
   libraryWindow = new BrowserWindow({
@@ -246,23 +273,13 @@ function openLibrary({ hidden = false } = {}) {
     webPreferences: { preload: path.join(here, 'desktop-preload.cjs'), contextIsolation: true, sandbox: true }
   });
   libraryWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^steam:\/\/run\/\d{1,10}\/?$/.test(url)) {
-      void shell.openExternal(url).catch(() => {});
-      return { action: 'deny' };
-    }
-    try {
-      const target = new URL(url);
-      if (target.protocol === 'http:' || target.protocol === 'https:') void shell.openExternal(url).catch(() => {});
-    } catch {}
+    openExternalAllowed(url);
     return { action: 'deny' };
   });
   libraryWindow.webContents.on('will-navigate', (event, url) => {
     if (url.startsWith(`http://127.0.0.1:${appPort}/`)) return;
     event.preventDefault();
-    try {
-      const target = new URL(url);
-      if (target.protocol === 'http:' || target.protocol === 'https:') void shell.openExternal(url).catch(() => {});
-    } catch {}
+    openExternalAllowed(url);
   });
   libraryWindow.loadURL(`http://127.0.0.1:${appPort}/`);
   libraryWindow.once('ready-to-show', () => { if (!hidden && libraryWindow && !libraryWindow.isDestroyed()) libraryWindow.show(); });
@@ -414,7 +431,7 @@ ipcMain.handle('orbit:update', async (event, installVersion) => {
     if (prompt.response !== 0) return {message:'Installation annulée.',version:release.version};
     const target = await downloadRelease(release);
     await libraryWindow.webContents.executeJavaScript('window.__orbitFlush?.()');
-    const flush = await fetch('http://127.0.0.1:'+appPort+'/api/flush',{method:'POST'});
+    const flush = await fetch('http://127.0.0.1:'+appPort+'/api/flush',{method:'POST',headers:{'X-Orbit-Token':process.env.ORBIT_BRIDGE_TOKEN||''}});
     if (!flush.ok) throw Error('Enregistrement de la session impossible.');
     await backupData(true, 'before-update');
     const error = await shell.openPath(target);
@@ -463,12 +480,17 @@ app.whenReady().then(async () => {
   if (invalid.length) { dialog.showErrorBox('Données à protéger', `Orbit n’a pas trouvé de sauvegarde valide pour : ${invalid.join(', ')}. Le fichier abîmé est conservé. Rien ne sera écrasé. Contacte-moi avant de relancer l’app.`); app.quit(); return; }
   await backupData(true, 'automatic');
   backupTimer = setInterval(() => backupData(true, 'automatic').catch(() => {}), 24 * 60 * 60 * 1000);
+  await initSecrets({ dataDir, safeStorage, logger });
+  let secretsMigration = { migrated: [] };
+  try { secretsMigration = await migrateSecrets({ configPath: path.join(dataDir, 'config.json'), tmdbKeyPath: path.join(dataDir, 'tmdb-api-key.txt') }); }
+  catch (error) { logger?.warn('Migration des secrets interrompue', { error }); }
+  if (secretsMigration.migrated.length) logger.info('Secrets protégés par Windows', { migrated: secretsMigration.migrated });
   const configPath = path.join(dataDir, 'config.json');
   const envPathFile = path.join(dataDir, 'discord-env-path.txt');
   let config = {};
   try { if (await exists(configPath)) config = JSON.parse(await readFile(configPath, 'utf8')); } catch {}
   try { if (await exists(envPathFile)) config.envFilePath = (await readFile(envPathFile, 'utf8')).trim(); } catch {}
-  if (config.botToken || config.envFilePath) {
+  if (config.botToken || config.envFilePath || (await getSecret('discordToken'))) {
     try {
       await startBridge(config);
       ensureStartupLaunch();
@@ -484,6 +506,6 @@ app.on('before-quit', event => {
   if (quitAfterFlush || !appPort) return;
   event.preventDefault(); quitAfterFlush = true;
   const flush = libraryWindow?.webContents.executeJavaScript('window.__orbitFlush ? window.__orbitFlush() : Promise.resolve()').catch(() => {});
-  Promise.race([Promise.resolve(flush), new Promise(resolve => setTimeout(resolve, 2500))]).then(() => fetch(`http://127.0.0.1:${appPort}/api/flush`, { method: 'POST' })).catch(() => {}).finally(() => app.quit());
+  Promise.race([Promise.resolve(flush), new Promise(resolve => setTimeout(resolve, 2500))]).then(() => fetch(`http://127.0.0.1:${appPort}/api/flush`, { method: 'POST', headers: { 'X-Orbit-Token': process.env.ORBIT_BRIDGE_TOKEN || '' } })).catch(() => {}).finally(() => app.quit());
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

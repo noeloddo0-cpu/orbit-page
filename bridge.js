@@ -7,6 +7,7 @@ import { createCoopIndex } from "./orbit-activity.mjs";
 import { createRequire } from "node:module";
 import { shells as SHELL_REGISTRY } from "./themes/index.js";
 import { createLogger } from "./orbit-log.mjs";
+import { getSecret, setSecret, deleteSecret, secretsAvailable } from "./orbit-secrets.mjs";
 const require = createRequire(import.meta.url);
 const __dirname = require("node:path").dirname(require("node:url").fileURLToPath(import.meta.url));
 
@@ -39,10 +40,12 @@ loadEnv();
 const pick = (...k) => { for (const x of k) if (process.env[x]) return process.env[x]; return ""; };
 let savedConfig = {};
 try { savedConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "config.json"), "utf8")); } catch (e) {}
-const TOKEN = pick("DISCORD_TOKEN", "BOT_TOKEN", "TOKEN") || savedConfig.botToken || "";
+const ENCRYPTED_DISCORD_TOKEN = await getSecret("discordToken");
+const TOKEN = pick("DISCORD_TOKEN", "BOT_TOKEN", "TOKEN") || ENCRYPTED_DISCORD_TOKEN || savedConfig.botToken || "";
 const USER_ID = pick("DISCORD_USER_ID", "USER_ID", "TARGET_USER_ID", "DISCORD_ID") || savedConfig.discordUserId || "";
 const GUILD_ID = pick("DISCORD_GUILD_ID", "GUILD_ID", "SERVER_ID", "DISCORD_SERVER_ID") || savedConfig.guildId || "";
 const PORT = +process.env.BRIDGE_PORT || 3181;
+const BRIDGE_TOKEN = process.env.ORBIT_BRIDGE_TOKEN || crypto.randomBytes(32).toString("hex");
 const MINUTE = +process.env.MINUTE_MS || 60000; // réglable pour les tests
 const DATA = path.join(DATA_DIR, "library.json");
 const PAGE = path.join(ASSET_DIR, "bibliotheque.html");
@@ -53,9 +56,50 @@ const THEMES_DIR = path.join(ASSET_DIR, "themes");
 const UI_PREFS_FILE = path.join(DATA_DIR, "ui-preferences.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const RECAP_FILE = path.join(DATA_DIR, "recap.json");
-const atomicWrite = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true }); const temp = file + ".tmp"; fs.writeFileSync(temp, JSON.stringify(value, null, 2)); fs.renameSync(temp, file); };
+const atomicWrite = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 }); const temp = file + ".tmp"; fs.writeFileSync(temp, JSON.stringify(value, null, 2), { encoding: "utf8", mode: 0o600 }); fs.renameSync(temp, file); try { fs.chmodSync(file, 0o600); } catch {} };
 const CINEMA_FILE = path.join(DATA_DIR, "cinema.json");
 const TMDB_KEY_FILE = path.join(DATA_DIR, "tmdb-api-key.txt");
+function tmdbKeyFromFile() {
+  try {
+    return fs.existsSync(TMDB_KEY_FILE) ? fs.readFileSync(TMDB_KEY_FILE, "utf8").trim() : "";
+  } catch {
+    return "";
+  }
+}
+async function tmdbKey() {
+  const envKey = String(process.env.TMDB_API_KEY || "").trim();
+  if (envKey) return envKey;
+  const encrypted = await getSecret("tmdbKey");
+  if (encrypted) return encrypted;
+  return tmdbKeyFromFile();
+}
+async function saveTmdbKey(key) {
+  const value = String(key || "").trim();
+  if (secretsAvailable()) {
+    if (value) {
+      await setSecret("tmdbKey", value);
+      if ((await getSecret("tmdbKey")) !== value) throw new Error("La clé TMDB chiffrée n’a pas pu être relue.");
+    } else {
+      await deleteSecret("tmdbKey");
+    }
+    try {
+      fs.unlinkSync(TMDB_KEY_FILE);
+    } catch {}
+    return;
+  }
+  if (!value) {
+    try {
+      fs.unlinkSync(TMDB_KEY_FILE);
+    } catch {}
+    return;
+  }
+  const temp = TMDB_KEY_FILE + ".tmp";
+  fs.writeFileSync(temp, value, { encoding: "utf8", mode: 0o600 });
+  fs.renameSync(temp, TMDB_KEY_FILE);
+  try {
+    fs.chmodSync(TMDB_KEY_FILE, 0o600);
+  } catch {}
+}
 let cinema = { version: 1, items: [] };
 try { const savedCinema = JSON.parse(fs.readFileSync(CINEMA_FILE, "utf8")); if (savedCinema && Array.isArray(savedCinema.items)) cinema = { version: 1, ...savedCinema }; }
 catch (e) { if (!fs.existsSync(CINEMA_FILE)) { try { atomicWrite(CINEMA_FILE, cinema); } catch (writeError) {} } }
@@ -320,6 +364,14 @@ function playDetailsIndex() {
 function validPortrait(bytes) {
   const size = imageSize(bytes);
   return size && size[0] >= 150 && size[1] > size[0] && size[1] <= 12000 && size[0] <= 12000;
+}
+function imageKind(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 12) return null;
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+  if (bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "png";
+  if (bytes.subarray(0, 4).toString() === "RIFF" && bytes.subarray(8, 12).toString() === "WEBP") return "webp";
+  if (["GIF87a", "GIF89a"].includes(bytes.subarray(0, 6).toString())) return "gif";
+  return null;
 }
 function savePlayMeta(key, patch) {
   const merged = { ...state.meta, [key]: { ...state.meta[key], ...patch } };
@@ -646,11 +698,11 @@ async function saveRemoteCover(name, url) {
     const existing = coverIndex()[key];
     if (existing) return "/covers/" + encodeURIComponent(existing.f) + "?v=" + existing.v;
     const r = await fetch(url, { headers: { "User-Agent": "MaBibliothequeDeJeux/2.0" }, signal: AbortSignal.timeout(15000) });
-    const type = (r.headers.get("content-type") || "").split(";")[0].toLowerCase();
-    if (!r.ok || !type.startsWith("image/")) return "";
+    if (!r.ok) return "";
     const bytes = Buffer.from(await r.arrayBuffer());
     if (!bytes.length || bytes.length > 10 * 1024 * 1024) return "";
-    const ext = type === "image/png" ? ".png" : type === "image/webp" ? ".webp" : type === "image/jpeg" ? ".jpg" : "";
+    const kind = imageKind(bytes);
+    const ext = kind === "png" ? ".png" : kind === "webp" ? ".webp" : kind === "jpeg" ? ".jpg" : "";
     if (!ext) return "";
     const filename = key + ext, target = path.join(COVERS, filename);
     const latest = coverIndex()[key];
@@ -865,9 +917,58 @@ function startDiscord() {
 /* ---------- Serveur web ---------- */
 function body(req, limit = 4e6) { return new Promise((res, rej) => { let b = ""; req.on("data", d => { b += d; if (b.length > limit) { rej(new Error("trop gros")); req.destroy(); } }); req.on("end", () => res(b)); }); }
 function binaryBody(req, limit = 8 * 1024 * 1024) { return new Promise((res, rej) => { const parts = []; let size = 0; req.on("data", d => { size += d.length; if (size > limit) { rej(new Error("fichier trop gros")); req.destroy(); } else parts.push(d); }); req.on("end", () => res(Buffer.concat(parts))); }); }
+const rateBuckets = new Map();
+function rateLimited(bucket, max = 120, windowMs = 60000) {
+  const now = Date.now();
+  const recent = (rateBuckets.get(bucket) || []).filter(at => now - at < windowMs);
+  if (recent.length >= max) { rateBuckets.set(bucket, recent); return true; }
+  recent.push(now);
+  rateBuckets.set(bucket, recent);
+  if (rateBuckets.size > 100) for (const [key, times] of rateBuckets) if (!times.some(at => now - at < windowMs)) rateBuckets.delete(key);
+  return false;
+}
+function sendSecurityHeaders(res, nonce) {
+  res.setHeader("Content-Security-Policy", [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    `script-src 'self'${nonce ? ` 'nonce-${nonce}'` : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://cdn.cloudflare.steamstatic.com https://shared.akamai.steamstatic.com https://image.tmdb.org https://images.igdb.com",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "media-src 'self' blob:",
+    "worker-src 'self'",
+    "manifest-src 'self'"
+  ].join("; "));
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+}
+function renderLibraryPage(nonce) {
+  let page = fs.readFileSync(PAGE, "utf8");
+  const tokenAttribute = String(BRIDGE_TOKEN).replace(/[&"<>]/g, character => ({ "&": "&amp;", '"': "&quot;", "<": "&lt;", ">": "&gt;" })[character]);
+  page = page.replace('<meta charset="utf-8">', `<meta charset="utf-8">\n<meta name="orbit-bridge-token" content="${tokenAttribute}">`);
+  page = page.replace("<!--ORBIT_PREFS-->", `<script>window.__ORBIT_THEMES=${JSON.stringify(THEMES)};window.__ORBIT_PREFERENCES=${JSON.stringify(readUiPrefs())};window.__ORBIT_SHELLS=${JSON.stringify(SHELLS)};window.__ORBIT_SHELL_CSS=${JSON.stringify(SHELL_CSS)};(()=>{const token=document.querySelector('meta[name="orbit-bridge-token"]')?.content||"";const original=window.fetch.bind(window);window.fetch=(input,init)=>{const method=String(init?.method||(input instanceof Request?input.method:"GET")).toUpperCase();let sameOrigin=true;try{sameOrigin=new URL(typeof input==="string"?input:input instanceof Request?input.url:String(input),location.href).origin===location.origin;}catch{}if(token&&sameOrigin&&!["GET","HEAD","OPTIONS"].includes(method)){const headers=new Headers(init?.headers||(input instanceof Request?input.headers:undefined));headers.set("X-Orbit-Token",token);init={...(init||{}),headers};}return original(input,init);};})()</script>`);
+  page = page.replace(/<script(?![^>]*\bsrc=)(?![^>]*\bnonce=)/gi, `<script nonce="${nonce}"`);
+  return page;
+}
 http.createServer(async (req, res) => {
   const parsed = new URL(req.url, `http://127.0.0.1:${PORT}`), url = parsed.pathname;
+  const nonce = crypto.randomBytes(18).toString("base64");
+  sendSecurityHeaders(res, nonce);
   const json = (code, o) => { res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }); res.end(JSON.stringify(o)); };
+  if (url.startsWith("/api/")) {
+    const origin = req.headers.origin, site = req.headers["sec-fetch-site"];
+    const allowedOrigins = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`]);
+    if ((origin && !allowedOrigins.has(String(origin))) || (site && !["same-origin", "none"].includes(String(site)))) return json(403, { error: "origine refusée" });
+    if (!["GET", "HEAD", "OPTIONS"].includes(req.method) && req.headers["x-orbit-token"] !== BRIDGE_TOKEN) return json(403, { error: "jeton requis", code: "token_required" });
+  }
+  const limitedFamily = url === "/api/search-games" ? "search" : url === "/api/meta" ? "meta" : url.startsWith("/api/steam") ? "steam" : url.startsWith("/api/cinema") ? "cinema" : "";
+  if (limitedFamily && rateLimited(limitedFamily)) { res.setHeader("Retry-After", "60"); return json(429, { error: "trop de requêtes, réessaie dans une minute" }); }
   if (req.method === "GET" && (url === "/launcher.css" || url === "/launcher.js")) {
     const file = path.join(ASSET_DIR, url.slice(1));
     if (!fs.existsSync(file)) { res.writeHead(404); return res.end("Not found"); }
@@ -937,8 +1038,9 @@ http.createServer(async (req, res) => {
       const id = parsed.searchParams.get('steam');
       if (id !== null && !/^\d{1,10}$/.test(id)) return json(400, {error: 'Jeu Steam inconnu.'});
       const bytes = id ? await downloadSteamPortrait(id) : await binaryBody(req);
-      if (!bytes || !validPortrait(bytes)) return json(400, {error: 'Choisis une jaquette verticale JPG ou PNG, de 150 px de large minimum et 8 Mo maximum.'});
-      const key = metaKey(game.n), filename = 'play-' + key + (bytes[0] === 255 ? '.jpg' : '.png');
+      const kind = imageKind(bytes);
+      if (!bytes || !["jpeg", "png"].includes(kind) || !validPortrait(bytes)) return json(400, {error: 'Choisis une jaquette verticale JPG ou PNG, de 150 px de large minimum et 8 Mo maximum.'});
+      const key = metaKey(game.n), filename = 'play-' + key + (kind === 'png' ? '.png' : '.jpg');
       const target = path.join(COVERS, filename), temp = target + '.tmp';
       fs.writeFileSync(temp, bytes); fs.renameSync(temp, target);
       const cover = { f: filename, v: Math.round(fs.statSync(target).mtimeMs) };
@@ -983,7 +1085,7 @@ http.createServer(async (req, res) => {
       const type = (req.headers["content-type"] || "").split(";")[0].toLowerCase();
       if (type !== "image/jpeg") return json(415, { error: "image JPEG attendue" });
       const bytes = await binaryBody(req, 8 * 1024 * 1024);
-      if (!bytes.length) return json(400, { error: "image vide" });
+      if (!bytes.length || imageKind(bytes) !== "jpeg") return json(415, { error: "image JPEG attendue" });
       const filename = key + ".jpg", target = path.join(COVERS, filename), temp = target + ".tmp-" + crypto.randomBytes(6).toString("hex");
       fs.writeFileSync(temp, bytes);
       for (const f of matching()) { try { fs.unlinkSync(path.join(COVERS, f)); } catch (e) {} }
@@ -1033,14 +1135,14 @@ http.createServer(async (req, res) => {
     logs: logger.recent(50)
   });
   if (url === "/api/state" && req.method === "GET") return json(200, payload());
-  if (url === "/api/cinema/tmdb-key" && req.method === "GET") return json(200, { configured: fs.existsSync(TMDB_KEY_FILE) && !!fs.readFileSync(TMDB_KEY_FILE, "utf8").trim() });
+  if (url === "/api/cinema/tmdb-key" && req.method === "GET") return json(200, { configured: !!(await tmdbKey()) });
   if (url === "/api/cinema/tmdb-key" && req.method === "POST") {
-    try { const input = JSON.parse(await body(req, 2000)), key = String(input?.key || "").trim(); if (key.length > 500) return json(400, { error: "Clé invalide" }); const temp = TMDB_KEY_FILE + ".tmp"; if (key) fs.writeFileSync(temp, key, "utf8"); else { try { fs.unlinkSync(TMDB_KEY_FILE); } catch (e) {} return json(200, { configured: false }); } fs.renameSync(temp, TMDB_KEY_FILE); return json(200, { configured: true }); }
+    try { const input = JSON.parse(await body(req, 2000)), key = String(input?.key || "").trim(); if (key.length > 500) return json(400, { error: "Clé invalide" }); await saveTmdbKey(key); return json(200, { configured: !!key }); }
     catch (error) { return json(500, { error: "Sauvegarde de la clé TMDB impossible" }); }
   }  if (url === "/api/cinema/poster-search" && req.method === "POST") {
     try {
       const input = JSON.parse(await body(req, 5000));
-      const key = fs.existsSync(TMDB_KEY_FILE) ? fs.readFileSync(TMDB_KEY_FILE, "utf8").trim() : "", title = String(input?.title || "").trim(), type = input?.type === "series" ? "tv" : input?.type === "film" ? "movie" : "";
+      const key = await tmdbKey(), title = String(input?.title || "").trim(), type = input?.type === "series" ? "tv" : input?.type === "film" ? "movie" : "";
       if (!key || key.length > 500 || !title || title.length > 200 || !type) return json(400, { error: "Paramètres de recherche invalides" });
       const query = new URLSearchParams({ query: title, language: "fr-FR", include_adult: "false" });
       const year = Number(input.year); if (Number.isInteger(year) && year >= 1870 && year <= 2200) query.set(type === "tv" ? "first_air_date_year" : "year", String(year));
@@ -1053,7 +1155,7 @@ http.createServer(async (req, res) => {
   if (url === "/api/cinema/details" && req.method === "POST") {
     try {
       const input = JSON.parse(await body(req, 2000));
-      const key = fs.existsSync(TMDB_KEY_FILE) ? fs.readFileSync(TMDB_KEY_FILE, "utf8").trim() : "";
+      const key = await tmdbKey();
       const type = input?.type === "series" ? "tv" : input?.type === "film" ? "movie" : "";
       const id = Number(input?.id);
       if (!key || key.length > 500 || !type || !Number.isSafeInteger(id) || id <= 0) return json(400, { error: "Paramètres de fiche invalides" });
@@ -1335,7 +1437,7 @@ http.createServer(async (req, res) => {
   }
   if (process.env.BIBLIO_TEST && url === "/api/_fake" && req.method === "POST") { setPlaying(JSON.parse(await body(req)).name); return json(200, { ok: true }); }
   if (url === "/" || url === "/index.html") {
-    try { const page = fs.readFileSync(PAGE, "utf8").replace("<!--ORBIT_PREFS-->", `<script>window.__ORBIT_THEMES=${JSON.stringify(THEMES)};window.__ORBIT_PREFERENCES=${JSON.stringify(readUiPrefs())};window.__ORBIT_SHELLS=${JSON.stringify(SHELLS)};window.__ORBIT_SHELL_CSS=${JSON.stringify(SHELL_CSS)}</script>`); res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end(page); }
+    try { const page = renderLibraryPage(nonce); res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end(page); }
     catch (e) { res.writeHead(500); return res.end("bibliotheque.html introuvable à côté de bridge.js"); }
   }
   res.writeHead(404); res.end("Not found");
