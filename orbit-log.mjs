@@ -54,7 +54,7 @@ export function createLogger({
   component = 'app',
   maxBytes = DEFAULT_MAX_BYTES,
   keep = DEFAULT_KEEP,
-  console = false
+  console: consoleOutput = false
 } = {}) {
   if (!dir) throw new Error('createLogger : dossier manquant');
   const logsDir = path.join(dir, 'logs');
@@ -85,11 +85,11 @@ export function createLogger({
       } catch {}
       fs.appendFileSync(file, JSON.stringify(entry) + '\n', 'utf8');
     } catch {}
-    if (console) {
+    if (consoleOutput) {
       const line = `[orbit:${component}] ${entry.message}`;
-      if (level === 'error') console.error(line, entry.context || '');
-      else if (level === 'warn') console.warn(line, entry.context || '');
-      else console.log(line, entry.context || '');
+      if (level === 'error') globalThis.console.error(line, entry.context || '');
+      else if (level === 'warn') globalThis.console.warn(line, entry.context || '');
+      else globalThis.console.log(line, entry.context || '');
     }
     return entry;
   }

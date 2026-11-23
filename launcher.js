@@ -15,6 +15,7 @@ let currentTab = "home", currentFilter = "all";
 const statusNames = ["En cours", "En pause", "À faire", "Terminé", "Abandonné", "Neutre"];
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const normalize = value => String(value || "").toLocaleLowerCase("fr").normalize("NFD").replace(/\p{M}/gu, "").replace(/[®™©]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+const isFavoriteGame = (game, state) => Boolean(game) && ((state?.favorites || []).some(value => String(value) === String(game.id)) || (state?.favorites || []).includes(normalize(game.n)));
 const byId = id => document.getElementById(id);
 function bridge() { return window.__orbitLauncherBridge; }
 function data() { return bridge()?.getData?.() || { games: [], recent: [], favorites: [], sessions: [], films: [], recap: {}, session: null }; }
@@ -285,7 +286,6 @@ function playedThisWeek(name,state){
 }
 function smartCandidates(state,games,recent,live){
   const now=Date.now(),hour=new Date().getHours(),queue=queueNames(state).map(normalize);
-  const favorites=new Set((state.favorites||[]).map(normalize));
   const lastSessions=new Map(),durations=new Map();
   for(const session of state.sessions||[]){
     const key=normalize(session.game);
@@ -300,13 +300,13 @@ function smartCandidates(state,games,recent,live){
     const queueIndex=queue.indexOf(key);
     let score=last?Math.max(0,140-Math.min(140,(now-last)/86400000*5)):0;
     if(game.s===0)score+=30; else if(game.s===1)score+=10;
-    if(favorites.has(key))score+=14;
+    if(isFavoriteGame(game,state))score+=14;
     if(queueIndex>=0)score+=70-Math.min(45,queueIndex*8);
-    if(!last&&!Number(game.m))score+=6+((Number(game.id)||0)*37+dayOfYear)%17;
+    if(!last&&!Number(game.m)){let seed=0;for(const ch of String(game.name||game.n||""))seed=(seed*31+ch.charCodeAt(0))%997;score+=6+(seed*37+dayOfYear)%17;}
     const average=durations.get(key)?durations.get(key)/Math.max(1,gameSessions(game.n,state).length):globalAverage;
     if(hour>=20||hour<3)score+=Math.min(20,average/60000/10);
     else score+=Math.max(0,14-average/60000/12);
-    return {game,score,last,queueIndex,reason:queueIndex>=0?(queueIndex===0?"Prochain jeu de ta file":"Dans ta file d’attente"):last?["Dernière partie",lastPlayed(last)].filter(Boolean).join(" · "):game.s===2?"Suggestion du backlog":favorites.has(key)?"Un de tes favoris":"À reprendre"};
+    return {game,score,last,queueIndex,reason:queueIndex>=0?(queueIndex===0?"Prochain jeu de ta file":"Dans ta file d’attente"):last?["Dernière partie",lastPlayed(last)].filter(Boolean).join(" · "):game.s===2?"Suggestion du backlog":isFavoriteGame(game,state)?"Un de tes favoris":"À reprendre"};
   }).sort((a,b)=>b.score-a.score||a.game.n.localeCompare(b.game.n,"fr"));
 }
 
@@ -473,7 +473,7 @@ function renderHome(state) {
   }
   const live=byName.get(normalize(state.session?.name));
   if(live&&!seen.has(normalize(live.n)))recent.unshift({game:live,at:state.session.start});
-  const favorites=games.filter(g=>(state.favorites||[]).includes(normalize(g.n)));
+  const favorites=games.filter(g=>isFavoriteGame(g,state));
   const later=games.filter(g=>g.s===2);
   const queue=queueGames(state);
   homeCandidates=smartCandidates(state,games,recent,live);
@@ -527,7 +527,7 @@ function renderHome(state) {
         selectedName=normalize(next.n);render();
       });change.classList.add("op-secondary-action");actions.append(change);
     }
-    const favorite=(state.favorites||[]).includes(normalize(featured.n));
+    const favorite=isFavoriteGame(featured,state);
     const fav=button(favorite?"Retirer des favoris":"Ajouter aux favoris","favorite",()=>bridge().favorite(featured.id),"op-favorite-action");
     copy.append(node("p","op-hero-label",label),title,meta,actions,fav);
     const trophies=trophyLine(featured);if(trophies)copy.append(trophies);

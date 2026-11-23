@@ -50,9 +50,10 @@ export function selectArtwork(dir, name, named, meta = {}, files, {allowNearSqua
     for (const file of files) { const match=localArt(dir,file,kind,requirePortrait); if(match)return match; }
     return null;
   };
+  const explicit = kind => meta.artwork && meta.artwork[kind] ? localArt(dir, meta.artwork[kind], kind, kind === 'tall') : null;
   return {
-    wide:pick('wide',[named,...(meta.autoBannerOff?[]:sidecar('wide'))]),
-    tall:pick('tall',[meta.playPortrait,meta.coverManual && named]) ||
+    wide:explicit('wide') || pick('wide',[named,...(meta.autoBannerOff?[]:sidecar('wide'))]),
+    tall:explicit('tall') || pick('tall',[meta.playPortrait,meta.coverManual && named]) ||
       pick('tall',[named,meta.steamPortrait,...sidecar('tall')],true) ||
       (allowNearSquare ? pick('tall',[named,meta.steamPortrait,...sidecar('tall')]) : null)
   };

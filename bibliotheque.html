@@ -973,6 +973,7 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
     </section>
   </section>
   <section id="p-edit" hidden>
+    <div><div class="lbl">Nom du jeu</div><div class="row"><input id="p-rename" class="field" type="text" maxlength="200" autocomplete="off" aria-label="Nom du jeu"><button class="btn" id="p-rename-set" type="button">Renommer</button></div><div class="note" id="p-rename-note">Le renommage conserve les sessions, la jaquette et les favoris.</div></div>
     <div class="lbl">Jaquette</div>
     <div class="cvrow"><div class="cvthumb" id="p-cv"></div><div class="cvcol"><button class="btn" id="p-pick" type="button">Choisir une image</button><button class="btn" id="p-rm" type="button" hidden>Retirer</button></div></div>
     <div class="note">Colle une image (Ctrl+V) ou glisse une image sur la fiche.</div><input id="p-file" type="file" accept="image/*" hidden>
@@ -1013,6 +1014,7 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
   </form>
 </dialog>
 <div id="session-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="session-undo-text"></span><button class="btn" id="session-undo-button" type="button">Annuler la suppression</button></div>
+<div id="game-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="game-undo-text"></span><button class="btn" id="game-undo-button" type="button">Annuler la suppression</button></div>
 <div id="toast" role="status"></div>
 </div><!-- /library-screen -->
 
@@ -1170,10 +1172,28 @@ try { const t = localStorage.getItem(KEY); S = t ? JSON.parse(t) : defaults(); }
 if (!S || !Array.isArray(S.games)) S = defaults();
 S.recap = S.recap && typeof S.recap === "object" ? S.recap : { lastOpened: null, recent: [], gameStats: {}, queue: [] };
 S.recap.queue = Array.isArray(S.recap.queue) ? S.recap.queue.filter(name => typeof name === "string" && name.trim()).slice(0, 50) : [];
-S.games.forEach((g, i) => { g.id = i; });
+S.games.forEach((g, i) => { if (typeof g.id !== "string" && !Number.isInteger(g.id)) g.id = i; });
 if (!Array.isArray(S.sessions)) S.sessions = [];
 if (!Array.isArray(S.favorites)) S.favorites = [];
-S.favorites = [...new Set(S.favorites.map(x => ckey(String(x))).filter(Boolean))];
+S.schemaVersion = Number(S.schemaVersion) || 1;
+S.favorites = [...new Set(S.favorites.map(x => String(x || "").trim()).filter(Boolean))];
+const isServerId = value => typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._:-]{7,99}$/.test(value);
+const favoriteKey = game => isServerId(game?.id) ? game.id : ckey(game?.n || game);
+function isFavorite(game) {
+  return Boolean(game) && (S.favorites.includes(favoriteKey(game)) || S.favorites.includes(ckey(game.n)));
+}
+function toggleFavoriteGame(game) {
+  if (!game) return;
+  const wasFavorite = isFavorite(game), key = favoriteKey(game), old = ckey(game.n);
+  S.favorites = wasFavorite ? S.favorites.filter(x => x !== key && x !== old) : [...S.favorites.filter(x => x !== old), key];
+  storeLocal();
+  if (SRV && S.schemaVersion === 2 && isServerId(game.id)) {
+    fetch(`/api/v1/games/${encodeURIComponent(game.id)}/favorite`, { method: wasFavorite ? "DELETE" : "PUT" })
+      .then(response => { if (!response.ok) throw new Error(); })
+      .catch(() => toast("Favori non enregistré sur le PC"));
+  } else save();
+  return !wasFavorite;
+}
 if (!Array.isArray(S.profiles) || !S.profiles.length) S.profiles = [{ id: "main", name: "Profil principal" }];
 S.activeProfileId = S.profiles.some(p => p.id === S.activeProfileId) ? S.activeProfileId : S.profiles[0].id;
 let nextId = S.games.length;
@@ -1183,7 +1203,7 @@ function save() {
   storeLocal();
 }
 function storeLocal() {
-  try { localStorage.setItem(KEY, JSON.stringify({ games: S.games.map(({ n, s, c, m, t, firstPlayed, manualDelta }) => ({ n, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0 })), session: S.session, sessions: S.sessions, favorites: S.favorites, profiles: S.profiles, activeProfileId: S.activeProfileId, recap:S.recap })); } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ games: S.games.map(({ id, n, s, c, m, t, firstPlayed, manualDelta }) => ({ id, n, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0 })), schemaVersion: S.schemaVersion, session: S.session, sessions: S.sessions, favorites: S.favorites, profiles: S.profiles, activeProfileId: S.activeProfileId, recap:S.recap })); } catch (e) {}
 }
 function setGameStatus(game, status) {
   if (!game || !Number.isInteger(status) || status < 0 || status >= ST.length || Number(game.s) === status) return false;
@@ -1352,7 +1372,7 @@ const SORTS = {
 };
 function visible() {
   const q = norm(fq.q.trim());
-  return S.games.filter(g => isGameName(g.n) && (fq.s === null || statusIndex(g) === fq.s) && (fq.c === "" || g.c === +fq.c) && (!fq.fav || S.favorites.includes(ckey(g.n))) && (!q || norm(g.n).includes(q)))
+  return S.games.filter(g => isGameName(g.n) && (fq.s === null || statusIndex(g) === fq.s) && (fq.c === "" || g.c === +fq.c) && (!fq.fav || isFavorite(g)) && (!q || norm(g.n).includes(q)))
     .sort(SORTS[fq.o] || SORTS.nom);
 }
 
@@ -1419,8 +1439,8 @@ function makeTile(g, live, resume = false) {
   t.addEventListener("focus",()=>setAmbientCover(t));
   if (g.id === openId) t.style.visibility = "hidden";
   wrap.append(t);
-  const favorite = document.createElement("button"); favorite.type = "button"; favorite.className = "tile-favorite"; favorite.setAttribute("aria-label", (S.favorites.includes(ckey(g.n)) ? "Retirer des" : "Ajouter aux") + " favoris : " + g.n); favorite.setAttribute("aria-pressed", String(S.favorites.includes(ckey(g.n)))); favorite.textContent = S.favorites.includes(ckey(g.n)) ? "★" : "☆";
-  favorite.addEventListener("click", event => { event.stopPropagation(); const key = ckey(g.n); S.favorites = S.favorites.includes(key) ? S.favorites.filter(x => x !== key) : [...S.favorites, key]; save(); renderGrid(); renderShellNav(); });
+  const favorite = document.createElement("button"); favorite.type = "button"; favorite.className = "tile-favorite"; favorite.setAttribute("aria-label", (isFavorite(g) ? "Retirer des" : "Ajouter aux") + " favoris : " + g.n); favorite.setAttribute("aria-pressed", String(isFavorite(g))); favorite.textContent = isFavorite(g) ? "★" : "☆";
+  favorite.addEventListener("click", event => { event.stopPropagation(); toggleFavoriteGame(g); renderGrid(); renderShellNav(); });
   wrap.append(favorite);
   if(resume){const remove=document.createElement("button");remove.type="button";remove.className="resume-remove";remove.textContent="×";remove.title="Retirer de Reprendre";remove.setAttribute("aria-label","Retirer "+g.n+" de Reprendre");remove.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();removeResume(g);});wrap.append(remove);}
   return wrap;
@@ -1529,7 +1549,7 @@ function statCard(box,k,v,id){const d=document.createElement("div"),b=document.c
 function sessionDuration(x){return Math.max(0,Number(x.durationMs)||Number(x.minutes)*60000||0);}
 function fetchMeta(g){
   const key=ckey(g.n);if(!SRV){metaFailed.add(key);return;}if(metaRequested.has(key)||metaCache.has(key)||metaFailed.has(key))return;metaRequested.add(key);
-  fetch("/api/meta?name="+encodeURIComponent(g.n),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(m=>{if(m)metaCache.set(key,m);else metaFailed.add(key);if(openId===g.id)renderPanel();}).catch(()=>{metaFailed.add(key);if(openId===g.id)renderPanel();});
+  fetch("/api/meta?name="+encodeURIComponent(g.n)+"&gameId="+encodeURIComponent(g.id),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(m=>{if(m)metaCache.set(key,m);else metaFailed.add(key);if(openId===g.id)renderPanel();}).catch(()=>{metaFailed.add(key);if(openId===g.id)renderPanel();});
 }
 function renderMeta(g,m){
   const box=$("p-more");box.textContent="";const desc=document.createElement("p");desc.textContent=m.description||"Aucune information trouvée pour ce jeu.";box.append(desc);
@@ -1538,9 +1558,9 @@ function renderMeta(g,m){
   if(m.sourceUrl){const a=document.createElement("a");a.href=m.sourceUrl;a.target="_blank";a.rel="noopener noreferrer";a.textContent="Source : "+(m.source||"ouvrir la source");box.append(a);}else{const small=document.createElement("span");small.textContent=m.source||"Aucune source disponible";box.append(small);}
   const cover=m.cover; if(!SRV&&cover&&!covers.has(ckey(g.n))){covers.set(ckey(g.n),{url:cover});if(openId!==null){deferredGridRender=true;queueMicrotask(()=>{if(openId===g.id)renderPanel();});}else renderGrid();}
   if(m.accent&&/^#[0-9a-f]{6}$/i.test(m.accent))$("panel").style.setProperty("--game-accent",m.accent);
-  else if(cover)extractAccent(cover,g.n);
+  else if(cover)extractAccent(cover,g.n,g.id);
 }
-function extractAccent(src,name){const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=1;const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,1,1);const d=x.getImageData(0,0,1,1).data,hex="#"+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,"0")).join("");$("panel").style.setProperty("--game-accent",hex);if(SRV)fetch("/api/meta/accent",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,accent:hex})}).catch(()=>{});}catch(e){}};im.src=src;}
+function extractAccent(src,name,gameId){const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=1;const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,1,1);const d=x.getImageData(0,0,1,1).data,hex="#"+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,"0")).join("");$("panel").style.setProperty("--game-accent",hex);if(SRV)fetch("/api/meta/accent",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,gameId,accent:hex})}).catch(()=>{});}catch(e){}};im.src=src;}
 /* Trophées Steam : lecture du cache local Steam, sans clé API. */
 const trophyCache=new Map(),trophyPending=new Map();let trophyExpanded=false,trophyOpenApp="";
 const trophySummaryCache=new Map();let trophySummaryAt=0,trophySummaryLoading=null;
@@ -1685,6 +1705,9 @@ function renderPanel() {
   $('p-personal').hidden=!SRV;
   $('p-personal').onclick=()=>window.dispatchEvent(new CustomEvent('orbit:personal-game',{detail:g}));
   $("p-name").textContent=g.n;$("p-status").textContent=ST[statusIndex(g)]||ST[NEUTRAL_STATUS];$("p-completion").textContent=CO[g.c]||CO[0];
+  const renameInput=$("p-rename");if(document.activeElement!==renameInput)renameInput.value=g.n;
+  $("p-rename-note").textContent=SRV&&S.schemaVersion===2?"Le renommage conserve les sessions, la jaquette et les favoris.":"Le renommage sécurisé est disponible après la migration v2.";
+  $("p-rename-set").disabled=!(SRV&&S.schemaVersion===2);
   $("p-edit").hidden=!panelEditing;$("p-read").hidden=panelEditing;$("p-edit-toggle").setAttribute("aria-label",panelEditing?"Terminer la modification":"Modifier");$("p-edit-toggle").title=panelEditing?"Terminer la modification":"Modifier";
   $("p-edit-toggle").textContent=panelEditing?"✓":"⚙";
   const cu=coverSrc(g.n),th=$("p-cv");th.textContent="";th.classList.toggle("has",!!cu);if(cu){const im=document.createElement("img");im.src=cu;im.alt="";th.append(im);}else th.append("Aucune");$("p-rm").hidden=!cu;
@@ -1868,7 +1891,7 @@ document.addEventListener("dragleave", e => { if (!e.relatedTarget) clearDrop();
 document.addEventListener("drop", async e => {
   if (!isFiles(e)) return; e.preventDefault(); clearDrop();
   const files = [...e.dataTransfer.files].filter(f => f.type.startsWith("image/")); if (!files.length) return;
-  const t = e.target.closest && e.target.closest(".tile"), id = t ? +t.dataset.id : (files.length === 1 && openId !== null ? openId : null);
+  const t = e.target.closest && e.target.closest(".tile"), id = t ? (S.games.find(game => String(game.id) === String(t.dataset.id))?.id ?? t.dataset.id) : (files.length === 1 && openId !== null ? openId : null);
   const g = id === null ? null : S.games.find(x => x.id === id);
   if (g && files.length === 1) { const ok = await setCover(g, files[0]); renderGrid(); if (openId !== null) renderPanel(); toast(ok ? "Jaquette enregistrée" : "Image illisible"); }
   else await bulkCovers(files);
@@ -1885,9 +1908,57 @@ $("p-set").onclick = () => {
   const h = Math.max(0, parseInt($("p-h").value, 10) || 0), m = Math.max(0, parseInt($("p-m").value, 10) || 0);
   g.manualDelta=(g.manualDelta||0)+(h*60+m-g.m); g.m = h * 60 + m; save(); panelEditing=false; renderPanel(); renderSub(); renderGrid(); toast("Temps enregistré");
 };
-$("p-del").onclick = function () {
+$("p-rename-set").onclick = async () => {
+  const g = S.games.find(x => x.id === openId); if (!g) return;
+  const name = $("p-rename").value.trim();
+  if (!name || name === g.n) { toast("Aucun changement de nom."); return; }
+  if (!(SRV && S.schemaVersion === 2)) { toast("Renommage disponible après la migration v2."); return; }
+  $("p-rename-set").disabled = true;
+  try {
+    const response = await fetch(`/api/v1/games/${encodeURIComponent(g.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Renommage impossible");
+    await refreshSessionState();
+    render(); renderPanel();
+    toast("Jeu renommé · sessions et favoris conservés");
+  } catch (error) { toast(error.message || "Renommage impossible"); }
+  finally { $("p-rename-set").disabled = !(SRV && S.schemaVersion === 2); }
+};
+let gameUndoData = null, gameUndoTimer = 0;
+const gameUndoBar = $("game-undo"), gameUndoText = $("game-undo-text");
+function hideGameUndo() { clearTimeout(gameUndoTimer); gameUndoData = null; gameUndoBar.hidden = true; }
+function showGameUndo(game) {
+  clearTimeout(gameUndoTimer); gameUndoData = game;
+  gameUndoText.textContent = `${game.name || game.n} supprimé`;
+  gameUndoBar.hidden = false;
+  gameUndoTimer = setTimeout(hideGameUndo, 10000);
+}
+$("game-undo-button").addEventListener("click", async () => {
+  if (!gameUndoData) return;
+  try {
+    const response = await fetch(`/api/v1/games/${encodeURIComponent(gameUndoData.id)}/restore`, { method: "POST" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Restauration impossible");
+    hideGameUndo(); await refreshSessionState(); render();
+    toast("Jeu restauré · sessions et favoris conservés");
+  } catch (error) { toast(error.message || "Restauration impossible"); }
+});
+$("p-del").onclick = async function () {
   if (!this.dataset.sure) { this.dataset.sure = "1"; this.textContent = "Confirmer la suppression"; setTimeout(() => { delete this.dataset.sure; this.textContent = "Supprimer ce jeu"; }, 3000); return; }
   delete this.dataset.sure; this.textContent = "Supprimer ce jeu";
+  const game = S.games.find(x => x.id === openId); if (!game) return;
+  if (SRV && S.schemaVersion === 2) {
+    try {
+      const response = await fetch(`/api/v1/games/${encodeURIComponent(game.id)}`, { method: "DELETE" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Suppression impossible");
+      if (S.session && S.session.id === game.id) S.session = null;
+      S.games = S.games.filter(x => x.id !== game.id);
+      S.favorites = S.favorites.filter(x => x !== game.id && x !== ckey(game.n));
+      storeLocal(); closePanel(); render(); showGameUndo(game);
+      return;
+    } catch (error) { toast(error.message || "Suppression impossible"); return; }
+  }
   if (S.session && S.session.id === openId) S.session = null;
   S.games = S.games.filter(x => x.id !== openId); save(); closePanel(); render(); toast("Jeu supprimé");
 };
@@ -1896,7 +1967,7 @@ $("p-del").onclick = function () {
 function startSession(id) {
   if(SRV){
     const game=S.games.find(g=>g.id===id);
-    if(game)fetch("/api/session/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:game.n})}).then(r=>{if(!r.ok)throw Error();toast("Session lancée");}).catch(()=>toast("Impossible de démarrer la session."));
+    if(game)fetch("/api/session/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:game.n,gameId:game.id})}).then(r=>{if(!r.ok)throw Error();toast("Session lancée");}).catch(()=>toast("Impossible de démarrer la session."));
     return;
   }
   if (S.session) stopSession(true);
@@ -2033,7 +2104,7 @@ render();
 
 /* Mode pont Discord : actif seulement quand la page est servie par bridge.js */
 function putNow() {
-  return fetch("/api/state", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ games: S.games.map(({ n, s, c, m, t, firstPlayed, manualDelta }) => ({ n, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0 })), sessions: S.sessions || [], favorites: S.favorites || [], profiles: S.profiles || [], activeProfileId: S.activeProfileId }) }).catch(() => {});
+  return fetch("/api/state", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ games: S.games.map(({ id, n, name, kind, s, c, m, t, firstPlayed, manualDelta, rating, review, tags, platforms, ownership }) => ({ id, n, name: name || n, kind, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0, rating, review, tags, platforms, ownership })), sessions: S.sessions || [], favorites: S.favorites || [], profiles: S.profiles || [], activeProfileId: S.activeProfileId }) }).catch(() => {});
 }
 function pushSoon() { if (!SRV || applying) return; clearTimeout(putT); putT = setTimeout(putNow, 400); }
 function applyServer(st, first) {
@@ -2041,15 +2112,21 @@ function applyServer(st, first) {
   applying = true;
   try {
     const old = new Map(S.games.map(g => [ckey(g.n), g.id]));
-    S.games = st.games.map(g => ({ n: g.n, s: normalizeStatus(g.s), c: g.c, m: g.m, manualDelta:g.manualDelta||0, t: g.t || 0, firstPlayed: g.firstPlayed || 0, id: old.has(ckey(g.n)) ? old.get(ckey(g.n)) : nextId++ }));
+    S.schemaVersion = Number(st.schemaVersion) || S.schemaVersion || 1;
+    S.games = st.games.map(g => {
+      const name = String(g.name || g.n || "");
+      const serverId = typeof g.id === "string" && g.id ? g.id : null;
+      const localId = old.has(ckey(name)) ? old.get(ckey(name)) : nextId++;
+      return { id: serverId || localId, n: name, name, kind: g.kind === "app" ? "app" : "game", s: normalizeStatus(g.s), c: g.c, m: g.m, manualDelta:g.manualDelta||0, t: g.t || 0, firstPlayed: g.firstPlayed || 0 };
+    });
     const previousSession=S.session?{id:S.session.id,start:S.session.start}:null;
-    const sg = st.session ? S.games.find(g => ckey(g.n) === ckey(st.session.name)) : null;
+    const sg = st.session ? (S.games.find(g => String(g.id) === String(st.session.gameId)) || S.games.find(g => ckey(g.n) === ckey(st.session.name))) : null;
     S.session = sg ? { id: sg.id, start: st.session.start, mins:st.session.mins, source:st.session.source } : null;
     S.sessions = Array.isArray(st.sessions) ? st.sessions : S.sessions;
     if (st.recap && typeof st.recap === "object") S.recap = st.recap;
     S.recap.queue = Array.isArray(S.recap.queue) ? S.recap.queue.filter(name=>typeof name==="string"&&name.trim()).slice(0,50) : (S.recap.queue||[]);
     if(sg&&(!previousSession||previousSession.id!==sg.id||previousSession.start!==st.session.start))recordResume(sg,st.session.start);
-    if (Array.isArray(st.favorites) && (!first || st.favorites.length)) S.favorites = [...new Set(st.favorites.map(ckey).filter(Boolean))];
+    if (Array.isArray(st.favorites) && (!first || st.favorites.length)) S.favorites = [...new Set(st.favorites.map(x => String(x || "").trim()).filter(Boolean))];
     if (Array.isArray(st.profiles) && st.profiles.length && (!first || st.profiles.length > 1 || st.profiles[0].id !== "main")) S.profiles = st.profiles;
     if (typeof st.activeProfileId === "string" && S.profiles.some(p => p.id === st.activeProfileId) && (!first || st.profiles?.length > 1 || st.activeProfileId !== "main")) S.activeProfileId = st.activeProfileId;
     if(st.playDetails)playDetails=st.playDetails;
@@ -2329,7 +2406,7 @@ sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionM
     openLibrary:()=>showScreen("library"),
     openSettings,
     search:value=>{$("q").value=String(value||"");fq.q=$("q").value;renderGrid();},
-    toggleFavorite:id=>{const game=S.games.find(g=>g.id===id||ckey(g.n)===ckey(id));if(!game)return;const key=ckey(game.n);S.favorites=S.favorites.includes(key)?S.favorites.filter(x=>x!==key):[...S.favorites,key];save();renderGrid();},
+    toggleFavorite:id=>{const game=S.games.find(g=>String(g.id)===String(id)||ckey(g.n)===ckey(id));if(!game)return;toggleFavoriteGame(game);renderGrid();},
     showFavorites:()=>{fq.fav=true;fq.s=null;$("favorite-filter").setAttribute("aria-pressed","true");$("favorite-filter").textContent="★ Favoris";render();showScreen("library");},
     setStatus:index=>{fq.fav=false;fq.s=index===null?null:Number(index);$("favorite-filter").setAttribute("aria-pressed","false");$("favorite-filter").textContent="☆ Favoris";render();if(!library.classList.contains("on"))showScreen("library");},
     selectProfile:id=>{if(S.profiles.some(p=>p.id===id)){S.activeProfileId=id;save();}},

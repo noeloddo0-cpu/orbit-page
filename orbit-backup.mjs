@@ -132,10 +132,15 @@ export async function listBackups(root) {
 export async function pruneBackups(root, { keepAutomatic = 10, keepManual = 5 } = {}) {
   const backups = await listBackups(root);
   const automatic = backups.filter(
-    (backup) => !['manual', 'before-restore', 'before-import', 'before-update'].includes(backup.reason)
+    (backup) =>
+      !['manual', 'before-restore', 'before-import', 'before-update', 'before-migration', 'before-rollback'].includes(
+        backup.reason
+      )
   );
   const manual = backups.filter((backup) =>
-    ['manual', 'before-restore', 'before-import', 'before-update'].includes(backup.reason)
+    ['manual', 'before-restore', 'before-import', 'before-update', 'before-migration', 'before-rollback'].includes(
+      backup.reason
+    )
   );
   const remove = [...automatic.slice(Math.max(0, keepAutomatic)), ...manual.slice(Math.max(0, keepManual))];
   const removed = [];

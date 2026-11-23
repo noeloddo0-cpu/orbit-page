@@ -10,8 +10,8 @@
     "app": "electron .",
     "dist:portable": "electron-builder --win portable --x64",
     "dist:installer": "electron-builder --win nsis --x64 --publish never",
-    "test": "node --test scripts/smoke.test.mjs scripts/discord-viewing.test.mjs scripts/statistics.test.mjs scripts/safety.test.mjs scripts/secrets.test.mjs scripts/sessions.test.mjs scripts/security.test.mjs scripts/health.test.mjs",
-    "test:fast": "node --test scripts/smoke.test.mjs scripts/safety.test.mjs scripts/secrets.test.mjs scripts/sessions.test.mjs scripts/security.test.mjs scripts/health.test.mjs",
+    "test": "node --test scripts/smoke.test.mjs scripts/discord-viewing.test.mjs scripts/statistics.test.mjs scripts/safety.test.mjs scripts/secrets.test.mjs scripts/sessions.test.mjs scripts/security.test.mjs scripts/health.test.mjs scripts/migration.test.mjs scripts/library-v2.test.mjs",
+    "test:fast": "node --test scripts/smoke.test.mjs scripts/safety.test.mjs scripts/secrets.test.mjs scripts/sessions.test.mjs scripts/security.test.mjs scripts/health.test.mjs scripts/migration.test.mjs scripts/library-v2.test.mjs",
     "lint": "eslint .",
     "format:check": "prettier --check \"orbit-log.mjs\" \"orbit-backup.mjs\" \"orbit-secrets.mjs\" \"scripts/safety.test.mjs\" \"scripts/health.test.mjs\" \"scripts/secrets.test.mjs\" \"scripts/security.test.mjs\" \"docs/RELEASE.md\" \"CHANGELOG.md\" \"README.md\" \"package.json\"",
     "check": "node --check bridge.js && node --check desktop-main.js && node --check desktop-preload.cjs && node --check orbit-log.mjs && node --check orbit-backup.mjs && node --check orbit-secrets.mjs && npm run lint && npm test"
@@ -55,6 +55,7 @@
       "cinema-statistics.mjs",
       "discord-viewing.mjs",
       "orbit-activity.mjs",
+      "orbit-library.mjs",
       "orbit-updates.mjs",
       "orbit-log.mjs",
       "orbit-backup.mjs",

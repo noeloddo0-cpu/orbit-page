@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 import { shells as SHELL_REGISTRY } from "./themes/index.js";
 import { createLogger } from "./orbit-log.mjs";
 import { getSecret, setSecret, deleteSecret, secretsAvailable } from "./orbit-secrets.mjs";
+import { buildMetaDocument, isStableId, LIBRARY_VERSION, parseMetaDocument, stableGameId } from "./orbit-library.mjs";
 const require = createRequire(import.meta.url);
 const __dirname = require("node:path").dirname(require("node:url").fileURLToPath(import.meta.url));
 
@@ -170,44 +171,77 @@ const normalizeStatus = value => value !== null && value !== undefined && value 
 const legacySessionId = session => "legacy-" + crypto.createHash("sha1").update(`${session?.game || ""}|${session?.start || ""}`).digest("hex").slice(0, 20);
 const normalizeSession = session => {
   if (!session || typeof session !== "object") return null;
-  const game = String(session.game || "").trim(), start = Number(session.start);
+  const game = String(session.game || session.gameNameSnapshot || "").trim(), start = Number(session.start);
   if (!game || !Number.isFinite(start)) return null;
   const end = Number.isFinite(Number(session.end)) ? Number(session.end) : null;
   const durationMs = Math.max(0, Number(session.durationMs) || (end !== null ? end - start : 0) || Number(session.minutes) * 60000 || 0);
   return {
     ...session,
     id: typeof session.id === "string" && session.id ? session.id.slice(0, 100) : legacySessionId(session),
-    game, start, end,
+    game, gameNameSnapshot: String(session.gameNameSnapshot || game).slice(0, 200), start, end,
     durationMs,
     minutes: Math.max(0, Number(session.minutes) || Math.floor(durationMs / 60000)),
     source: ["manual", "discord", "import"].includes(session.source) ? session.source : "manual",
     note: typeof session.note === "string" ? session.note.slice(0, 1000) : "",
     dated: session.dated !== false,
     revision: Number.isInteger(session.revision) && session.revision > 0 ? session.revision : 1,
+    createdAt: Math.max(0, Number(session.createdAt)) || start,
     updatedAt: Number(session.updatedAt) || end || start
   };
 };
-let state = { games: [], sessions: [], deletedSessions: [], session: null, favorites: [], profiles: [{ id: "main", name: "Profil principal" }], activeProfileId: "main", meta: {} };
+const ckey = n => String(n || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[®™©]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+const metaKey = name => crypto.createHash("sha1").update(ckey(name)).digest("hex");
+const gameIdFor = name => "name-" + crypto.createHash("sha1").update(ckey(name)).digest("hex").slice(0, 16);
+let state = { games: [], sessions: [], deletedSessions: [], deletedGames: [], session: null, favorites: [], favoriteOrphans: [], profiles: [{ id: "main", name: "Profil principal" }], activeProfileId: "main", meta: {}, metaAliases: {}, metaOrphans: {}, metaArchived: [], schemaVersion: 1, migratedAt: 0, migratedFrom: 0 };
 try {
   const stored = JSON.parse(fs.readFileSync(DATA, "utf8"));
-  state.games = Array.isArray(stored.games) ? stored.games.map(game => game && typeof game === "object" ? { ...game, s: normalizeStatus(game.s) } : game) : [];
+  state.schemaVersion = Number(stored.version) >= LIBRARY_VERSION ? LIBRARY_VERSION : 1;
+  const usedIds = new Set();
+  state.games = Array.isArray(stored.games) ? stored.games.map((game) => {
+    if (!game || typeof game !== "object") return game;
+    const name = String(game.name || game.n || "").trim();
+    const next = { ...game, n: name || game.n, s: normalizeStatus(game.s) };
+    if (state.schemaVersion === LIBRARY_VERSION) {
+      next.name = name || game.n;
+      next.kind = game.kind === "app" ? "app" : "game";
+      let id = isStableId(game.id) ? game.id : stableGameId(next.n);
+      for (let occurrence = 1; usedIds.has(id); occurrence += 1) id = stableGameId(next.n, occurrence);
+      usedIds.add(id);
+      next.id = id;
+    }
+    return next;
+  }) : [];
   state.sessions = Array.isArray(stored.sessions) ? stored.sessions.map(normalizeSession).filter(Boolean) : [];
   state.deletedSessions = Array.isArray(stored.deletedSessions) ? stored.deletedSessions.filter(item => item && typeof item.id === "string").slice(-5000) : [];
+  state.deletedGames = Array.isArray(stored.deletedGames) ? stored.deletedGames.filter(item => item && typeof item === "object").slice(-1000) : [];
   state.favorites = Array.isArray(stored.favorites) ? stored.favorites : [];
+  state.favoriteOrphans = Array.isArray(stored.favoriteOrphans) ? stored.favoriteOrphans : [];
   state.profiles = Array.isArray(stored.profiles) && stored.profiles.length ? stored.profiles : state.profiles;
   state.activeProfileId = typeof stored.activeProfileId === "string" ? stored.activeProfileId : state.profiles[0].id;
   state.meta = stored.meta && typeof stored.meta === "object" ? stored.meta : {};
+  state.migratedAt = Number(stored.migratedAt) || 0;
+  state.migratedFrom = Number(stored.migratedFrom) || 0;
 } catch (e) {}
 try {
   const cached = JSON.parse(fs.readFileSync(META_FILE, "utf8"));
   if (cached && typeof cached === "object") state.meta = { ...state.meta, ...cached };
 } catch (e) {}
+if (state.schemaVersion === LIBRARY_VERSION) {
+  const parsed = parseMetaDocument(state.meta);
+  state.meta = parsed.canonical;
+  state.metaAliases = parsed.aliases;
+  state.metaOrphans = parsed.orphans;
+  state.metaArchived = parsed.archived;
+  state.sessions = state.sessions.map(session => {
+    const game = findGameById(session.gameId) || findGameByName(session.game || session.gameNameSnapshot);
+    if (game) return { ...session, gameId: game.id, game: game.name, orphan: undefined };
+    return { ...session, gameId: isStableId(session.gameId) ? session.gameId : null, orphan: true };
+  });
+}
 let psnReference={};
 try { psnReference=JSON.parse(fs.readFileSync(path.join(DATA_DIR,"psn-reference.json"),"utf8")); } catch {}
 const coopIndex=createCoopIndex(DATA_DIR,atomicWrite);
 const disc = { status: "démarrage", playing: null };
-const ckey = n => String(n || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[®™©]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-const gameIdFor = name => "name-" + crypto.createHash("sha1").update(ckey(name)).digest("hex").slice(0, 16);
 const sessionDuration = session => Math.max(0, Number(session?.durationMs) || (Number.isFinite(Number(session?.end)) ? Number(session.end) - Number(session.start) : 0) || Number(session?.minutes) * 60000 || 0);
 const sessionEnd = session => Number.isFinite(Number(session?.end)) ? Number(session.end) : Number(session.start) + sessionDuration(session);
 function isTombstoned(session) {
@@ -225,12 +259,71 @@ function addTombstone(session, reason = "delete") {
 function removeTombstone(id) {
   state.deletedSessions = state.deletedSessions.filter(item => item.id !== id);
 }
+function findGameById(id) {
+  return id ? state.games.find(game => game.id === id) || null : null;
+}
+function findGameByName(name) {
+  if (!name) return null;
+  const key = ckey(name);
+  const direct = state.games.find(game => ckey(game.n || game.name) === key);
+  if (direct) return direct;
+  const aliased = state.metaAliases[metaKey(name)];
+  return aliased ? findGameById(aliased) : null;
+}
+function nextGameId(name) {
+  let occurrence = 0;
+  let id = stableGameId(name, occurrence);
+  while (state.games.some(game => game.id === id)) id = stableGameId(name, ++occurrence);
+  return id;
+}
+function newGame(name, status = 2) {
+  const clean = String(name || "").replace(/[®™©]/g, "").trim();
+  if (state.schemaVersion === LIBRARY_VERSION) {
+    return {
+      id: nextGameId(clean), name: clean, n: clean, kind: "game", status, s: normalizeStatus(status),
+      completion: 0, c: 0, minutes: 0, m: 0, manualDelta: 0, firstPlayedAt: 0, firstPlayed: 0,
+      lastPlayedAt: 0, t: 0, rating: 0, review: "", tags: [], platforms: [], ownership: "",
+      createdAt: Date.now(), updatedAt: Date.now()
+    };
+  }
+  return { n: clean, s: status, c: 0, m: 0, t: 0 };
+}
 state.sessions = state.sessions
   .filter(session => !isTombstoned(session))
-  .map(session => ({ ...session, gameId: session.gameId || gameIdFor(session.game) }));
-function canonicalGameName(name) {
-  const found = state.games.find(game => ckey(game.n) === ckey(name));
-  return found ? found.n : "";
+  .map(session => {
+    if (state.schemaVersion === LIBRARY_VERSION) {
+      const game = findGameById(session.gameId) || findGameByName(session.game);
+      if (game) return { ...session, gameId: game.id, game: game.name, gameNameSnapshot: session.gameNameSnapshot || session.game, orphan: undefined };
+      return { ...session, gameId: isStableId(session.gameId) ? session.gameId : null, gameNameSnapshot: session.gameNameSnapshot || session.game, orphan: true };
+    }
+    return { ...session, gameId: session.gameId || gameIdFor(session.game) };
+  });
+function gameMeta(game) {
+  if (!game) return {};
+  if (state.schemaVersion === LIBRARY_VERSION) return state.meta[game.id] || {};
+  return state.meta[metaKey(game.n)] || {};
+}
+function gameMetaKey(game) {
+  if (!game) return "";
+  return state.schemaVersion === LIBRARY_VERSION ? game.id : metaKey(game.n);
+}
+function setGameMeta(game, patch) {
+  const key = gameMetaKey(game);
+  if (!key) return {};
+  state.meta[key] = { ...(state.meta[key] || {}), ...patch };
+  if (state.schemaVersion === LIBRARY_VERSION && game?.id) state.metaAliases[metaKey(game.name)] = game.id;
+  return state.meta[key];
+}
+function syncMetaTitle(game, oldName, name) {
+  const meta = game?.id ? state.meta[game.id] : null;
+  if (!meta || !name) return;
+  if (!meta.title || (oldName && ckey(meta.title) === ckey(oldName))) {
+    if (meta.title && meta.title !== name) {
+      const previous = Array.isArray(meta.previousTitles) ? meta.previousTitles : [];
+      meta.previousTitles = [...new Set([...previous, meta.title].filter(Boolean))].slice(-10);
+    }
+    meta.title = name;
+  }
 }
 function timestamp(value) {
   const number = Number(value);
@@ -258,7 +351,8 @@ function sessionIssues(candidate, excludeId = null, confirm = false) {
 function buildSession(raw, previous = null) {
   const source = raw.source !== undefined ? raw.source : previous?.source ?? "manual";
   if (!["manual", "discord", "import"].includes(source)) return { error: "source invalide" };
-  const game = canonicalGameName(raw.game !== undefined ? raw.game : previous?.game);
+  const requestedId = raw.gameId !== undefined ? raw.gameId : previous?.gameId;
+  const game = findGameById(requestedId) || findGameByName(raw.game !== undefined ? raw.game : previous?.game) || null;
   if (!game) return { error: "jeu inconnu" };
   const start = raw.start !== undefined ? timestamp(raw.start) : Number(previous?.start);
   if (!Number.isFinite(start) || start <= 0) return { error: "date de début invalide" };
@@ -279,11 +373,17 @@ function buildSession(raw, previous = null) {
   const id = explicitId || previous?.id || crypto.randomUUID();
   const note = raw.note !== undefined ? String(raw.note || "").slice(0, 1000) : (previous?.note || "");
   const dated = raw.dated !== undefined ? raw.dated !== false : previous ? previous.dated !== false : true;
-  const sameGame = previous && ckey(previous.game) === ckey(game);
+  const gameName = game.name || game.n;
+  const sameGame = previous && ((game.id && previous.gameId === game.id) || ckey(previous.game) === ckey(gameName));
+  const gameId = state.schemaVersion === LIBRARY_VERSION
+    ? game.id
+    : raw.gameId || (sameGame ? previous.gameId : null) || gameIdFor(gameName);
   return {
     session: {
-      id, gameId: raw.gameId || (sameGame ? previous.gameId : null) || gameIdFor(game), game, start, end, durationMs,
+      id, gameId, game: gameName, gameNameSnapshot: sameGame ? (previous.gameNameSnapshot || previous.game) : gameName,
+      start, end, durationMs,
       minutes: Math.floor(durationMs / 60000), source, note, dated,
+      createdAt: previous?.createdAt || Date.now(),
       revision: previous ? previous.revision : 1, updatedAt: Date.now()
     }
   };
@@ -293,7 +393,18 @@ function persistSessions() {
   if (ok) broadcast();
   return ok;
 }
-state.favorites = [...new Set(state.favorites.map(ckey).filter(Boolean))];
+if (state.schemaVersion === LIBRARY_VERSION) {
+  const ids = [], orphans = new Set(state.favoriteOrphans.map(ckey).filter(Boolean));
+  for (const entry of state.favorites) {
+    const game = findGameById(entry) || findGameByName(entry);
+    if (game) ids.push(game.id);
+    else if (entry) orphans.add(ckey(entry));
+  }
+  state.favorites = [...new Set(ids)];
+  state.favoriteOrphans = [...orphans];
+} else {
+  state.favorites = [...new Set(state.favorites.map(ckey).filter(Boolean))];
+}
 state.profiles = state.profiles.filter(p => p && typeof p.id === "string" && typeof p.name === "string" && p.id && p.name).slice(0, 20);
 if (!state.profiles.length) state.profiles = [{ id: "main", name: "Profil principal" }];
 if (!state.profiles.some(p => p.id === state.activeProfileId)) state.activeProfileId = state.profiles[0].id;
@@ -307,13 +418,33 @@ function save() {
 function writeLibrary() {
   clearTimeout(saveTimer);
   onCoverLibraryChange();
-  try { atomicWrite(DATA, { version: 1, games: state.games, sessions: state.sessions, deletedSessions: state.deletedSessions, favorites: state.favorites, profiles: state.profiles, activeProfileId: state.activeProfileId }); return true; }
+  const document = {
+    version: state.schemaVersion === LIBRARY_VERSION ? LIBRARY_VERSION : 1,
+    games: state.games,
+    sessions: state.sessions,
+    deletedSessions: state.deletedSessions,
+    favorites: state.favorites,
+    profiles: state.profiles,
+    activeProfileId: state.activeProfileId
+  };
+  if (state.schemaVersion === LIBRARY_VERSION) {
+    document.schemaVersion = LIBRARY_VERSION;
+    document.favoriteOrphans = state.favoriteOrphans;
+    document.deletedGames = state.deletedGames;
+    if (state.migratedAt) document.migratedAt = state.migratedAt;
+    if (state.migratedFrom) document.migratedFrom = state.migratedFrom;
+  }
+  try { atomicWrite(DATA, document); return true; }
   catch (e) { logger.error("Sauvegarde impossible", { error: e }); return false; }
 }
 function saveRecap() { try { atomicWrite(RECAP_FILE, recap); } catch (e) { logger.error("Sauvegarde du récap impossible", { error: e }); } }
 function saveMeta() {
-  try { fs.writeFileSync(META_FILE + ".tmp", JSON.stringify(state.meta, null, 1)); fs.renameSync(META_FILE + ".tmp", META_FILE); }
-  catch (e) { logger.error("Cache infos impossible", { error: e }); }
+  try {
+    const value = state.schemaVersion === LIBRARY_VERSION
+      ? buildMetaDocument({ canonical: state.meta, aliases: state.metaAliases, orphans: state.metaOrphans, archived: state.metaArchived })
+      : state.meta;
+    fs.writeFileSync(META_FILE + ".tmp", JSON.stringify(value, null, 1)); fs.renameSync(META_FILE + ".tmp", META_FILE);
+  } catch (e) { logger.error("Cache infos impossible", { error: e }); }
 }
 function coverIndex() {
   const found = {};
@@ -352,14 +483,18 @@ function localSteamPlaytime(force = false) {
 function playDetailsIndex() {
   const installed = localInstallIndex();
   const steamTimes = localSteamPlaytime();
-  return Object.fromEntries(state.games.map(g => {
-    const key = ckey(g.n), m = state.meta[metaKey(g.n)] || {};
+  const entries = [];
+  for (const g of state.games) {
+    const key = ckey(g.n), m = gameMeta(g);
     const installedId = installed.names.get(key) || (installed.ids.has(m.localSteamId) ? m.localSteamId : null);
     const steamAppId = installedId || m.appId || m.localSteamId || null;
     const steamInfo = steamAppId ? steamTimes.get(String(steamAppId)) : null;
-    return [key, { ...m.playDetails, psnMinutes:psnReference[key], installedId, steamAppId,
-      steamMinutes: steamInfo?.minutes || 0, steamLastPlayed: steamInfo?.lastPlayed || 0 }];
-  }));
+    const value = { ...m.playDetails, psnMinutes: psnReference[key], installedId, steamAppId,
+      steamMinutes: steamInfo?.minutes || 0, steamLastPlayed: steamInfo?.lastPlayed || 0 };
+    entries.push([key, value]);
+    if (g.id) entries.push(["id:" + g.id, value]);
+  }
+  return Object.fromEntries(entries);
 }
 function validPortrait(bytes) {
   const size = imageSize(bytes);
@@ -374,9 +509,8 @@ function imageKind(bytes) {
   return null;
 }
 function savePlayMeta(key, patch) {
-  const merged = { ...state.meta, [key]: { ...state.meta[key], ...patch } };
-  atomicWrite(META_FILE, merged);
-  state.meta = merged;
+  state.meta[key] = { ...(state.meta[key] || {}), ...patch };
+  saveMeta();
   broadcast();
 }
 async function downloadSteamPortrait(id) {
@@ -408,7 +542,7 @@ function artworkIndices() {
   const files = coverIndex(), covers = {}, steamCovers = {};
   for (const game of state.games) {
     const key = ckey(game.n);
-    const {wide,tall} = selectArtwork(COVERS,game.n,files[key],state.meta[metaKey(game.n)],files);
+    const {wide,tall} = selectArtwork(COVERS,game.n,files[key],gameMeta(game),files);
     if (wide) covers[key] = wide;
     if (tall) steamCovers[key] = tall;
   }
@@ -419,11 +553,11 @@ function importLocalSteam(){
  const roots=steamRoots();if(!roots.length)return {ok:false,message:"Steam n’a pas été trouvé sur cet ordinateur."};
  steamInstallCache=null;
  const installed=installedSteamGames(roots);let added=0,portraits=0;
- for(const entry of installed){let g=state.games.find(g=>ckey(g.n)===ckey(entry.name))||state.games.find(g=>Number(state.meta[metaKey(g.n)]?.appId)===entry.appId);
- if(!g){g={n:entry.name,s:2,c:0,m:0,t:0};state.games.push(g);added++;}
- const key=metaKey(g.n);state.meta[key]={...(state.meta[key]||{title:g.n}),appId:entry.appId,localSteamId:entry.appId};
+ for(const entry of installed){let g=state.games.find(g=>ckey(g.n||g.name)===ckey(entry.name))||state.games.find(g=>Number(gameMeta(g)?.appId)===entry.appId);
+ if(!g){g=newGame(entry.name,2);state.games.push(g);added++;}
+ const old=gameMeta(g);setGameMeta(g,{...(old||{title:g.name||g.n}),appId:entry.appId,localSteamId:entry.appId});
  }
- for(const game of state.games){const key=metaKey(game.n),m=state.meta[key];if(!m?.appId)continue;const portrait=localPortrait(m.appId,roots);if(!portrait)continue;
+ for(const game of state.games){const m=gameMeta(game);if(!m?.appId)continue;const portrait=localPortrait(m.appId,roots);if(!portrait)continue;
  const filename='steam-'+m.appId+'-portrait'+portrait.extension,target=path.join(COVERS,filename);if(!fs.existsSync(target)||!fs.readFileSync(target).equals(portrait.bytes)){const temp=target+'.tmp';fs.writeFileSync(temp,portrait.bytes);fs.renameSync(temp,target);}m.steamPortrait={f:filename,v:Math.round(fs.statSync(target).mtimeMs)};portraits++;
  }
  saveMeta();writeLibrary();broadcast();return {ok:true,installed:installed.length,added,portraits,total:state.games.length};
@@ -437,8 +571,8 @@ function syncSteamState() {
   const times = localSteamPlaytime(true);
   let linked = 0, playtime = 0;
   for (const game of state.games) {
-    const key = metaKey(game.n), meta = state.meta[key] || { title: game.n };
-    const appId = byName.get(ckey(game.n)) || (ids.has(Number(meta.localSteamId)) ? Number(meta.localSteamId) : null);
+    const key = gameMetaKey(game), meta = state.meta[key] || { title: game.name || game.n };
+    const appId = byName.get(ckey(game.n || game.name)) || (ids.has(Number(meta.localSteamId)) ? Number(meta.localSteamId) : null);
     const steam = appId ? times.get(String(appId)) : null;
     const next = { ...meta, localSteamId: appId || meta.localSteamId || null, steamSyncedAt: Date.now() };
     if (steam) {
@@ -497,7 +631,7 @@ function artRecord(filename) {
 }
 async function syncSteamArt(force) {
   const games = state.games.filter(game => {
-    const m = state.meta[metaKey(game.n)] || {};
+    const m = gameMeta(game);
     return m.playDetails?.kind !== 'app' && (force || m.artFormatVersion !== ART_FORMAT_VERSION || !(m.artRetryAt > Date.now()));
   });
   if (!games.length) {
@@ -514,8 +648,8 @@ async function syncSteamArt(force) {
     }, 1000);
   }
   async function update(game) {
-    const name = ckey(game.n), key = metaKey(game.n), old = state.meta[key] || {};
-    const touch = fields => Object.assign(state.meta[key] ||= {title:game.n}, fields);
+    const name = ckey(game.n), key = gameMetaKey(game), old = state.meta[key] || {};
+    const touch = fields => Object.assign(state.meta[key] ||= {title:game.name || game.n}, fields);
     const ownedWide = file => file && old.autoBanner && old.autoBanner.f === file.f && old.autoBanner.v === file.v;
     const selected = selectArtwork(COVERS,game.n,wide[name],old,wide,{allowNearSquare:false});
     const needsWide = !old.coverManual && !old.autoBannerOff && (!selected.wide || ownedWide(wide[name]));
@@ -583,10 +717,9 @@ async function syncSteamArt(force) {
   const total = Object.keys(steamPortraitIndex()).length;
   return {ok:true, added, total, missing:state.games.length-total};
 }
-const payload = () => ({ games: state.games, sessions: state.sessions, session: state.session, favorites: state.favorites, profiles: state.profiles, activeProfileId: state.activeProfileId, recap, discord: { status: disc.status, playing: disc.playing }, ...artworkIndices(), playDetails: playDetailsIndex() });
+const payload = () => ({ schemaVersion: state.schemaVersion, games: state.games, sessions: state.sessions, session: state.session, favorites: state.favorites, favoriteOrphans: state.favoriteOrphans, profiles: state.profiles, activeProfileId: state.activeProfileId, recap, discord: { status: disc.status, playing: disc.playing }, ...artworkIndices(), playDetails: playDetailsIndex() });
 const clients = new Set();
 function broadcast() { const d = "data: " + JSON.stringify(payload()) + "\n\n"; for (const r of clients) r.write(d); }
-const metaKey = name => crypto.createHash("sha1").update(ckey(name)).digest("hex");
 let healthCache = { at: 0, value: null };
 function lastBackupSummary() {
   const root = path.join(DATA_DIR, 'backups');
@@ -611,21 +744,26 @@ function healthReport() {
   if (healthCache.value && Date.now() - healthCache.at < 5000) return healthCache.value;
   const artwork = artworkIndices();
   const covered = new Set([...Object.keys(artwork.covers), ...Object.keys(artwork.steamCovers)]);
-  const knownNames = new Set(state.games.map(game => ckey(game.n)));
-  const metaKeys = new Set(state.games.map(game => metaKey(game.n)));
+  const knownNames = new Set(state.games.map(game => ckey(game.n || game.name)));
+  const gameIds = new Set(state.games.map(game => game.id).filter(Boolean));
+  const metaKeys = new Set(state.schemaVersion === LIBRARY_VERSION ? [...gameIds, ...Object.keys(state.metaAliases)] : state.games.map(game => metaKey(game.n)));
   const duplicateMap = new Map();
   for (const game of state.games) {
-    const key = ckey(game.n);
+    const key = ckey(game.n || game.name);
     if (!duplicateMap.has(key)) duplicateMap.set(key, []);
-    duplicateMap.get(key).push(game.n);
+    duplicateMap.get(key).push(game.name || game.n);
   }
   const duplicateGames = [...duplicateMap.entries()].filter(([, names]) => names.length > 1).map(([key, names]) => ({ key, names }));
-  const orphanSessions = state.sessions.filter(session => !knownNames.has(ckey(session.game)));
-  const orphanMeta = Object.entries(state.meta).filter(([key]) => !metaKeys.has(key));
-  const missingCovers = state.games.filter(game => !covered.has(ckey(game.n)));
+  const orphanSessions = state.sessions.filter(session => {
+    if (session.orphan === true) return true;
+    if (state.schemaVersion === LIBRARY_VERSION) return !session.gameId || !gameIds.has(session.gameId);
+    return !knownNames.has(ckey(session.game));
+  });
+  const orphanMeta = Object.entries(state.meta).filter(([key]) => !metaKeys.has(key) && !Object.hasOwn(state.metaAliases, key));
+  const missingCovers = state.games.filter(game => !covered.has(ckey(game.n || game.name)));
   const filmsWithoutPoster = cinema.items.filter(item => item.type === 'film' && !item.poster);
-  const gamesWithoutKind = state.games.filter(game => !['game', 'app'].includes(state.meta[metaKey(game.n)]?.playDetails?.kind));
-  const apps = state.games.filter(game => state.meta[metaKey(game.n)]?.playDetails?.kind === 'app');
+  const gamesWithoutKind = state.games.filter(game => !['game', 'app'].includes(gameMeta(game)?.playDetails?.kind));
+  const apps = state.games.filter(game => gameMeta(game)?.playDetails?.kind === 'app');
   const statusCounts = {};
   for (const game of state.games) statusCounts[normalizeStatus(game.s)] = (statusCounts[normalizeStatus(game.s)] || 0) + 1;
   let coversFiles = 0;
@@ -654,7 +792,8 @@ function healthReport() {
       apps: apps.length,
       duplicateGames: duplicateGames.length,
       duplicateGamesSample: duplicateGames.slice(0, 10),
-      sessionsWithoutId: state.sessions.filter(session => !session.id || String(session.id).startsWith("legacy-")).length
+      sessionsWithoutId: state.sessions.filter(session => !session.id).length,
+      legacySessionIds: state.sessions.filter(session => String(session.id || "").startsWith("legacy-")).length
     },
     time: { gameMinutes, sessionMinutes, importedOrManualMinutes: Math.max(0, gameMinutes - sessionMinutes) },
     statusCounts,
@@ -668,7 +807,7 @@ function healthReport() {
 function migrateLegacyCovers() {
   let changed = false;
   for (const game of state.games) {
-    const key = ckey(game.n), meta = state.meta[metaKey(game.n)];
+    const key = ckey(game.n || game.name), meta = gameMeta(game);
     if (!key || !meta || !meta.cover) continue;
     let oldName = "";
     try { oldName = path.basename(decodeURIComponent(new URL(meta.cover, "http://localhost").pathname)); } catch (e) { continue; }
@@ -783,16 +922,19 @@ async function wikiMeta(name) {
   }
   return null;
 }
-async function fetchGameMeta(name) {
-  const key = metaKey(name), old = state.meta[key];
+async function fetchGameMeta(name, requestedId = "") {
+  const game = findGameById(requestedId) || findGameByName(name);
+  const lookupName = game ? (game.name || game.n) : String(name || "").trim();
+  const key = game ? gameMetaKey(game) : metaKey(lookupName), old = state.meta[key];
   if (old && old.checkedAt && Date.now() - old.checkedAt < 30 * 24 * 60 * 60 * 1000) { if (/<[a-z][\s\S]*>/i.test(old.description || "")) { old.description = plainText(old.description); saveMeta(); } return old; }
   let meta = null;
-  try { meta = await steamMeta(name); } catch (e) {}
-  if (!meta) try { meta = await rawgMeta(name); } catch (e) {}
-  if (!meta) try { meta = await wikiMeta(name); } catch (e) {}
-  if (!meta) meta = { title: name, description: "Aucune information trouvée pour ce jeu.", developers: [], publishers: [], releaseDate: "", genres: [], platforms: [], image: "", source: "Aucune source", sourceUrl: "" };
-  const cover = (old && old.cover) || await saveRemoteCover(name, meta.image);
+  try { meta = await steamMeta(lookupName); } catch (e) {}
+  if (!meta) try { meta = await rawgMeta(lookupName); } catch (e) {}
+  if (!meta) try { meta = await wikiMeta(lookupName); } catch (e) {}
+  if (!meta) meta = { title: lookupName, description: "Aucune information trouvée pour ce jeu.", developers: [], publishers: [], releaseDate: "", genres: [], platforms: [], image: "", source: "Aucune source", sourceUrl: "" };
+  const cover = (old && old.cover) || await saveRemoteCover(lookupName, meta.image);
   state.meta[key] = { ...state.meta[key], ...meta, cover, accent: old && old.accent || "", checkedAt: Date.now() };
+  if (game && state.schemaVersion === LIBRARY_VERSION) state.metaAliases[metaKey(lookupName)] = game.id;
   saveMeta();
   broadcast();
   return state.meta[key];
@@ -801,12 +943,16 @@ function scheduleEnrichment(name) { setTimeout(() => { fetchGameMeta(name).catch
 
 /* ---------- Suivi des sessions ---------- */
 function findGame(name) {
+  if (isStableId(name)) {
+    const byId = findGameById(name);
+    if (byId) return byId;
+  }
+  const exact = findGameByName(name);
+  if (exact) return exact;
   const k = ckey(name);
-  let g = state.games.find(x => ckey(x.n) === k);
-  if (g) return g;
   let best = null, diff = 1e9;
   for (const x of state.games) {
-    const a = ckey(x.n);
+    const a = ckey(x.n || x.name);
     if (Math.min(a.length, k.length) >= 5 && (a.startsWith(k) || k.startsWith(a))) {
       const d = Math.abs(a.length - k.length);
       if (d < diff) { diff = d; best = x; }
@@ -814,33 +960,44 @@ function findGame(name) {
   }
   return best;
 }
-function startSession(name, source="discord") {
-  let g = findGame(name);
-  if (!g) { g = { n: String(name).replace(/[®™©]/g, "").trim(), s: 2, c: 0, m: 0, t: 0 }; state.games.push(g); console.log("Nouveau jeu ajouté :", g.n); }
+function startSession(name, source="discord", requestedId="") {
+  let g = findGameById(requestedId) || findGame(name);
+  if (!g) { g = newGame(name, 2); state.games.push(g); console.log("Nouveau jeu ajouté :", g.name || g.n); }
   // Lancer un jeu ou démarrer une session ne doit jamais changer son statut.
   g.s = normalizeStatus(g.s);
-  state.session = { id: crypto.randomUUID(), name: g.n, start: Date.now(), mins: 0, source };
-  g.t = Date.now(); save();
-  console.log("Session démarrée :", g.n);
-  scheduleEnrichment(g.n);
+  const gameName = g.name || g.n;
+  state.session = { id: crypto.randomUUID(), gameId: state.schemaVersion === LIBRARY_VERSION ? g.id : gameIdFor(gameName), name: gameName, start: Date.now(), mins: 0, source };
+  g.t = Date.now();
+  if (state.schemaVersion === LIBRARY_VERSION) { g.lastPlayedAt = g.t; g.updatedAt = g.t; }
+  save();
+  console.log("Session démarrée :", gameName);
+  scheduleEnrichment(gameName);
 }
 function tickSession() {
   const se = state.session; if (!se) return;
-  const g = state.games.find(x => x.n === se.name);
+  const g = findGameById(se.gameId) || state.games.find(x => (x.name || x.n) === se.name);
   if (!g) { state.session = null; return; }
   const add = Math.floor((Date.now() - se.start) / MINUTE) - se.mins;
-  if (add > 0) { g.m += add; se.mins += add; g.t = Date.now(); save(); broadcast(); }
+  if (add > 0) { g.m = Math.max(0, Number(g.m) || 0) + add; g.minutes = g.m; se.mins += add; g.t = Date.now(); if (state.schemaVersion === LIBRARY_VERSION) { g.lastPlayedAt = g.t; g.updatedAt = g.t; } save(); broadcast(); }
 }
 function endSession() {
   if (!state.session) return;
   tickSession();
   const current = { ...state.session }, ended = Date.now();
-  const completed = normalizeSession({ id: current.id, source: current.source, game: current.name, start: current.start, end: ended, durationMs: Math.max(0, ended - current.start), minutes: Math.max(0, current.mins), updatedAt: ended });
+  const completed = normalizeSession({ id: current.id, source: current.source, game: current.name, gameId: current.gameId, start: current.start, end: ended, durationMs: Math.max(0, ended - current.start), minutes: Math.max(0, current.mins), updatedAt: ended });
   if (completed) {
-    completed.gameId = gameIdFor(completed.game);
+    const game = findGameById(current.gameId) || findGameByName(current.name);
+    if (state.schemaVersion === LIBRARY_VERSION) {
+      completed.gameId = game?.id || (isStableId(current.gameId) ? current.gameId : null);
+      completed.gameNameSnapshot = current.name;
+      if (!completed.gameId) completed.orphan = true;
+    } else {
+      completed.gameId = current.gameId || gameIdFor(completed.game);
+    }
     state.sessions.push(completed);
   }
-  const g = state.games.find(x => x.n === current.name); if (g) g.t = ended;
+  const g = findGameById(current.gameId) || state.games.find(x => (x.name || x.n) === current.name);
+  if (g) { g.t = ended; if (state.schemaVersion === LIBRARY_VERSION) { g.lastPlayedAt = ended; g.updatedAt = ended; } }
   console.log("Session terminée :", current.name);
   state.session = null;
   const persisted=writeLibrary();
@@ -1018,21 +1175,21 @@ http.createServer(async (req, res) => {
   if (url === '/api/play/details' && req.method === 'PATCH') {
     try {
       const input = JSON.parse(await body(req, 24000));
-      const game = state.games.find(g => ckey(g.n) === ckey(input.name));
+      const game = findGameById(input.gameId) || findGame(input.name);
       if (!game) return json(404, {error: 'Titre introuvable.'});
-      const key = metaKey(game.n), fields = input.details;
+      const key = gameMetaKey(game), fields = input.details;
       if (!fields || !['game','app'].includes(fields.kind) || typeof fields.note !== 'string' || fields.note.length > 2000) return json(400, {error: 'Fiche invalide.'});
       const validTags = tags => Array.isArray(tags) && tags.length <= 20 && tags.every(t => typeof t === 'string' && t.trim().length > 0 && t.length <= 60);
       if (!validTags(fields.collections) || !validTags(fields.platforms)) return json(400, {error: '20 noms maximum, 60 caractères par nom.'});
       const rating = Math.max(0, Math.min(5, Number(fields.rating) || 0));
       const review = typeof fields.review === 'string' ? fields.review.trim().slice(0, 500) : '';
-      const previous = state.meta[key]?.playDetails || {};
+      const previous = (state.meta[key] || {}).playDetails || {};
       savePlayMeta(key, {playDetails: {...previous, kind: fields.kind, note: fields.note, collections: [...new Set(fields.collections.map(t=>t.trim()))], platforms: [...new Set(fields.platforms.map(t=>t.trim()))], rating, review}});
-      return json(200, {ok: true});
+      return json(200, {ok: true, gameId: game.id || null});
     } catch { return json(400, {error: 'Impossible d’enregistrer la fiche.'}); }
   }
   if (url === '/api/play/portrait' && req.method === 'PUT') {
-    const game = state.games.find(g => ckey(g.n) === ckey(parsed.searchParams.get('name')));
+    const game = findGameById(parsed.searchParams.get('gameId')) || findGame(parsed.searchParams.get('name'));
     if (!game) return json(404, {error: 'Titre introuvable.'});
     try {
       const id = parsed.searchParams.get('steam');
@@ -1040,7 +1197,7 @@ http.createServer(async (req, res) => {
       const bytes = id ? await downloadSteamPortrait(id) : await binaryBody(req);
       const kind = imageKind(bytes);
       if (!bytes || !["jpeg", "png"].includes(kind) || !validPortrait(bytes)) return json(400, {error: 'Choisis une jaquette verticale JPG ou PNG, de 150 px de large minimum et 8 Mo maximum.'});
-      const key = metaKey(game.n), filename = 'play-' + key + (kind === 'png' ? '.png' : '.jpg');
+      const key = gameMetaKey(game), filename = 'play-' + key + (kind === 'png' ? '.png' : '.jpg');
       const target = path.join(COVERS, filename), temp = target + '.tmp';
       fs.writeFileSync(temp, bytes); fs.renameSync(temp, target);
       const cover = { f: filename, v: Math.round(fs.statSync(target).mtimeMs) };
@@ -1057,42 +1214,67 @@ http.createServer(async (req, res) => {
     catch (e) { return json(200, { results: [] }); }
   }
   if (url === "/api/meta" && req.method === "GET") {
-    const name = (parsed.searchParams.get("name") || "").trim(); if (!name) return json(400, { error: "nom manquant" });
-    try { return json(200, await fetchGameMeta(name)); } catch (e) { return json(502, { error: "Informations momentanément indisponibles" }); }
+    const name = (parsed.searchParams.get("name") || "").trim(), gameId = (parsed.searchParams.get("gameId") || "").trim();
+    if (!name && !gameId) return json(400, { error: "nom manquant" });
+    try { return json(200, await fetchGameMeta(name, gameId)); } catch (e) { return json(502, { error: "Informations momentanément indisponibles" }); }
   }
   if (url === "/api/meta/accent" && req.method === "PUT") {
     try {
       const b = JSON.parse(await body(req)), name = String(b.name || "").trim(), accent = String(b.accent || "");
-      if (!name || !/^#[0-9a-f]{6}$/i.test(accent)) return json(400, { error: "couleur invalide" });
-      const key = metaKey(name); state.meta[key] = { ...(state.meta[key] || { title: name, source: "" }), accent }; saveMeta(); return json(200, { ok: true });
+      const game = findGameById(b.gameId) || findGameByName(name);
+      if (!game && !name) return json(400, { error: "couleur invalide" });
+      if (!/^#[0-9a-f]{6}$/i.test(accent)) return json(400, { error: "couleur invalide" });
+      const key = game ? gameMetaKey(game) : metaKey(name);
+      state.meta[key] = { ...(state.meta[key] || { title: game?.name || name, source: "" }), accent };
+      if (game && state.schemaVersion === LIBRARY_VERSION) state.metaAliases[metaKey(game.name)] = game.id;
+      saveMeta(); return json(200, { ok: true });
     } catch (e) { return json(400, { error: "JSON invalide" }); }
   }
   if (url === "/api/cover" && (req.method === "PUT" || req.method === "DELETE" || req.method === "POST")) {
-    const rawKey = (parsed.searchParams.get("key") || parsed.searchParams.get("name") || "").trim(), key = ckey(rawKey);
-    if (!key) return json(400, { error: "clé de jaquette manquante" });
+    const rawKey = (parsed.searchParams.get("key") || parsed.searchParams.get("name") || "").trim();
+    const game = findGameById(parsed.searchParams.get("gameId")) || findGameByName(rawKey);
+    if (!game && !ckey(rawKey)) return json(400, { error: "clé de jaquette manquante" });
+    const stem = ckey(game ? game.name || game.n : rawKey);
+    const current = game ? (state.meta[gameMetaKey(game)] || { title: game.name || rawKey, source: "" }) : (state.meta[metaKey(rawKey)] || { title: rawKey, source: "" });
+    const metaId = game ? gameMetaKey(game) : metaKey(rawKey);
     const extensions = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+    const stems = new Set([stem]);
+    if (game?.id) stems.add(ckey(game.id));
+    for (const file of [current.cover, current.artwork?.wide?.f, current.artwork?.tall?.f, current.steamPortrait?.f, current.playPortrait?.f]) {
+      if (typeof file !== "string" || !file) continue;
+      const base = path.basename(file.split("?")[0]);
+      stems.add(ckey(base.slice(0, base.length - path.extname(base).length)));
+    }
     const matching = () => {
-      try { return fs.readdirSync(COVERS).filter(f => extensions.has(path.extname(f).toLowerCase()) && ckey(path.basename(f, path.extname(f))) === key); }
+      try { return fs.readdirSync(COVERS).filter(f => extensions.has(path.extname(f).toLowerCase()) && stems.has(ckey(path.basename(f, path.extname(f))))); }
       catch (e) { return []; }
     };
-    const metaId = metaKey(rawKey), current = state.meta[metaId] || { title: rawKey, source: "" };
     if (req.method === "DELETE") {
       for (const f of matching()) { try { fs.unlinkSync(path.join(COVERS, f)); } catch (e) {} }
-      delete current.cover; current.autoBannerOff = true; current.image = ""; current.coverManual = false; state.meta[metaId] = current; saveMeta(); broadcast();
-      return json(200, { ok: true });
+      delete current.cover;
+      delete current.artwork;
+      current.autoBannerOff = true; current.image = ""; current.coverManual = false;
+      state.meta[metaId] = current; saveMeta(); broadcast();
+      return json(200, { ok: true, gameId: game?.id || null });
     }
     try {
       const type = (req.headers["content-type"] || "").split(";")[0].toLowerCase();
       if (type !== "image/jpeg") return json(415, { error: "image JPEG attendue" });
       const bytes = await binaryBody(req, 8 * 1024 * 1024);
       if (!bytes.length || imageKind(bytes) !== "jpeg") return json(415, { error: "image JPEG attendue" });
-      const filename = key + ".jpg", target = path.join(COVERS, filename), temp = target + ".tmp-" + crypto.randomBytes(6).toString("hex");
+      const filename = (state.schemaVersion === LIBRARY_VERSION && game ? game.id : stem) + ".jpg";
+      const target = path.join(COVERS, filename), temp = target + ".tmp-" + crypto.randomBytes(6).toString("hex");
       fs.writeFileSync(temp, bytes);
-      for (const f of matching()) { try { fs.unlinkSync(path.join(COVERS, f)); } catch (e) {} }
+      for (const f of matching()) { if (f !== filename) { try { fs.unlinkSync(path.join(COVERS, f)); } catch (e) {} } }
       fs.renameSync(temp, target);
       const v = Math.round(fs.statSync(target).mtimeMs);
-      state.meta[metaId] = { ...current, image: "", cover: "/covers/" + encodeURIComponent(filename) + "?v=" + v, coverManual: true, checkedAt: current.checkedAt || Date.now() };
-      saveMeta(); broadcast(); return json(200, { ok: true, cover: { f: filename, v } });
+      state.meta[metaId] = {
+        ...current, image: "", cover: "/covers/" + encodeURIComponent(filename) + "?v=" + v,
+        coverManual: true, autoBannerOff: false, artwork: { ...(current.artwork || {}), wide: { f: filename, v } },
+        checkedAt: current.checkedAt || Date.now()
+      };
+      if (game && state.schemaVersion === LIBRARY_VERSION) state.metaAliases[metaKey(game.name)] = game.id;
+      saveMeta(); broadcast(); return json(200, { ok: true, cover: { f: filename, v }, gameId: game?.id || null });
     } catch (e) { return json(400, { error: "image impossible à enregistrer" }); }
   }
   if (url === "/api/steam/achievements" && req.method === "GET") {
@@ -1315,7 +1497,10 @@ http.createServer(async (req, res) => {
       const missing = ids.filter((id, index) => !selected[index]);
       if (missing.length) return json(404, { error: "session introuvable", missing });
       const game = selected[0].game;
-      if (selected.some(session => ckey(session.game) !== ckey(game))) return json(400, { error: "les sessions doivent concerner le même jeu" });
+      const sameGame = session => selected[0].gameId
+        ? session.gameId === selected[0].gameId || (!session.gameId && ckey(session.game) === ckey(game))
+        : ckey(session.game) === ckey(game);
+      if (selected.some(session => !sameGame(session))) return json(400, { error: "les sessions doivent concerner le même jeu" });
       const intervals = selected.map(session => [Number(session.start), sessionEnd(session)]).filter(([start, end]) => Number.isFinite(start) && Number.isFinite(end) && end > start).sort((a, b) => a[0] - b[0]);
       if (!intervals.length) return json(400, { error: "durées invalides" });
       let cursor = null, durationMs = 0;
@@ -1327,11 +1512,20 @@ http.createServer(async (req, res) => {
       const start = Math.min(...intervals.map(([value]) => value)), end = Math.max(...intervals.map(([, value]) => value));
       const source = selected.every(session => session.source === selected[0].source) ? selected[0].source : "manual";
       const note = [...new Set(selected.map(session => String(session.note || "").trim()).filter(Boolean))].join(" · ").slice(0, 1000);
+      const mergedGame = findGameById(selected[0].gameId) || findGameByName(game);
       const merged = {
-        id: crypto.randomUUID(), gameId: selected[0].gameId || gameIdFor(game), game, start, end, durationMs,
+        id: crypto.randomUUID(),
+        gameId: state.schemaVersion === LIBRARY_VERSION
+          ? (mergedGame?.id || (isStableId(selected[0].gameId) ? selected[0].gameId : null))
+          : (selected[0].gameId || gameIdFor(game)),
+        game: mergedGame?.name || game,
+        gameNameSnapshot: selected[0].gameNameSnapshot || game,
+        start, end, durationMs,
         minutes: Math.floor(durationMs / 60000), source, note, dated: selected.every(session => session.dated !== false),
+        createdAt: Math.min(...selected.map(session => Number(session.createdAt) || Number(session.start) || Date.now())),
         revision: 1, updatedAt: Date.now(), mergedFrom: ids.slice(0, 100)
       };
+      if (!merged.gameId) merged.orphan = true;
       state.sessions = state.sessions.filter(session => !ids.includes(session.id));
       for (const session of selected) addTombstone(session, "merge");
       state.sessions.push(merged);
@@ -1391,14 +1585,218 @@ http.createServer(async (req, res) => {
     return json(200, { ok: true, session: current });
   }
   if (url === "/api/session/start" && req.method === "POST") {
-    try { const b = JSON.parse(await body(req, 2000)), name = String(b.name || "").trim(); if (!name) return json(400, { error: "jeu manquant" }); if (state.session) endSession(); startSession(name,"manual"); broadcast(); return json(200, { ok: true }); }
-    catch (e) { return json(400, { error: "session impossible à démarrer" }); }
+    try {
+      const b = JSON.parse(await body(req, 2000));
+      const game = findGameById(b.gameId) || findGame(b.name);
+      const name = String(b.name || game?.name || game?.n || "").trim();
+      if (!name) return json(400, { error: "jeu manquant" });
+      if (state.session) endSession();
+      startSession(name, "manual", game?.id || b.gameId || "");
+      broadcast();
+      return json(200, { ok: true, gameId: state.session?.gameId || null, name: state.session?.name || name });
+    } catch (e) { return json(400, { error: "session impossible à démarrer" }); }
   }
   if (url === "/api/session/stop" && req.method === "POST") { const ok=endSession()!==false; return json(ok?200:500, {ok}); }
+  if (url === "/api/v1/games" && req.method === "POST") {
+    if (state.schemaVersion !== LIBRARY_VERSION) return json(409, { error: "migration v2 requise" });
+    try {
+      const b = JSON.parse(await body(req, 24000)), name = String(b.name || b.n || "").trim().slice(0, 200);
+      if (!name) return json(400, { error: "nom manquant" });
+      const duplicate = findGameByName(name);
+      if (duplicate) return json(409, { error: "un jeu porte déjà ce nom", game: duplicate });
+      const status = normalizeStatus(b.status ?? b.s);
+      const game = newGame(name, status);
+      if (["game", "app"].includes(b.kind)) game.kind = b.kind;
+      game.createdAt = Date.now(); game.updatedAt = game.createdAt;
+      state.games.push(game);
+      if (!writeLibrary()) return json(500, { error: "écriture impossible" });
+      broadcast(); scheduleEnrichment(game.name);
+      return json(201, { ok: true, game });
+    } catch (e) { return json(400, { error: "jeu invalide" }); }
+  }
+  const favoriteRoute = url.match(/^\/api\/v1\/games\/([^/]+)\/favorite$/);
+  if (favoriteRoute && ["PUT", "POST", "DELETE"].includes(req.method)) {
+    if (state.schemaVersion !== LIBRARY_VERSION) return json(409, { error: "migration v2 requise" });
+    const id = decodeURIComponent(favoriteRoute[1]), game = findGameById(id);
+    if (!game) return json(404, { error: "jeu introuvable" });
+    let favorite = req.method !== "DELETE";
+    if (req.method !== "DELETE") {
+      try { const b = JSON.parse(await body(req, 4000)); if (b.favorite === false) favorite = false; } catch {}
+    }
+    state.favorites = [...new Set(state.favorites.filter(entry => entry !== game.id && entry !== ckey(game.name || game.n)))];
+    if (favorite) state.favorites.push(game.id);
+    if (!writeLibrary()) return json(500, { error: "écriture impossible" });
+    broadcast();
+    return json(200, { ok: true, gameId: game.id, favorite });
+  }
+  const gameRoute = url.match(/^\/api\/v1\/games\/([^/]+)(\/restore)?$/);
+  if (gameRoute) {
+    if (state.schemaVersion !== LIBRARY_VERSION) return json(409, { error: "migration v2 requise" });
+    const id = decodeURIComponent(gameRoute[1]), restoring = Boolean(gameRoute[2]);
+    if (restoring && req.method === "POST") {
+      const tombstone = state.deletedGames.find(entry => entry.id === id);
+      if (!tombstone) return json(404, { error: "jeu supprimé introuvable" });
+      const existing = findGameById(id);
+      if (existing) return json(200, { ok: true, alreadyRestored: true, game: existing });
+      const duplicate = findGameByName(tombstone.name);
+      if (duplicate) return json(409, { error: "un jeu porte déjà ce nom", game: duplicate, deleted: tombstone.id });
+      const game = { ...(tombstone.snapshot || {}), id, name: tombstone.name, n: tombstone.name, updatedAt: Date.now() };
+      state.games.push(game);
+      state.deletedGames = state.deletedGames.filter(entry => entry.id !== id);
+      if (tombstone.favorite && !state.favorites.includes(id)) state.favorites.push(id);
+      state.sessions = state.sessions.map(session => session.gameId === id ? { ...session, game: game.name, orphan: undefined } : session);
+      if (!writeLibrary()) return json(500, { error: "écriture impossible" });
+      if (state.meta[id]) saveMeta();
+      broadcast();
+      return json(200, { ok: true, game });
+    }
+    const game = findGameById(id);
+    if (!game) return json(404, { error: "jeu introuvable" });
+    if (req.method === "GET") return json(200, { game });
+    if (req.method === "PATCH") {
+      try {
+        const b = JSON.parse(await body(req, 24000));
+        if (b.name === undefined && b.n === undefined && b.status === undefined && b.s === undefined) return json(400, { error: "aucune modification" });
+        if (b.name !== undefined || b.n !== undefined) {
+          const name = String(b.name || b.n || "").trim().slice(0, 200);
+          if (!name) return json(400, { error: "nom invalide" });
+          const duplicate = state.games.find(other => other.id !== game.id && ckey(other.name || other.n) === ckey(name));
+          if (duplicate) return json(409, { error: "un autre jeu porte déjà ce nom", game: duplicate });
+          const oldName = game.name || game.n;
+          game.name = name; game.n = name; game.updatedAt = Date.now();
+          if (game.kind !== "app" && game.kind !== "game") game.kind = "game";
+          state.metaAliases[metaKey(oldName)] = game.id;
+          state.metaAliases[metaKey(name)] = game.id;
+          syncMetaTitle(game, oldName, name);
+          if (state.session?.gameId === game.id) state.session.name = name;
+          state.sessions = state.sessions.map(session => session.gameId === game.id ? { ...session, game: name } : session);
+          const renamed = value => ckey(value) === ckey(oldName) ? name : value;
+          if (recap?.lastOpened?.name) recap.lastOpened.name = renamed(recap.lastOpened.name);
+          if (Array.isArray(recap?.recent)) recap.recent = recap.recent.map(entry => entry?.name ? { ...entry, name: renamed(entry.name) } : entry);
+          if (Array.isArray(recap?.queue)) recap.queue = recap.queue.map(renamed);
+          if (recap?.gameStats && typeof recap.gameStats === "object") {
+            const stats = {};
+            for (const [key, value] of Object.entries(recap.gameStats)) stats[renamed(key)] = value;
+            recap.gameStats = stats;
+          }
+          saveRecap();
+        }
+        if (b.status !== undefined || b.s !== undefined) {
+          game.status = normalizeStatus(b.status ?? b.s); game.s = game.status; game.updatedAt = Date.now();
+        }
+        if (!writeLibrary()) return json(500, { error: "écriture impossible" });
+        saveMeta(); broadcast();
+        return json(200, { ok: true, game });
+      } catch (e) { return json(400, { error: "modification impossible" }); }
+    }
+    if (req.method === "DELETE") {
+      if (state.session?.gameId === game.id) endSession();
+      const favorite = state.favorites.includes(game.id);
+      const snapshot = { ...game };
+      state.games = state.games.filter(entry => entry.id !== game.id);
+      state.favorites = state.favorites.filter(entry => entry !== game.id);
+      state.deletedGames = state.deletedGames.filter(entry => entry.id !== game.id);
+      state.deletedGames.push({ id: game.id, name: game.name || game.n, deletedAt: Date.now(), favorite, snapshot });
+      if (state.deletedGames.length > 1000) state.deletedGames = state.deletedGames.slice(-1000);
+      if (!writeLibrary()) return json(500, { error: "écriture impossible" });
+      broadcast();
+      return json(200, { ok: true, game: snapshot, favorite, restorable: true });
+    }
+    return json(405, { error: "méthode non autorisée" });
+  }
   if (url === "/api/state" && req.method === "PUT") {
     try {
       const b = JSON.parse(await body(req));
       if (!Array.isArray(b.games)) return json(400, { error: "games manquant" });
+      if (state.schemaVersion === LIBRARY_VERSION) {
+        const now = Date.now();
+        const priorById = new Map(state.games.filter(game => game.id).map(game => [game.id, game]));
+        const priorByName = new Map(state.games.map(game => [ckey(game.name || game.n), game]));
+        const byId = new Map(state.games.map(game => [game.id, game]));
+        const used = new Set();
+        const added = [];
+        const cleanList = value => Array.isArray(value) ? [...new Set(value.map(entry => String(entry || "").trim().slice(0, 60)).filter(Boolean))].slice(0, 20) : [];
+        for (const raw of b.games.slice(0, 20000)) {
+          if (!raw || typeof raw !== "object") continue;
+          const name = String(raw.name || raw.n || "").trim().slice(0, 200);
+          if (!name) continue;
+          if (isStableId(raw.id) && !priorById.has(raw.id) && state.deletedGames.some(entry => entry.id === raw.id)) continue;
+          const prior = (isStableId(raw.id) && priorById.get(raw.id)) || priorByName.get(ckey(name)) || null;
+          let id = isStableId(raw.id) && !used.has(raw.id) ? raw.id : prior?.id;
+          if (!id || used.has(id)) id = nextGameId(name);
+          used.add(id);
+          if (prior && ckey(prior.name || prior.n) !== ckey(name)) {
+            const oldName = prior.name || prior.n;
+            state.metaAliases[metaKey(oldName)] = id;
+            state.metaAliases[metaKey(name)] = id;
+            syncMetaTitle(prior, oldName, name);
+            state.sessions = state.sessions.map(session => session.gameId === id ? { ...session, game: name } : session);
+            if (state.session?.gameId === id) state.session.name = name;
+          }
+          const status = normalizeStatus(raw.status ?? raw.s ?? prior?.status ?? prior?.s);
+          const rawCompletion = raw.completion ?? raw.c ?? prior?.completion ?? prior?.c;
+          const completion = [0, 1, 2].includes(Number(rawCompletion)) ? Number(rawCompletion) : 0;
+          const minutes = Math.max(0, Math.round(Number(raw.minutes ?? raw.m ?? prior?.minutes ?? prior?.m) || 0));
+          const manualDelta = Number.isSafeInteger(raw.manualDelta) ? raw.manualDelta : (prior?.manualDelta || 0);
+          const firstPlayedAt = Math.max(0, Number(raw.firstPlayedAt ?? raw.firstPlayed ?? prior?.firstPlayedAt ?? prior?.firstPlayed) || 0);
+          const lastPlayedAt = Math.max(0, Number(raw.lastPlayedAt ?? raw.t ?? prior?.lastPlayedAt ?? prior?.t) || 0);
+          const kind = raw.kind === "app" || raw.kind === "game" ? raw.kind : (prior?.kind === "app" ? "app" : "game");
+          const game = {
+            ...prior,
+            id, name, n: name, kind, status, s: status, completion, c: completion,
+            minutes, m: minutes, manualDelta, firstPlayedAt, firstPlayed: firstPlayedAt,
+            lastPlayedAt, t: lastPlayedAt,
+            rating: Math.max(0, Math.min(5, Number(raw.rating ?? prior?.rating) || 0)),
+            review: String(raw.review ?? prior?.review ?? "").slice(0, 500),
+            tags: cleanList(raw.tags ?? prior?.tags),
+            platforms: cleanList(raw.platforms ?? prior?.platforms),
+            ownership: String(raw.ownership ?? prior?.ownership ?? "").slice(0, 100),
+            createdAt: Math.max(0, Number(prior?.createdAt) || Number(raw.createdAt) || now),
+            updatedAt: now
+          };
+          byId.set(id, game);
+          if (!prior) added.push(game);
+        }
+        if (used.size) state.games = [...byId.values()];
+        if (Array.isArray(b.sessions)) {
+          const existing = new Set(state.sessions.map(session => session.id));
+          for (const raw of b.sessions.slice(0, 10000)) {
+            const session = normalizeSession(raw);
+            if (!session || existing.has(session.id) || isTombstoned(session)) continue;
+            const game = findGameById(session.gameId) || findGameByName(session.game);
+            session.gameId = game ? game.id : (isStableId(session.gameId) ? session.gameId : null);
+            session.gameNameSnapshot = session.gameNameSnapshot || session.game;
+            if (game) { session.game = game.name; session.orphan = undefined; } else session.orphan = true;
+            state.sessions.push(session);
+            existing.add(session.id);
+          }
+          state.sessions.sort((a, b) => a.start - b.start);
+        }
+        if (Array.isArray(b.favorites)) {
+          const ids = new Set(state.favorites), orphans = new Set(state.favoriteOrphans.map(ckey).filter(Boolean));
+          for (const entry of b.favorites.slice(0, 5000)) {
+            const game = findGameById(entry) || findGameByName(entry);
+            if (game) ids.add(game.id);
+            else if (String(entry || "").trim()) orphans.add(ckey(entry));
+          }
+          state.favorites = [...ids];
+          state.favoriteOrphans = [...orphans];
+        }
+        if (Array.isArray(b.profiles)) {
+          const profiles = b.profiles
+            .filter(profile => profile && typeof profile.id === "string" && typeof profile.name === "string" && profile.id.trim() && profile.name.trim())
+            .slice(0, 20)
+            .map(profile => ({ id: profile.id.slice(0, 80), name: profile.name.trim().slice(0, 60) }));
+          if (profiles.length) state.profiles = profiles;
+        }
+        if (typeof b.activeProfileId === "string" && state.profiles.some(profile => profile.id === b.activeProfileId)) state.activeProfileId = b.activeProfileId;
+        if (state.session && !findGameById(state.session.gameId) && !findGameByName(state.session.name)) state.session = null;
+        if (!writeLibrary()) return json(500, { error: "écriture impossible" });
+        saveMeta();
+        for (const game of added) scheduleEnrichment(game.name);
+        broadcast();
+        return json(200, { ok: true, schemaVersion: LIBRARY_VERSION, games: state.games.length });
+      }
       const known = new Set(state.games.map(g => ckey(g.n)));
       const priorGames=new Map(state.games.map(g=>[ckey(g.n),g]));
       state.games = b.games.filter(g => g && typeof g.n === "string" && g.n.trim()).map(g => ({ n: g.n, s: normalizeStatus(g.s), c: g.c | 0, m: Math.max(0, g.m | 0), manualDelta: Number.isSafeInteger(g.manualDelta)?g.manualDelta:(priorGames.get(ckey(g.n))?.manualDelta||0), t: +g.t || 0, firstPlayed: Math.max(0, +g.firstPlayed || 0) }));

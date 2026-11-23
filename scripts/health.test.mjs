@@ -113,7 +113,8 @@ test('le pont expose un rapport de santé sans secrets', async (t) => {
   assert.equal(health.anomalies.gamesWithoutCover, 2);
   assert.equal(health.anomalies.filmsWithoutPoster, 1);
   assert.equal(health.anomalies.gamesWithoutKind, 2);
-  assert.equal(health.anomalies.sessionsWithoutId, 1);
+  assert.equal(health.anomalies.sessionsWithoutId, 0);
+  assert.equal(health.anomalies.legacySessionIds, 1);
 
   const diagnosticsResponse = await fetch(`http://127.0.0.1:${port}/api/diagnostics`);
   assert.equal(diagnosticsResponse.status, 200);

@@ -31,7 +31,7 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
 ## Contenu attendu de l’installateur
 
 - `desktop-main.js`, `desktop-preload.cjs`, `bridge.js`, `bibliotheque.html`, `launcher.js`, `launcher.css`.
-- `orbit-log.mjs`, `orbit-backup.mjs`, `orbit-secrets.mjs`, `steam-achievements.mjs`, `steam-local.mjs` et les modules cinéma/statistiques.
+- `orbit-log.mjs`, `orbit-backup.mjs`, `orbit-secrets.mjs`, `orbit-library.mjs`, `steam-achievements.mjs`, `steam-local.mjs` et les modules cinéma/statistiques.
 - Les 13 thèmes enregistrés, leurs polices et licences.
 - `THIRD_PARTY.md`, `THIRD-PARTY-NOTICES.md`, `icon.svg`.
 - Aucun fichier de données personnel : ni `library.json`, ni `cinema.json`, ni `meta.json`, ni `covers/`, ni `backups/`, ni `.env`, ni `config.json`, ni `tmdb-api-key.txt`, ni `secrets.json`.
@@ -52,6 +52,7 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
    - **Réglages → Santé et diagnostic** ;
    - **Créer une sauvegarde** puis **Tester la dernière** ;
    - une session manuelle démarrage/arrêt, puis **Voir toutes les sessions** : modification, découpage, fusion et annulation d’une suppression ;
+   - sur une **copie isolée** des données, la migration v2 en dry-run, puis le renommage d’un jeu, la suppression et l’annulation : sessions, favoris et jaquettes conservés ;
    - une requête `POST /api/flush` sans jeton doit répondre 403 ;
    - après le premier lancement, `config.json` ne contient plus `botToken` et `secrets.json` existe dans le dossier de données ;
    - l’absence de données de test dans le dossier utilisateur réel.
