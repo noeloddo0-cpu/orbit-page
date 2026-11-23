@@ -41,7 +41,7 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
 1. Noter la taille de l’installateur et calculer son empreinte :
 
    ```powershell
-   Get-FileHash .\dist\Orbit-Setup-1.0.32.exe -Algorithm SHA256
+   Get-FileHash .\dist\Orbit-Setup-1.0.33.exe -Algorithm SHA256
    ```
 
 2. Installer dans un dossier de test et vérifier :
@@ -49,7 +49,8 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
    - l’ouverture de la bibliothèque et d’Orbit Play ;
    - les 13 thèmes ;
    - `Ctrl+Alt+O` et le mini-mode ;
-   - **Réglages → Santé et diagnostic** ;
+   - **Réglages → Santé et diagnostic** : prévisualiser une correction, l’annuler, ignorer une anomalie avec justification puis la réactiver ;
+   - sur une **copie isolée** des données, sélectionner plusieurs jeux, changer leur statut, annuler, les supprimer puis les restaurer ; enregistrer une vue et la retrouver après redémarrage ;
    - **Créer une sauvegarde** puis **Tester la dernière** ;
    - une session manuelle démarrage/arrêt, puis **Voir toutes les sessions** : modification, découpage, fusion et annulation d’une suppression ;
    - sur une **copie isolée** des données, la migration v2 en dry-run, puis le renommage d’un jeu, la suppression et l’annulation : sessions, favoris et jaquettes conservés ;
@@ -58,7 +59,7 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
    - l’absence de données de test dans le dossier utilisateur réel.
 
 3. Publier l’installateur et son SHA-256 dans la version GitHub.
-4. Taguer `v1.0.32` et pousser le tag.
+4. Taguer `v1.0.33` et pousser le tag.
 
 ## Migration v2 des données réelles
 

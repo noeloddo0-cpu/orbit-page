@@ -618,6 +618,47 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 .data-health-row.warn b { color:#ffbd73; }
 .data-health-row.good b { color:#9fd28a; }
 .data-health-empty { margin:0;color:var(--muted); }
+.health-toolbar { display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px; }
+.health-summary { display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px;margin:10px 0 14px;padding:13px 14px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.035);font-size:12px;line-height:1.4; }
+.health-groups { display:grid;gap:10px;margin:0 0 12px; }
+.health-group { border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025);overflow:hidden; }
+.health-group-head { display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;list-style:none; }
+.health-group-head::-webkit-details-marker { display:none; }
+.health-group-head b { font-size:13px; }
+.health-group-head .health-count { margin-left:auto;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:11px;font-variant-numeric:tabular-nums; }
+.health-group-head .health-count.warn { background:rgba(255,170,70,.16);color:#ffcf8a; }
+.health-group-head .health-count.good { background:rgba(120,200,110,.14);color:#a9daa0; }
+.health-group-body { display:grid;gap:5px;padding:0 9px 9px; }
+.health-item { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 9px;border-radius:9px;background:rgba(255,255,255,.03);font-size:12px; }
+.health-item.ignored { opacity:.62; }
+.health-item-detail { grid-column:1/-1;display:grid;gap:3px;padding:8px 9px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;overflow-wrap:anywhere; }
+.health-item-main { min-width:0;display:grid;gap:2px; }
+.health-item-main b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600; }
+.health-item-main small { color:var(--muted);overflow-wrap:anywhere; }
+.health-item-actions { display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end; }
+.health-item-actions .btn { padding:5px 9px;font-size:11px;min-height:0; }
+.health-tag { display:inline-block;margin-right:5px;padding:1px 6px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:10px;font-weight:500;vertical-align:1px; }
+.health-tag.warn { border-color:rgba(255,190,100,.4);color:#ffcf8a; }
+.health-empty { padding:9px 3px;color:var(--muted);font-size:12px; }
+.health-journal { display:grid;gap:5px;margin:0 0 12px;font-size:12px; }
+.health-journal-row { display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.02); }
+.health-journal-row span { min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.health-journal-row .btn { padding:4px 8px;font-size:11px;min-height:0; }
+#health-preview,#health-ignore { width:min(640px,calc(100% - 24px));padding:24px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(155deg,var(--surface-2,#1b1b21),var(--bg,#0d0d10));color:var(--fg);box-shadow:0 30px 100px rgba(0,0,0,.62); }
+#health-preview::backdrop,#health-ignore::backdrop { background:rgba(0,0,0,.62);backdrop-filter:blur(4px); }
+.health-dialog-head { display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px; }
+.health-dialog-head h2 { margin:0;font-size:20px; }
+.health-dialog-body { display:grid;gap:10px;font-size:13px;line-height:1.5; }
+.health-dialog-body label { display:grid;gap:5px;font-size:12px;color:var(--muted); }
+.health-dialog-body select,.health-dialog-body textarea { width:100%; }
+.health-changes { display:grid;gap:4px;max-height:260px;overflow:auto;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);font-size:12px; }
+.health-changes span { overflow-wrap:anywhere; }
+.health-warning { padding:8px 10px;border:1px solid rgba(255,190,100,.35);border-radius:9px;background:rgba(255,170,70,.08);color:#ffcf8a;font-size:12px; }
+.health-dialog-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:15px; }
+.health-dialog-actions .btn[disabled] { opacity:.45; }
+.tile-health { position:absolute;z-index:4;left:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:4px;pointer-events:none; }
+.tile-health span { padding:2px 6px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(8,8,10,.72);color:rgba(255,255,255,.8);font-size:10px;line-height:1.35; }
+.tile-health span.warn { border-color:rgba(255,190,100,.4);color:#ffcf8a; }
 .history-head { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px; }
 .history-head .lbl { margin-bottom:0; }
 #p-history-all { flex:0 0 auto;padding:7px 10px;font-size:12px; }
@@ -855,13 +896,60 @@ html[data-orbit-mini="1"] #launcher-screen .op-shelf{margin-top:26px}
 html[data-orbit-mini="1"] #launcher-screen .op-card-title{font-size:13px}
 html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template-columns:1fr}
 @media(max-width:900px){#launcher-screen .op-week-card{grid-template-columns:1fr 1fr}#launcher-screen .op-week-intro{grid-column:1/-1}#op-year .op-report-grid{grid-template-columns:1fr 1fr}#op-year .op-report-columns{grid-template-columns:1fr}#launcher-screen .op-queue-row{grid-template-columns:32px minmax(0,1fr) auto}#launcher-screen .op-queue-index{display:none}}
+/* P1-02 : sélection multiple, vues sauvegardées, filtres actifs */
+.tile-select { position:absolute;top:10px;left:10px;z-index:4;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:rgba(10,10,14,.76);border:1px solid rgba(255,255,255,.3);box-shadow:0 6px 18px rgba(0,0,0,.4);backdrop-filter:blur(8px); }
+.tile-select input { width:17px;height:17px;margin:0;accent-color:var(--accent);cursor:pointer; }
+.tile-wrap.is-selected .tile { outline:2px solid var(--accent);outline-offset:3px; }
+.tile-wrap.is-selected .tile-select { background:color-mix(in srgb,var(--accent) 82%,#000);border-color:transparent; }
+#library-screen.selecting .tile { cursor:pointer; }
+#library-screen.selecting .tile-favorite { opacity:0;pointer-events:none; }
+.filter-summary { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;max-width:1200px;margin:8px auto 0;padding:0 2px;font-size:12px;color:var(--muted); }
+.filter-summary:empty { display:none; }
+.filter-chips { display:flex;flex-wrap:wrap;gap:6px; }
+.filter-chip { display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.06);color:var(--fg);padding:4px 9px;font-size:12px;cursor:pointer; }
+.filter-chip:hover { background:rgba(255,255,255,.13); }
+.filter-clear { border:0;background:transparent;color:var(--accent);font-size:12px;cursor:pointer;padding:4px 6px; }
+.results-count { font-variant-numeric:tabular-nums;white-space:nowrap; }
+.selection-bar { position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:72;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;width:min(1180px,calc(100% - 24px));padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--surface-2,#1b1b21) 93%,transparent);box-shadow:0 18px 54px rgba(0,0,0,.55);transform:translateX(-50%);font-size:13px;backdrop-filter:blur(16px); }
+.selection-bar[hidden] { display:none; }
+.selection-bar.has-undo { bottom:max(88px,env(safe-area-inset-bottom,0px)); }
+.selection-count { display:flex;align-items:center;gap:8px;font-weight:600;white-space:nowrap; }
+.selection-count b { display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:var(--accent);color:var(--bg,#08080b);font-size:12px; }
+.selection-actions { display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px; }
+.selection-actions .btn { padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--fg); }
+.selection-actions .btn:hover { background:rgba(255,255,255,.13); }
+.selection-actions .btn[aria-pressed="true"] { background:color-mix(in srgb,var(--accent) 26%,transparent);border-color:color-mix(in srgb,var(--accent) 52%,transparent); }
+.selection-actions select.field { padding:7px 9px;font-size:12px;min-height:34px; }
+.selection-actions .danger { color:#ff9c9c;border-color:rgba(255,120,120,.3); }
+.selection-actions .danger:hover { background:rgba(255,90,90,.15); }
+.views-menu .overflow-items { min-width:250px;max-width:320px;max-height:min(360px,60dvh);overflow:auto; }
+.view-row { display:flex;align-items:center;gap:4px; }
+.view-row .view-apply { flex:1;min-width:0;width:auto;display:flex;flex-direction:column;gap:2px; }
+.view-row .view-apply small { color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.view-row .view-remove { width:32px;min-width:32px;text-align:center;padding:6px;color:var(--muted); }
+.view-row .view-remove:hover { color:#ff9c9c; }
+.view-empty { padding:9px 11px;color:var(--muted);font-size:12px; }
+.view-save { color:var(--accent); }
+.bulk-dialog { width:min(480px,calc(100% - 24px));padding:22px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(155deg,var(--surface-2,#1b1b21),var(--bg,#0d0d10));color:var(--fg);box-shadow:0 30px 100px rgba(0,0,0,.62); }
+.bulk-dialog::backdrop { background:rgba(0,0,0,.62);backdrop-filter:blur(4px); }
+.bulk-dialog h2 { margin:0 0 6px;font-size:21px; }
+.bulk-dialog p { margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.55; }
+.bulk-dialog label { display:block;margin:12px 0 5px;font-size:12px;font-weight:600; }
+.bulk-dialog .field { width:100%;box-sizing:border-box; }
+.bulk-dialog-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:18px; }
+.bulk-dialog-actions .btn { border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--fg);padding:9px 14px; }
+.bulk-dialog-actions .danger { color:#ffb3b3;border-color:rgba(255,120,120,.35);background:rgba(255,80,80,.12); }
+.bulk-dialog .form-error { color:#ffb3b3;font-size:12px;min-height:16px;margin-top:8px; }
+.sr-only { position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+@media(max-width:650px) { .selection-bar { width:calc(100% - 12px);padding:8px;gap:6px; } .selection-actions { width:100%;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px; } .selection-actions .btn, .selection-actions select.field { flex:none; } .filter-summary { margin-top:6px; } .tile-select { top:8px;left:8px;width:28px;height:28px; } }
+@media(min-width:901px) { .bar .tools { flex-wrap:wrap;justify-content:flex-end; } #q { width:min(190px,22vw); } }
 </style>
 
 <div id="route-veil" aria-hidden="true"></div>
 <div id="intro-screen" role="button" tabindex="0" aria-label="Passer l’introduction Orbit"><div class="intro-lockup"><img class="orbit-mark" data-app-logo src="/icon.svg" alt=""><span class="intro-name" data-app-name>orbit</span></div></div>
 <button class="settings-launcher" id="settings-open" type="button" aria-label="Ouvrir les réglages" title="Réglages" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></button>
 <div id="settings-veil" hidden></div>
-<aside id="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" hidden><header class="settings-head"><div><div class="orbit-kicker">Personnalisation</div><h2 id="settings-title">Réglages</h2></div><button class="btn" id="settings-close" type="button" aria-label="Retour au menu précédent">← Retour</button></header><section class="settings-section"><div class="settings-section-title">Apparence</div><div class="theme-grid" id="theme-grid"></div><button class="btn theme-replay" id="replay-intro" type="button">↻ Rejouer l’intro</button></section><section class="settings-section"><label class="setting-line" for="sound-volume"><span><b>Volume du son</b><small>Petit son à l’ouverture de la bibliothèque</small></span><input id="sound-volume" type="range" min="0" max="100" value="7"></label><label class="setting-line" for="intro-toggle"><span><b>Intro Orbit</b><small>Afficher l’intro au lancement</small></span><input id="intro-toggle" type="checkbox" checked></label><label class="setting-line" for="accent-color"><span><b>Couleur d’accent</b><small>Personnalise la couleur principale</small></span><input id="accent-color" type="color" aria-label="Choisir la couleur d’accent"></label></section><section class="settings-section"><label class="setting-line" for="effects-quality"><span><b>Qualité des effets</b><small>Animations et flou</small></span><select id="effects-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label><label class="setting-line" id="glass-quality-line" for="glass-quality"><span><b>Qualité du verre</b><small>Réfraction des tuiles Liquid Glass</small></span><select id="glass-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label></section><section class="settings-section"><label class="setting-line" for="tile-size"><span><b>Taille des tuiles</b><small>Choisis leur taille dans la bibliothèque</small></span><select id="tile-size" class="field"><option value="small">Petite</option><option value="medium">Moyenne</option><option value="large">Grande</option></select></label><label class="setting-line" for="tv-mode-toggle"><span><b>Mode TV / manette</b><small>Grands textes, focus visible et navigation aux flèches</small></span><input id="tv-mode-toggle" type="checkbox"></label><label class="setting-line" id="mini-mode-line" for="mini-mode-toggle"><span><b>Mini-mode</b><small>Fenêtre compacte, toujours au-dessus des autres</small></span><input id="mini-mode-toggle" type="checkbox"></label></section><section class="settings-section"><div class="settings-section-title">Profils</div><div id="profile-settings-list" class="profile-settings-list"></div><p class="profile-hint">Les profils partagent la même bibliothèque et les mêmes heures.</p><div class="profile-add-row"><input id="profile-name-input" class="field" type="text" maxlength="60" placeholder="Nom du profil" aria-label="Nom du nouveau profil"><button id="profile-add" class="btn" type="button">Ajouter</button></div></section><section class="settings-section"><div class="settings-section-title">Informations</div><p class="profile-hint"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a> · <a href="https://github.com/noeloddo0-cpu/orbit-page/blob/main/CHANGELOG.md" target="_blank" rel="noreferrer">Nouveautés</a></p></section><section class="settings-section"><div class="settings-section-title">Affiches de films</div><p class="profile-hint">Orbit cherche les affiches par titre dans TMDB. Ajoute une clé de lecture gratuite pour activer la recherche.</p><label class="setting-line" for="tmdb-key"><span><b>Clé API TMDB</b><small id="tmdb-key-status">Conservée uniquement sur cet appareil</small></span><input class="field" id="tmdb-key" type="password" autocomplete="off" placeholder="Clé de lecture TMDB" aria-label="Clé de lecture API TMDB"></label><div class="profile-add-row data-actions"><button class="btn" id="tmdb-key-save" type="button">Enregistrer la clé</button><button class="btn" id="tmdb-key-clear" type="button">Effacer</button><a class="btn" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Obtenir une clé</a></div></section><section class="settings-section"><div class="settings-section-title">Données et sauvegardes</div><p class="profile-hint">Une copie vérifiée est créée au lancement et chaque jour. Les cinq sauvegardes manuelles les plus récentes sont protégées de la rotation.</p><div class="profile-add-row data-actions"><button class="btn" id="data-export" type="button">Exporter</button><button class="btn" id="data-import" type="button">Importer</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-restore" type="button">Restaurer un backup</button><button class="btn" id="data-folder" type="button">Ouvrir le dossier</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-backup-now" type="button">Créer une sauvegarde</button><button class="btn" id="data-verify" type="button">Tester la dernière</button></div><p class="profile-hint" id="data-message" role="status" aria-live="polite"></p></section><section class="settings-section"><div class="settings-section-title">Santé et diagnostic</div><p class="profile-hint">Analyse locale, sans envoi de données. Aucun jeton ni clé n’est inclus dans le diagnostic.</p><div class="profile-add-row data-actions"><button class="btn" id="health-run" type="button">Analyser les données</button><button class="btn" id="health-copy" type="button">Copier le diagnostic</button></div><div id="health-report" class="data-health-report" hidden></div><p class="profile-hint" id="health-message" role="status" aria-live="polite">Analyse non lancée.</p></section><section id="orbit-update-settings" class="settings-section" hidden><div class="settings-section-title">Mises à jour</div><button type="button" class="btn" id="orbit-update-check">Vérifier les mises à jour</button><p class="profile-hint" role="status" id="orbit-update-status"></p></section><p class="settings-foot">Tes choix sont enregistrés sur cet ordinateur. · <a href="https://github.com/noeloddo0-cpu/orbit-page/blob/main/CHANGELOG.md">Nouveautés</a></p></aside>
+<aside id="settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true" hidden><header class="settings-head"><div><div class="orbit-kicker">Personnalisation</div><h2 id="settings-title">Réglages</h2></div><button class="btn" id="settings-close" type="button" aria-label="Retour au menu précédent">← Retour</button></header><section class="settings-section"><div class="settings-section-title">Apparence</div><div class="theme-grid" id="theme-grid"></div><button class="btn theme-replay" id="replay-intro" type="button">↻ Rejouer l’intro</button></section><section class="settings-section"><label class="setting-line" for="sound-volume"><span><b>Volume du son</b><small>Petit son à l’ouverture de la bibliothèque</small></span><input id="sound-volume" type="range" min="0" max="100" value="7"></label><label class="setting-line" for="intro-toggle"><span><b>Intro Orbit</b><small>Afficher l’intro au lancement</small></span><input id="intro-toggle" type="checkbox" checked></label><label class="setting-line" for="accent-color"><span><b>Couleur d’accent</b><small>Personnalise la couleur principale</small></span><input id="accent-color" type="color" aria-label="Choisir la couleur d’accent"></label></section><section class="settings-section"><label class="setting-line" for="effects-quality"><span><b>Qualité des effets</b><small>Animations et flou</small></span><select id="effects-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label><label class="setting-line" id="glass-quality-line" for="glass-quality"><span><b>Qualité du verre</b><small>Réfraction des tuiles Liquid Glass</small></span><select id="glass-quality" class="field"><option value="max">Max</option><option value="balanced">Équilibré</option><option value="light">Léger</option></select></label></section><section class="settings-section"><label class="setting-line" for="tile-size"><span><b>Taille des tuiles</b><small>Choisis leur taille dans la bibliothèque</small></span><select id="tile-size" class="field"><option value="small">Petite</option><option value="medium">Moyenne</option><option value="large">Grande</option></select></label><label class="setting-line" for="tv-mode-toggle"><span><b>Mode TV / manette</b><small>Grands textes, focus visible et navigation aux flèches</small></span><input id="tv-mode-toggle" type="checkbox"></label><label class="setting-line" id="mini-mode-line" for="mini-mode-toggle"><span><b>Mini-mode</b><small>Fenêtre compacte, toujours au-dessus des autres</small></span><input id="mini-mode-toggle" type="checkbox"></label></section><section class="settings-section"><div class="settings-section-title">Profils</div><div id="profile-settings-list" class="profile-settings-list"></div><p class="profile-hint">Les profils partagent la même bibliothèque et les mêmes heures.</p><div class="profile-add-row"><input id="profile-name-input" class="field" type="text" maxlength="60" placeholder="Nom du profil" aria-label="Nom du nouveau profil"><button id="profile-add" class="btn" type="button">Ajouter</button></div></section><section class="settings-section"><div class="settings-section-title">Informations</div><p class="profile-hint"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a> · <a href="https://github.com/noeloddo0-cpu/orbit-page/blob/main/CHANGELOG.md" target="_blank" rel="noreferrer">Nouveautés</a></p></section><section class="settings-section"><div class="settings-section-title">Affiches de films</div><p class="profile-hint">Orbit cherche les affiches par titre dans TMDB. Ajoute une clé de lecture gratuite pour activer la recherche.</p><label class="setting-line" for="tmdb-key"><span><b>Clé API TMDB</b><small id="tmdb-key-status">Conservée uniquement sur cet appareil</small></span><input class="field" id="tmdb-key" type="password" autocomplete="off" placeholder="Clé de lecture TMDB" aria-label="Clé de lecture API TMDB"></label><div class="profile-add-row data-actions"><button class="btn" id="tmdb-key-save" type="button">Enregistrer la clé</button><button class="btn" id="tmdb-key-clear" type="button">Effacer</button><a class="btn" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">Obtenir une clé</a></div></section><section class="settings-section"><div class="settings-section-title">Données et sauvegardes</div><p class="profile-hint">Une copie vérifiée est créée au lancement et chaque jour. Les cinq sauvegardes manuelles les plus récentes sont protégées de la rotation.</p><div class="profile-add-row data-actions"><button class="btn" id="data-export" type="button">Exporter</button><button class="btn" id="data-import" type="button">Importer</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-restore" type="button">Restaurer un backup</button><button class="btn" id="data-folder" type="button">Ouvrir le dossier</button></div><div class="profile-add-row data-actions"><button class="btn" id="data-backup-now" type="button">Créer une sauvegarde</button><button class="btn" id="data-verify" type="button">Tester la dernière</button></div><p class="profile-hint" id="data-message" role="status" aria-live="polite"></p></section><section class="settings-section" id="health-section"><div class="settings-section-title">Santé des données</div><p class="profile-hint">Analyse locale et corrections réversibles. Rien n'est supprimé : Orbit rattache, archive ou reclasse, avec prévisualisation avant application.</p><div class="health-toolbar"><button class="btn" id="health-run" type="button">Analyser les données</button><button class="btn" id="health-copy" type="button">Copier le diagnostic</button><button class="btn" id="health-export-json" type="button">Exporter JSON</button><button class="btn" id="health-export-csv" type="button">Exporter CSV</button></div><div id="health-report" class="health-summary" hidden></div><div id="health-anomalies" class="health-groups"></div><div id="health-journal" class="health-journal" hidden></div><p class="profile-hint" id="health-message" role="status" aria-live="polite">Analyse non lancée.</p></section><section id="orbit-update-settings" class="settings-section" hidden><div class="settings-section-title">Mises à jour</div><button type="button" class="btn" id="orbit-update-check">Vérifier les mises à jour</button><p class="profile-hint" role="status" id="orbit-update-status"></p></section><p class="settings-foot">Tes choix sont enregistrés sur cet ordinateur. · <a href="https://github.com/noeloddo0-cpu/orbit-page/blob/main/CHANGELOG.md">Nouveautés</a></p></aside><dialog id="health-preview" aria-labelledby="health-preview-title"><div class="health-dialog-head"><h2 id="health-preview-title">Correction</h2><button class="btn" id="health-preview-close" type="button">Fermer</button></div><div class="health-dialog-body"><p id="health-preview-summary"></p><div id="health-preview-target"></div><div id="health-preview-changes" class="health-changes" hidden></div><div id="health-preview-warnings" class="health-warning" hidden></div></div><div class="health-dialog-actions"><button class="btn" id="health-preview-cancel" type="button">Annuler</button><button class="btn" id="health-preview-ok" type="button">Prévisualiser</button></div></dialog><dialog id="health-ignore" aria-labelledby="health-ignore-title"><form id="health-ignore-form"><div class="health-dialog-head"><h2 id="health-ignore-title">Ignorer cette anomalie</h2><button class="btn" id="health-ignore-close" type="button">Fermer</button></div><div class="health-dialog-body"><p id="health-ignore-label"></p><label for="health-ignore-reason">Justification (obligatoire, conservée localement)<textarea class="field" id="health-ignore-reason" maxlength="300" rows="3" required placeholder="Ex. faux positif vérifié le 23 novembre"></textarea></label><p class="profile-hint">L'anomalie reste dans les fichiers et peut être réaffichée à tout moment.</p></div><div class="health-dialog-actions"><button class="btn" id="health-ignore-cancel" type="button">Annuler</button><button class="btn" type="submit">Ignorer</button></div></form></dialog>
 <main id="home-screen" class="orbit-screen on" aria-label="Menu principal"><div class="orbit-home"><div class="orbit-top"><div class="orbit-brand"><img class="orbit-mark" data-app-logo src="/icon.svg" alt=""><span data-app-name>orbit</span></div><button class="btn" id="install-app" type="button" hidden>Installer</button></div><div class="orbit-kicker">Espace personnel</div><h1 class="orbit-title">Choisissez un espace</h1><p class="orbit-lead">Votre collection et vos prochaines découvertes.</p><div class="orbit-cards" id="section-cards"></div><div class="orbit-footer">D’autres sections arriveront ici.<br><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a></div></div></main>
 <main id="films-screen" aria-label="Films et séries"><div class="film-shell"><header class="film-top"><div class="film-brand"><h1>Films & séries</h1><span>Votre journal de visionnage</span></div><div class="film-actions"><button class="btn" id="films-back" type="button">← Menu</button><button class="btn" id="film-posters-auto" type="button">Affiches auto</button><button class="btn" id="film-add" type="button">＋ Ajouter</button></div></header><div id="film-discord" hidden><p id="film-discord-title" role="status"></p><button class="btn" type="button" id="film-discord-action" hidden></button></div><section class="film-overview" hidden aria-label="Statistiques de visionnage"><div class="film-metric"><b id="film-count">0</b><span>Dans la collection</span></div><div class="film-metric"><b id="film-watchlist-count">0</b><span>À voir</span></div><div class="film-metric"><b id="film-watching-count">0</b><span>En cours</span></div><div class="film-metric"><b id="film-watched-count">0</b><span>Vus</span></div><div class="film-metric"><b id="film-average"> - </b><span>Note moyenne</span></div></section><div class="film-controls"><nav class="film-filters" id="film-filters" aria-label="Filtrer les films et séries"><button class="film-filter" type="button" data-film-filter="home" aria-pressed="true">Accueil</button><button class="film-filter" type="button" data-film-filter="all" aria-pressed="false">Collection</button><button class="film-filter" type="button" data-film-filter="film" aria-pressed="false">Films</button><button class="film-filter" type="button" data-film-filter="series" aria-pressed="false">Séries</button><button class="film-filter" type="button" data-film-filter="watchlist" aria-pressed="false">Watchlist</button><button class="film-filter" type="button" data-film-filter="watching" aria-pressed="false">En cours</button><button class="film-filter" type="button" data-film-filter="watched" aria-pressed="false">Vus</button><button class="film-filter" type="button" data-film-filter="diary" aria-pressed="false">Journal</button></nav><div class="film-search-sort" hidden><input class="field" id="film-search" type="search" placeholder="Rechercher un titre…" aria-label="Rechercher un film ou une série"><select class="field" id="film-sort" aria-label="Trier la collection"><option value="recent">Ajouts récents</option><option value="title">Titre</option><option value="year">Année</option><option value="rating">Note</option></select></div></div><div id="cinema-home">
   <section aria-labelledby="fh-continue"><div class="fh-heading"><h2 id="fh-continue">Continuer</h2><button class="fh-action" data-all-watching type="button" hidden>Tout voir</button></div><div data-resume></div></section>
@@ -903,11 +991,19 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
         <option value="1">Pas 100 %</option>
         <option value="2">100 % / Platine</option>
       </select>
+      <select id="type" class="field" aria-label="Filtrer par type">
+        <option value="games">Jeux</option>
+        <option value="apps">Applications</option>
+        <option value="all">Tout</option>
+      </select>
+      <div class="overflow-menu views-menu"><button class="btn" id="views-toggle" type="button" aria-expanded="false" aria-controls="views-items" aria-label="Vues sauvegardées">Vues</button><div class="overflow-items" id="views-items" hidden></div></div>
+      <button id="select-mode" class="btn" type="button" aria-pressed="false">Sélectionner</button>
       <div class="overflow-menu"><button class="btn overflow-toggle" id="overflow-toggle" type="button" aria-expanded="false" aria-label="Autres actions">⋯</button><div class="overflow-items" id="overflow-items" hidden><button id="imp" type="button">Importer</button><button id="exp" type="button">Exporter</button></div></div>
       <input id="file" type="file" accept=".csv,text/csv" hidden>
     </div>
   </div>
 </div>
+<div class="filter-summary" id="filter-summary"><div class="filter-chips" id="active-filters"></div><span class="results-count" id="results-count" role="status" aria-live="polite"></span></div>
 <div class="wrap">
   <section id="resumeBox" hidden><h2 class="sec">Reprendre</h2><div id="resume"></div></section>
   <h2 class="sec" id="hAll" hidden>Tous les jeux</h2>
@@ -1015,6 +1111,50 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
 </dialog>
 <div id="session-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="session-undo-text"></span><button class="btn" id="session-undo-button" type="button">Annuler la suppression</button></div>
 <div id="game-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="game-undo-text"></span><button class="btn" id="game-undo-button" type="button">Annuler la suppression</button></div>
+<div id="batch-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="batch-undo-text"></span><button class="btn" id="batch-undo-button" type="button">Annuler</button></div>
+<div id="selection-bar" class="selection-bar" role="region" aria-label="Actions sur la sélection" hidden>
+  <div class="selection-count" role="status" aria-live="polite"><b id="selection-count">0</b><span id="selection-label">jeu sélectionné</span></div>
+  <div class="selection-actions">
+    <button class="btn" id="selection-all" type="button">Tout sélectionner dans le filtre</button>
+    <select id="bulk-status" class="field" aria-label="Changer le statut"><option value="">Statut…</option><option value="0">En cours</option><option value="1">En pause</option><option value="2">À faire</option><option value="3">Terminé</option><option value="4">Abandonné</option><option value="5">Neutre</option></select>
+    <select id="bulk-completion" class="field" aria-label="Changer la complétion"><option value="">Complétion…</option><option value="0">À définir</option><option value="1">Pas 100 %</option><option value="2">100 % / Platine</option></select>
+    <select id="bulk-kind" class="field" aria-label="Changer le type"><option value="">Type…</option><option value="game">Jeu</option><option value="app">Application</option></select>
+    <button class="btn" id="bulk-tags" type="button">Tags…</button>
+    <button class="btn" id="bulk-platforms" type="button">Plateformes…</button>
+    <button class="btn" id="bulk-favorite" type="button" aria-pressed="false">☆ Favoris</button>
+    <button class="btn danger" id="bulk-delete" type="button">Supprimer</button>
+    <button class="btn" id="selection-exit" type="button">Quitter</button>
+  </div>
+</div>
+<dialog id="bulk-delete-dialog" class="bulk-dialog" aria-labelledby="bulk-delete-title">
+  <h2 id="bulk-delete-title">Supprimer la sélection ?</h2>
+  <p id="bulk-delete-text"></p>
+  <p>Les jeux partent dans la corbeille Orbit. Leurs sessions et leurs fiches sont conservées. Une annulation reste possible pendant 10 secondes.</p>
+  <div class="bulk-dialog-actions"><button class="btn" id="bulk-delete-cancel" type="button">Annuler</button><button class="btn danger" id="bulk-delete-confirm" type="button">Supprimer</button></div>
+</dialog>
+<dialog id="bulk-edit-dialog" class="bulk-dialog" aria-labelledby="bulk-edit-title">
+  <form id="bulk-edit-form">
+    <h2 id="bulk-edit-title">Tags</h2>
+    <p id="bulk-edit-text"></p>
+    <label for="bulk-edit-values" id="bulk-edit-label">Tags</label>
+    <input id="bulk-edit-values" class="field" maxlength="500" autocomplete="off" placeholder="Coop, À jouer ensuite…">
+    <label for="bulk-edit-mode">Mode</label>
+    <select id="bulk-edit-mode" class="field"><option value="add">Ajouter aux valeurs existantes</option><option value="remove">Retirer ces valeurs</option><option value="replace">Remplacer toutes les valeurs</option></select>
+    <div class="form-error" id="bulk-edit-error" role="alert"></div>
+    <div class="bulk-dialog-actions"><button class="btn" id="bulk-edit-cancel" type="button">Annuler</button><button class="btn" id="bulk-edit-submit" type="submit">Appliquer</button></div>
+  </form>
+</dialog>
+<dialog id="view-dialog" class="bulk-dialog" aria-labelledby="view-dialog-title">
+  <form id="view-form">
+    <h2 id="view-dialog-title">Enregistrer la vue</h2>
+    <p>La vue garde la recherche, les filtres, le tri et le type affiché.</p>
+    <label for="view-name">Nom de la vue</label>
+    <input id="view-name" class="field" maxlength="60" required autocomplete="off" placeholder="Ex. En cours sur PC">
+    <div class="form-error" id="view-error" role="alert"></div>
+    <div class="bulk-dialog-actions"><button class="btn" id="view-cancel" type="button">Annuler</button><button class="btn" type="submit">Enregistrer</button></div>
+  </form>
+</dialog>
+<div id="library-live" class="sr-only" role="status" aria-live="polite"></div>
 <div id="toast" role="status"></div>
 </div><!-- /library-screen -->
 
@@ -1344,7 +1484,7 @@ async function removeCover(g) {
   const old = covers.get(k); if (old && old.url && old.url.startsWith("blob:")) URL.revokeObjectURL(old.url);
   covers.delete(k); return true;
 }
-const fq = { q: "", s: null, c: "", o: "nom" };
+const fq = { q: "", s: null, c: "", o: "nom", fav: false, type: "games" };
 let openId = null, tileRenderIndex = 0;
 function setAmbientCover(tile) {
   const img=tile?.querySelector(".cv"),layer=$("ambient-cover");
@@ -1372,7 +1512,7 @@ const SORTS = {
 };
 function visible() {
   const q = norm(fq.q.trim());
-  return S.games.filter(g => isGameName(g.n) && (fq.s === null || statusIndex(g) === fq.s) && (fq.c === "" || g.c === +fq.c) && (!fq.fav || isFavorite(g)) && (!q || norm(g.n).includes(q)))
+  return S.games.filter(g => typeMatchesFilter(g) && (fq.s === null || statusIndex(g) === fq.s) && (fq.c === "" || g.c === +fq.c) && (!fq.fav || isFavorite(g)) && (!q || norm(g.n).includes(q)))
     .sort(SORTS[fq.o] || SORTS.nom);
 }
 
@@ -1394,12 +1534,12 @@ function renderChips() {
       if (st !== null) { const d = document.createElement("span"); d.className = "dot d-" + st; b.append(d); }
       b.append(label + " "); b.append(document.createElement("b"));
       b.dataset.statusFilter = st === null ? "all" : String(st);
-      b.onclick = () => { fq.s = st; render(true); };
+      b.onclick = () => { fq.s = st; afterFilterChange(true); };
       box.append(b); chipEls.push(b); chipResizeObserver?.observe(b);
     };
     mk("Tous", null); ST.forEach((s, i) => mk(s, i));
   }
-  const games=S.games.filter(g=>isGameName(g.n));
+  const games=S.games.filter(g=>typeMatchesFilter(g));
   chipEls.forEach((b, i) => {
     const st = i === 0 ? null : i - 1;
     b.setAttribute("aria-pressed", fq.s === st);
@@ -1419,7 +1559,8 @@ function makeTile(g, live, resume = false) {
   initial.className = "ini";
   initial.textContent = (g.n.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase();
   t.append(initial);
-  if (coverSrc(g.n)) {
+  const hasCover = !!coverSrc(g.n);
+  if (hasCover) {
     const image = new Image(), shade = document.createElement("span"), skeleton = document.createElement("span");
     image.className = "cv"; image.alt = ""; image.loading = "lazy"; image.decoding = "async"; image.draggable = false;
     shade.className = "shade"; skeleton.className = "cover-skeleton"; skeleton.setAttribute("aria-hidden", "true");
@@ -1435,16 +1576,471 @@ function makeTile(g, live, resume = false) {
   const rating=Number(detailsForName(g.n).rating)||0,trophy=trophySummaryLabel(g.n);
   if(trophy){const badge=document.createElement("span");badge.className="tile-trophy";badge.textContent="\u{1F3C6} "+trophy;badge.title=trophy+" troph\u00e9es Steam";t.append(badge);}
   if(rating){const badge=document.createElement("span");badge.className="tile-rating";badge.textContent=ratingStars(rating);badge.title="Ma note : "+rating+" / 5";t.append(badge);}
-  t.onclick = () => { setAmbientCover(t); openPanel(g.id); };
+  const healthBadges=document.createElement("span");healthBadges.className="tile-health";
+  if(!hasCover){const badge=document.createElement("span");badge.className="warn";badge.textContent="Sans jaquette";healthBadges.append(badge);}
+  const playKind=detailsForName(g.n)?.kind||g.kind;
+  if(!["game","app"].includes(playKind)){const badge=document.createElement("span");badge.className="warn";badge.textContent="Type inconnu";healthBadges.append(badge);}
+  if(healthBadges.childElementCount)t.append(healthBadges);
+  t.onclick = event => {
+    if (selectionMode) { toggleSelection(g.id, event.shiftKey); return; }
+    setAmbientCover(t); openPanel(g.id);
+  };
   t.addEventListener("focus",()=>setAmbientCover(t));
   if (g.id === openId) t.style.visibility = "hidden";
+  if (selectionMode) {
+    t.setAttribute("aria-label", `${selectedGames.has(String(g.id)) ? "Désélectionner" : "Sélectionner"} ${g.n}`);
+    t.setAttribute("aria-pressed", String(selectedGames.has(String(g.id))));
+  }
   wrap.append(t);
+  if (selectionMode) {
+    wrap.classList.toggle("is-selected", selectedGames.has(String(g.id)));
+    const label = document.createElement("label"); label.className = "tile-select"; label.title = "Sélectionner " + g.n;
+    const check = document.createElement("input"); check.type = "checkbox"; check.checked = selectedGames.has(String(g.id));
+    check.setAttribute("aria-label", `Sélectionner ${g.n}`);
+    check.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); toggleSelection(g.id, event.shiftKey); });
+    label.append(check); wrap.append(label);
+  }
   const favorite = document.createElement("button"); favorite.type = "button"; favorite.className = "tile-favorite"; favorite.setAttribute("aria-label", (isFavorite(g) ? "Retirer des" : "Ajouter aux") + " favoris : " + g.n); favorite.setAttribute("aria-pressed", String(isFavorite(g))); favorite.textContent = isFavorite(g) ? "★" : "☆";
   favorite.addEventListener("click", event => { event.stopPropagation(); toggleFavoriteGame(g); renderGrid(); renderShellNav(); });
   wrap.append(favorite);
   if(resume){const remove=document.createElement("button");remove.type="button";remove.className="resume-remove";remove.textContent="×";remove.title="Retirer de Reprendre";remove.setAttribute("aria-label","Retirer "+g.n+" de Reprendre");remove.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();removeResume(g);});wrap.append(remove);}
   return wrap;
 }
+/* P1-02 : sélection multiple, actions de masse, annulation et vues sauvegardées */
+const LIBRARY_FILTER_STORAGE_KEY = KEY + "-filters-v2";
+const LIBRARY_VIEWS_STORAGE_KEY = KEY + "-views-v2";
+const libraryPrefsSource = window.__ORBIT_PREFERENCES && typeof window.__ORBIT_PREFERENCES === "object" ? window.__ORBIT_PREFERENCES : {};
+const serverLibraryViews = Array.isArray(libraryPrefsSource.libraryViews) ? libraryPrefsSource.libraryViews : [];
+let libraryViews = serverLibraryViews.map(view => ({ ...view, filter: { ...(view?.filter || {}) } })).filter(view => view && typeof view.name === "string" && view.name.trim() && view.id);
+let selectionMode = false;
+let selectionAnchor = null;
+const selectedGames = new Set();
+let libraryFiltersSaveTimer = 0;
+let lastBatchUndo = null;
+let batchUndoTimer = 0;
+let bulkEditField = "tags";
+
+function gameKindOf(game) {
+  return game?.kind === "app" || !isGameName(game?.n) ? "app" : "game";
+}
+function typeMatchesFilter(game) {
+  const kind = gameKindOf(game);
+  return fq.type === "all" || (fq.type === "apps" ? kind === "app" : kind === "game");
+}
+function normalizeLibraryFilter(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const status = source.s === null || source.s === undefined || source.s === "" ? null : Number(source.s);
+  return {
+    q: String(source.q || "").slice(0, 200),
+    s: Number.isInteger(status) && status >= 0 && status <= 5 ? status : null,
+    c: ["", "0", "1", "2"].includes(String(source.c ?? "")) ? String(source.c ?? "") : "",
+    o: SORTS[source.o] ? source.o : "nom",
+    fav: source.fav === true,
+    type: ["games", "apps", "all"].includes(source.type) ? source.type : "games"
+  };
+}
+function snapshotLibraryFilter() {
+  return { q: fq.q, s: fq.s, c: fq.c, o: fq.o, fav: !!fq.fav, type: fq.type };
+}
+function persistLibraryPreferences() {
+  try {
+    localStorage.setItem(LIBRARY_FILTER_STORAGE_KEY, JSON.stringify(snapshotLibraryFilter()));
+    localStorage.setItem(LIBRARY_VIEWS_STORAGE_KEY, JSON.stringify(libraryViews));
+  } catch (error) {}
+  clearTimeout(libraryFiltersSaveTimer);
+  libraryFiltersSaveTimer = setTimeout(() => {
+    fetch("/api/preferences", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ libraryViews, libraryFilters: snapshotLibraryFilter() }) }).catch(() => {});
+  }, 220);
+}
+function syncFilterControls() {
+  $("q").value = fq.q;
+  $("sort").value = SORTS[fq.o] ? fq.o : "nom";
+  $("fc").value = fq.c;
+  $("type").value = fq.type;
+  const favorite = $("favorite-filter");
+  favorite.setAttribute("aria-pressed", String(!!fq.fav));
+  favorite.textContent = fq.fav ? "★ Favoris" : "☆ Favoris";
+}
+function announceLibrary(message) {
+  const live = $("library-live");
+  if (!live) return;
+  live.textContent = "";
+  setTimeout(() => { live.textContent = message; }, 30);
+}
+function filterTypeLabel(type) {
+  return type === "apps" ? "Applications" : type === "all" ? "Tout" : "Jeux";
+}
+function renderFilterSummary() {
+  const box = $("active-filters");
+  if (!box) return;
+  box.replaceChildren();
+  const entries = [];
+  const query = fq.q.trim();
+  if (query) entries.push({ label: `Recherche : ${query.length > 32 ? query.slice(0, 32) + "…" : query}`, clear: () => { fq.q = ""; $("q").value = ""; } });
+  if (fq.s !== null) entries.push({ label: `Statut : ${ST[fq.s]}`, clear: () => { fq.s = null; } });
+  if (fq.c !== "") entries.push({ label: `Complétion : ${CO[Number(fq.c)] || fq.c}`, clear: () => { fq.c = ""; } });
+  if (fq.fav) entries.push({ label: "Favoris", clear: () => { fq.fav = false; } });
+  if (fq.type !== "games") entries.push({ label: `Type : ${filterTypeLabel(fq.type)}`, clear: () => { fq.type = "games"; } });
+  entries.forEach(entry => {
+    const chip = document.createElement("button");
+    chip.type = "button"; chip.className = "filter-chip"; chip.textContent = entry.label + " ×";
+    chip.setAttribute("aria-label", "Retirer le filtre " + entry.label);
+    chip.addEventListener("click", () => { entry.clear(); syncFilterControls(); clearSelection(); render(); persistLibraryPreferences(); });
+    box.append(chip);
+  });
+  if (entries.length) {
+    const clear = document.createElement("button");
+    clear.type = "button"; clear.className = "filter-clear"; clear.textContent = "Tout effacer";
+    clear.addEventListener("click", clearAllFilters);
+    box.append(clear);
+  }
+  const scope = S.games.filter(typeMatchesFilter);
+  const results = visible();
+  $("results-count").textContent = `${results.length} résultat${results.length > 1 ? "s" : ""} sur ${scope.length}`;
+}
+function clearAllFilters() {
+  fq.q = ""; fq.s = null; fq.c = ""; fq.fav = false; fq.type = "games";
+  syncFilterControls(); clearSelection(); render(); persistLibraryPreferences();
+}
+function currentFilterDescription(filter) {
+  const parts = [];
+  if (filter.q) parts.push(`« ${filter.q.length > 28 ? filter.q.slice(0, 28) + "…" : filter.q} »`);
+  if (filter.s !== null) parts.push(ST[filter.s]);
+  if (filter.c !== "") parts.push(CO[Number(filter.c)] || filter.c);
+  if (filter.fav) parts.push("Favoris");
+  if (filter.type !== "games") parts.push(filterTypeLabel(filter.type));
+  const sorts = { nom: "Tri nom", statut: "Tri statut", temps: "Tri temps", recent: "Tri récent" };
+  parts.push(sorts[filter.o] || "Tri nom");
+  return parts.join(" · ");
+}
+function renderViewsMenu() {
+  const box = $("views-items");
+  if (!box) return;
+  box.replaceChildren();
+  if (!libraryViews.length) {
+    const empty = document.createElement("div");
+    empty.className = "view-empty"; empty.textContent = "Aucune vue sauvegardée.";
+    box.append(empty);
+  }
+  libraryViews.forEach(view => {
+    const row = document.createElement("div"); row.className = "view-row";
+    const apply = document.createElement("button"); apply.type = "button"; apply.className = "view-apply";
+    const name = document.createElement("span"); name.textContent = view.name;
+    const detail = document.createElement("small"); detail.textContent = currentFilterDescription(normalizeLibraryFilter(view.filter));
+    apply.append(name, detail);
+    apply.addEventListener("click", () => { applyLibraryView(view); closeViewsMenu(); });
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "view-remove"; remove.textContent = "×";
+    remove.setAttribute("aria-label", "Supprimer la vue " + view.name); remove.title = "Supprimer cette vue";
+    remove.addEventListener("click", event => {
+      event.stopPropagation();
+      if (remove.dataset.sure !== "1") {
+        remove.dataset.sure = "1"; remove.textContent = "Supprimer ?"; remove.title = "Cliquer à nouveau pour confirmer";
+        setTimeout(() => { if (remove.isConnected) { remove.dataset.sure = ""; remove.textContent = "×"; remove.title = "Supprimer cette vue"; } }, 3200);
+        return;
+      }
+      libraryViews = libraryViews.filter(entry => entry.id !== view.id);
+      persistLibraryPreferences(); renderViewsMenu();
+      toast(`Vue « ${view.name} » supprimée`);
+      announceLibrary(`Vue ${view.name} supprimée.`);
+    });
+    row.append(apply, remove);
+    box.append(row);
+  });
+  const save = document.createElement("button");
+  save.type = "button"; save.className = "view-save"; save.textContent = "＋ Enregistrer la vue actuelle";
+  save.addEventListener("click", () => { closeViewsMenu(); openViewDialog(); });
+  box.append(save);
+}
+function applyLibraryView(view) {
+  Object.assign(fq, normalizeLibraryFilter(view.filter));
+  syncFilterControls(); clearSelection(); render(); persistLibraryPreferences();
+  toast(`Vue « ${view.name} » appliquée`);
+  announceLibrary(`Vue ${view.name} appliquée. ${visible().length} résultats.`);
+}
+function openViewDialog() {
+  $("view-name").value = ""; $("view-error").textContent = "";
+  if (!$("view-dialog").open) $("view-dialog").showModal();
+  setTimeout(() => $("view-name").focus(), 0);
+}
+function closeViewsMenu() {
+  const items = $("views-items");
+  if (items && !items.hidden) { items.hidden = true; $("views-toggle").setAttribute("aria-expanded", "false"); }
+}
+function clearSelection() {
+  selectedGames.clear(); selectionAnchor = null;
+}
+function afterFilterChange(anim) {
+  if (selectionMode) { clearSelection(); updateSelectionUI(); }
+  render(anim);
+  persistLibraryPreferences();
+}
+function updateSelectionUI() {
+  const existing = new Set(S.games.map(game => String(game.id)));
+  for (const id of [...selectedGames]) if (!existing.has(id)) selectedGames.delete(id);
+  if (!selectionMode) { selectedGames.clear(); selectionAnchor = null; }
+  const bar = $("selection-bar");
+  if (!bar) return;
+  bar.hidden = !selectionMode;
+  const button = $("select-mode");
+  button.setAttribute("aria-pressed", String(selectionMode));
+  button.textContent = selectionMode ? "Sélection active" : "Sélectionner";
+  document.getElementById("library-screen").classList.toggle("selecting", selectionMode);
+  const count = selectedGames.size;
+  $("selection-count").textContent = String(count);
+  $("selection-label").textContent = count > 1 ? "jeux sélectionnés" : "jeu sélectionné";
+  const games = S.games.filter(game => selectedGames.has(String(game.id)));
+  const allFavorite = games.length > 0 && games.every(isFavorite);
+  const favorite = $("bulk-favorite");
+  favorite.textContent = allFavorite ? "★ Retirer des favoris" : "☆ Ajouter aux favoris";
+  favorite.setAttribute("aria-pressed", String(allFavorite));
+  const visibleGames = visible();
+  const allVisibleSelected = visibleGames.length > 0 && visibleGames.every(game => selectedGames.has(String(game.id)));
+  $("selection-all").textContent = allVisibleSelected ? "Tout désélectionner dans le filtre" : "Tout sélectionner dans le filtre";
+  ["bulk-status", "bulk-completion", "bulk-kind", "bulk-tags", "bulk-platforms", "bulk-favorite", "bulk-delete"].forEach(id => { const control = $(id); if (control) control.disabled = !count; });
+  if (!count) { $("bulk-status").value = ""; $("bulk-completion").value = ""; $("bulk-kind").value = ""; }
+  document.querySelectorAll("#grid .tile[data-id], #resume .tile[data-id]").forEach(tile => {
+    const wrap = tile.closest(".tile-wrap");
+    if (wrap) wrap.classList.toggle("is-selected", selectedGames.has(String(tile.dataset.id)));
+  });
+}
+function setSelectionMode(on, options = {}) {
+  selectionMode = !!on;
+  if (!selectionMode) clearSelection();
+  updateSelectionUI();
+  if (options.render !== false) renderGrid();
+  if (selectionMode) announceLibrary("Mode sélection activé. Choisis des jeux avec les cases ou Maj+clic pour une plage.");
+  else if (options.announce !== false) announceLibrary("Mode sélection quitté.");
+}
+function toggleSelection(rawId, range = false) {
+  const id = String(rawId);
+  if (range && selectionAnchor) {
+    const ids = visible().map(game => String(game.id));
+    const from = ids.indexOf(selectionAnchor), to = ids.indexOf(id);
+    if (from >= 0 && to >= 0) {
+      const start = Math.min(from, to), end = Math.max(from, to);
+      for (let index = start; index <= end; index += 1) selectedGames.add(ids[index]);
+      updateSelectionUI();
+      return;
+    }
+  }
+  if (selectedGames.has(id)) selectedGames.delete(id); else selectedGames.add(id);
+  selectionAnchor = id;
+  updateSelectionUI();
+}
+function selectAllVisible() {
+  const games = visible();
+  if (!games.length) { toast("Aucun jeu dans le filtre actuel."); return; }
+  const allSelected = games.every(game => selectedGames.has(String(game.id)));
+  games.forEach(game => { if (allSelected) selectedGames.delete(String(game.id)); else selectedGames.add(String(game.id)); });
+  updateSelectionUI();
+  announceLibrary(allSelected ? "Sélection du filtre vidée." : `${games.length} jeux du filtre sélectionnés.`);
+}
+function focusTileAt(index) {
+  const tiles = [...document.querySelectorAll("#grid .tile, #resume .tile")];
+  const target = tiles[Math.min(Math.max(0, index), tiles.length - 1)];
+  (target || $("select-mode"))?.focus({ preventScroll: true });
+}
+async function postGameBatch(action, payload) {
+  const response = await fetch("/api/v1/games/batch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...payload }) });
+  let data = {};
+  try { data = await response.json(); } catch (error) {}
+  if (!response.ok) throw new Error(data.error || "Action impossible");
+  return data;
+}
+function hideBatchUndo() {
+  clearTimeout(batchUndoTimer);
+  lastBatchUndo = null;
+  const bar = $("batch-undo");
+  if (bar) bar.hidden = true;
+  $("selection-bar")?.classList.remove("has-undo");
+}
+function showBatchUndo(undoId, message, context) {
+  if (!undoId) return;
+  if (typeof hideGameUndo === "function") hideGameUndo();
+  clearTimeout(batchUndoTimer);
+  lastBatchUndo = { id: undoId, context };
+  $("batch-undo-text").textContent = message;
+  $("batch-undo").hidden = false;
+  $("selection-bar")?.classList.add("has-undo");
+  batchUndoTimer = setTimeout(hideBatchUndo, 10000);
+}
+async function applyBulkChange(changes, label) {
+  if (!selectedGames.size) { toast("Aucun jeu sélectionné."); return false; }
+  const ids = [...selectedGames];
+  try {
+    const data = await postGameBatch("update", { ids, changes });
+    await refreshSessionState();
+    showBatchUndo(data.undoId, `${ids.length} jeu${ids.length > 1 ? "x" : ""} modifié${ids.length > 1 ? "s" : ""} · ${label}`, { action: "update", ids });
+    toast(`${ids.length} jeu${ids.length > 1 ? "x" : ""} modifié${ids.length > 1 ? "s" : ""} · annulation possible 10 s`);
+    announceLibrary(`${ids.length} jeux modifiés : ${label}. Annulation possible pendant 10 secondes.`);
+    return true;
+  } catch (error) {
+    toast(error.message || "Action impossible");
+    announceLibrary("Action impossible. Aucune donnée n’a été modifiée.");
+    return false;
+  }
+}
+function openBulkDelete() {
+  if (!selectedGames.size) return;
+  const count = selectedGames.size;
+  const plural = count > 1;
+  $("bulk-delete-text").textContent = `${count} jeu${plural ? "x" : ""} sélectionné${plural ? "s" : ""} ${plural ? "seront retirés" : "sera retiré"} de la bibliothèque.`;
+  if (!$("bulk-delete-dialog").open) $("bulk-delete-dialog").showModal();
+  $("bulk-delete-confirm").focus();
+}
+async function deleteSelectedGames() {
+  if (!selectedGames.size) return;
+  const ids = [...selectedGames];
+  const order = visible().map(game => String(game.id));
+  const focusIndex = Math.max(0, order.findIndex(id => selectedGames.has(id)));
+  try {
+    const data = await postGameBatch("delete", { ids });
+    $("bulk-delete-dialog").close();
+    selectionMode = false; clearSelection(); updateSelectionUI();
+    await refreshSessionState();
+    showBatchUndo(data.undoId, `${ids.length} jeu${ids.length > 1 ? "x" : ""} supprimé${ids.length > 1 ? "s" : ""}`, { action: "delete", ids });
+    toast(`${ids.length} jeu${ids.length > 1 ? "x" : ""} supprimé${ids.length > 1 ? "s" : ""} · annulation possible 10 s`);
+    announceLibrary(`${ids.length} jeux supprimés. Annulation possible pendant 10 secondes.`);
+    setTimeout(() => focusTileAt(focusIndex), 40);
+  } catch (error) {
+    toast(error.message || "Suppression impossible");
+    announceLibrary("Suppression impossible. Aucune donnée n’a été modifiée.");
+  }
+}
+function openBulkEdit(field) {
+  bulkEditField = field === "platforms" ? "platforms" : "tags";
+  const isTags = bulkEditField === "tags";
+  $("bulk-edit-title").textContent = isTags ? "Modifier les tags" : "Modifier les plateformes";
+  $("bulk-edit-label").textContent = isTags ? "Tags" : "Plateformes";
+  $("bulk-edit-values").placeholder = isTags ? "Coop, À jouer ensuite…" : "PC, PS5…";
+  $("bulk-edit-text").textContent = `${selectedGames.size} jeu${selectedGames.size > 1 ? "x" : ""} sélectionné${selectedGames.size > 1 ? "s" : ""}. Sépare les valeurs par des virgules.`;
+  $("bulk-edit-error").textContent = "";
+  $("bulk-edit-values").value = "";
+  $("bulk-edit-mode").value = "add";
+  if (!$("bulk-edit-dialog").open) $("bulk-edit-dialog").showModal();
+  setTimeout(() => $("bulk-edit-values").focus(), 0);
+}
+function initLibraryPreferences() {
+  let localFilter = null, localViews = [];
+  try {
+    localFilter = JSON.parse(localStorage.getItem(LIBRARY_FILTER_STORAGE_KEY) || "null");
+    const parsedViews = JSON.parse(localStorage.getItem(LIBRARY_VIEWS_STORAGE_KEY) || "[]");
+    if (Array.isArray(parsedViews)) localViews = parsedViews;
+  } catch (error) {}
+  if (!libraryViews.length && localViews.length) {
+    libraryViews = localViews.map(view => ({ ...view, filter: { ...(view?.filter || {}) } })).filter(view => view && typeof view.name === "string" && view.name.trim() && view.id);
+  }
+  const serverFilter = libraryPrefsSource.libraryFilters;
+  const serverHasFilter = serverFilter && typeof serverFilter === "object" && (String(serverFilter.q || "").trim() || serverFilter.s !== null && serverFilter.s !== undefined || serverFilter.c || serverFilter.fav || serverFilter.type && serverFilter.type !== "games" || serverFilter.o && serverFilter.o !== "nom");
+  Object.assign(fq, normalizeLibraryFilter(serverHasFilter ? serverFilter : localFilter || serverFilter));
+  syncFilterControls();
+  renderViewsMenu();
+}
+initLibraryPreferences();
+
+$("select-mode").addEventListener("click", () => setSelectionMode(!selectionMode));
+$("selection-exit").addEventListener("click", () => setSelectionMode(false));
+$("selection-all").addEventListener("click", selectAllVisible);
+$("bulk-status").addEventListener("change", event => { const value = event.target.value; event.target.value = ""; if (value !== "") applyBulkChange({ status: Number(value) }, `Statut : ${ST[Number(value)]}`); });
+$("bulk-completion").addEventListener("change", event => { const value = event.target.value; event.target.value = ""; if (value !== "") applyBulkChange({ completion: Number(value) }, `Complétion : ${CO[Number(value)]}`); });
+$("bulk-kind").addEventListener("change", event => { const value = event.target.value; event.target.value = ""; if (value !== "") applyBulkChange({ kind: value }, value === "app" ? "Type : application" : "Type : jeu"); });
+$("bulk-tags").addEventListener("click", () => openBulkEdit("tags"));
+$("bulk-platforms").addEventListener("click", () => openBulkEdit("platforms"));
+$("bulk-favorite").addEventListener("click", () => {
+  const games = S.games.filter(game => selectedGames.has(String(game.id)));
+  const allFavorite = games.length > 0 && games.every(isFavorite);
+  applyBulkChange({ favorite: !allFavorite }, allFavorite ? "Retirer des favoris" : "Ajouter aux favoris");
+});
+$("bulk-delete").addEventListener("click", openBulkDelete);
+$("bulk-delete-cancel").addEventListener("click", () => $("bulk-delete-dialog").close());
+$("bulk-delete-confirm").addEventListener("click", deleteSelectedGames);
+$("bulk-delete-dialog").addEventListener("click", event => { if (event.target === event.currentTarget) event.currentTarget.close(); });
+$("bulk-edit-cancel").addEventListener("click", () => $("bulk-edit-dialog").close());
+$("bulk-edit-dialog").addEventListener("click", event => { if (event.target === event.currentTarget) event.currentTarget.close(); });
+$("bulk-edit-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const values = [...new Set($("bulk-edit-values").value.split(/[,;]+/).map(value => value.trim()).filter(Boolean))].slice(0, 20);
+  if (!values.length) { $("bulk-edit-error").textContent = "Écris au moins une valeur."; $("bulk-edit-values").focus(); return; }
+  const mode = $("bulk-edit-mode").value;
+  const changes = bulkEditField === "tags" ? { tags: values, tagsMode: mode } : { platforms: values, platformsMode: mode };
+  const label = `${bulkEditField === "tags" ? "Tags" : "Plateformes"} : ${mode === "add" ? "ajout" : mode === "remove" ? "retrait" : "remplacement"} ${values.join(", ")}`;
+  $("bulk-edit-submit").disabled = true;
+  const applied = await applyBulkChange(changes, label);
+  $("bulk-edit-submit").disabled = false;
+  if (applied) $("bulk-edit-dialog").close();
+  else $("bulk-edit-error").textContent = "La modification a échoué. Rien n’a été changé.";
+});
+$("views-toggle").addEventListener("click", () => {
+  const items = $("views-items");
+  const open = items.hidden;
+  items.hidden = !open;
+  $("views-toggle").setAttribute("aria-expanded", String(open));
+  if (open) renderViewsMenu();
+});
+document.addEventListener("pointerdown", event => {
+  if (!event.target.closest(".views-menu")) closeViewsMenu();
+});
+document.addEventListener("keydown", event => { if (event.key === "Escape" && !$("views-items").hidden) closeViewsMenu(); });
+$("view-cancel").addEventListener("click", () => $("view-dialog").close());
+$("view-dialog").addEventListener("click", event => { if (event.target === event.currentTarget) event.currentTarget.close(); });
+$("view-form").addEventListener("submit", event => {
+  event.preventDefault();
+  const name = $("view-name").value.trim();
+  if (!name) { $("view-error").textContent = "Donne un nom à la vue."; $("view-name").focus(); return; }
+  const existing = libraryViews.find(view => view.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    existing.filter = snapshotLibraryFilter(); existing.createdAt = Date.now();
+  } else {
+    if (libraryViews.length >= 30) { $("view-error").textContent = "Limite de 30 vues atteinte. Supprime une vue existante."; return; }
+    libraryViews.push({ id: crypto.randomUUID(), name, filter: snapshotLibraryFilter(), createdAt: Date.now() });
+  }
+  persistLibraryPreferences();
+  renderViewsMenu();
+  $("view-dialog").close();
+  toast(existing ? `Vue « ${name} » mise à jour` : `Vue « ${name} » enregistrée`);
+  announceLibrary(`Vue ${name} enregistrée.`);
+});
+$("batch-undo-button").addEventListener("click", async () => {
+  if (!lastBatchUndo) return;
+  const current = lastBatchUndo;
+  try {
+    const response = await fetch("/api/v1/games/batch/undo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: current.id }) });
+    let data = {};
+    try { data = await response.json(); } catch (error) {}
+    if (!response.ok) throw new Error(data.error || "Annulation impossible");
+    hideBatchUndo();
+    await refreshSessionState();
+    if (current.context.action === "delete") {
+      selectionMode = true;
+      current.context.ids.forEach(id => selectedGames.add(String(id)));
+      renderGrid(); updateSelectionUI();
+    }
+    toast("Action annulée · état précédent restauré");
+    announceLibrary("Action annulée. L’état précédent est restauré.");
+  } catch (error) {
+    toast(error.message || "Annulation impossible");
+  }
+});
+document.addEventListener("keydown", event => {
+  const screen = document.getElementById("library-screen");
+  if (!screen || !screen.classList.contains("on")) return;
+  const target = event.target;
+  const typing = target && (target.matches?.("textarea,select,[contenteditable=true]") || (target.matches?.("input") && !["checkbox", "radio", "button", "submit", "range"].includes(target.type)) || target.isContentEditable);
+  const dialogOpen = Boolean(document.querySelector("dialog[open]"));
+  if (event.key === "Escape" && selectionMode && !typing && !dialogOpen && openId === null) {
+    event.preventDefault(); event.stopImmediatePropagation(); setSelectionMode(false); return;
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a" && !typing && !dialogOpen && openId === null) {
+    event.preventDefault();
+    if (!selectionMode) setSelectionMode(true);
+    selectAllVisible();
+    return;
+  }
+  if ((event.key === "Delete" || event.key === "Backspace") && selectionMode && !typing && !dialogOpen && selectedGames.size && openId === null) {
+    event.preventDefault();
+    openBulkDelete();
+  }
+}, true);
 function renderGrid() {
   window.dispatchEvent(new Event("orbit:launcher-data"));
   // Les mises à jour Discord peuvent recréer les tuiles pendant le retour animé.
@@ -1452,8 +2048,8 @@ function renderGrid() {
   if (closingId !== null) { deferredGridRender = true; return; }
   const grid = $("grid"), rs = $("resume"); grid.textContent = ""; rs.textContent = ""; tileRenderIndex=0;
   const list = visible(), live = sessGame();
-  const filtered = fq.q.trim() || fq.s !== null || fq.c !== "" || fq.fav;
-  const recentGames = (S.recap.recent || []).map(item => S.games.find(g => ckey(g.n) === ckey(item.name))).filter(g=>g && isGameName(g.n));
+  const filtered = fq.q.trim() || fq.s !== null || fq.c !== "" || fq.fav || fq.type !== "games";
+  const recentGames = (S.recap.recent || []).map(item => S.games.find(g => ckey(g.n) === ckey(item.name))).filter(g=>g && typeMatchesFilter(g));
   const res = filtered ? [] : [...new Map(recentGames.map(g => [g.id, g])).values()];
   const ids = new Set(res.map(g => g.id));
   $("resumeBox").hidden = !res.length; $("hAll").hidden = !res.length;
@@ -1501,7 +2097,7 @@ function renderSub() {
 }
 let glassReady = false;
 function render(anim) {
-  renderChips(); renderGrid(); renderSub();
+  renderChips(); renderGrid(); renderSub(); renderFilterSummary(); updateSelectionUI();
   if (anim === true && glassReady) placeGlass(true);
   else { placeGlass(false); glassReady = true; }
 }
@@ -1929,6 +2525,7 @@ const gameUndoBar = $("game-undo"), gameUndoText = $("game-undo-text");
 function hideGameUndo() { clearTimeout(gameUndoTimer); gameUndoData = null; gameUndoBar.hidden = true; }
 function showGameUndo(game) {
   clearTimeout(gameUndoTimer); gameUndoData = game;
+  if (typeof hideBatchUndo === "function") hideBatchUndo();
   gameUndoText.textContent = `${game.name || game.n} supprimé`;
   gameUndoBar.hidden = false;
   gameUndoTimer = setTimeout(hideGameUndo, 10000);
@@ -1998,10 +2595,23 @@ document.addEventListener("pointerdown",e=>{if(!e.target.closest(".overflow-menu
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const p=$("overflow-items");if(p&&!p.hidden){p.hidden=true;$("overflow-toggle").setAttribute("aria-expanded","false");}}});
 
 /* Filtres */
-$("q").oninput = e => { fq.q = e.target.value; renderGrid(); };
-$("favorite-filter").addEventListener("click", () => { fq.fav = !fq.fav; fq.s = null; $("favorite-filter").setAttribute("aria-pressed", String(!!fq.fav)); $("favorite-filter").textContent = fq.fav ? "★ Favoris" : "☆ Favoris"; render(); });
-$("fc").onchange = e => { fq.c = e.target.value; renderGrid(); };
-$("sort").onchange = e => { fq.o = e.target.value; try { localStorage.setItem(KEY + "-sort", fq.o); } catch (x) {} renderGrid(); };
+$("q").oninput = e => {
+  fq.q = e.target.value;
+  if (selectionMode) { clearSelection(); updateSelectionUI(); }
+  renderGrid(); renderFilterSummary(); persistLibraryPreferences();
+};
+$("favorite-filter").addEventListener("click", () => {
+  fq.fav = !fq.fav; fq.s = null;
+  $("favorite-filter").setAttribute("aria-pressed", String(!!fq.fav));
+  $("favorite-filter").textContent = fq.fav ? "★ Favoris" : "☆ Favoris";
+  afterFilterChange();
+});
+$("fc").onchange = e => { fq.c = e.target.value; afterFilterChange(); };
+$("sort").onchange = e => {
+  fq.o = SORTS[e.target.value] ? e.target.value : "nom";
+  renderGrid(); renderFilterSummary(); persistLibraryPreferences();
+};
+$("type").onchange = e => { fq.type = ["games", "apps", "all"].includes(e.target.value) ? e.target.value : "games"; afterFilterChange(); };
 
 /* Clavier */
 
@@ -2066,7 +2676,7 @@ $("grid").addEventListener("pointermove", e => {
   t.style.setProperty("--tilt-y",((x-.5)*8)+"deg");t.style.setProperty("--tilt-x",((.5-y)*8)+"deg");setAmbientCover(t);
 });
 $("grid").addEventListener("pointerout",e=>{const t=e.target.closest?.(".tile");if(!t||t.contains(e.relatedTarget))return;t.style.setProperty("--tilt-x","0deg");t.style.setProperty("--tilt-y","0deg");});
-try { const o = localStorage.getItem(KEY + "-sort"); if (o && SORTS[o]) { fq.o = o; $("sort").value = o; } else $("sort").value = "nom"; } catch (e) {}
+try { $("sort").value = SORTS[fq.o] ? fq.o : "nom"; } catch (e) {}
 if (S.session && !sessGame()) S.session = null;
 function applyTvMode(on,save=true){
   document.documentElement.dataset.orbitTv=on?"1":"";
@@ -2183,6 +2793,7 @@ function renderSessionRows(){
     const startCell=document.createElement("td"),endCell=document.createElement("td"),durationCell=document.createElement("td"),sourceCell=document.createElement("td"),noteCell=document.createElement("td"),actionsCell=document.createElement("td");
     startCell.textContent=sessionDateText(session.start);endCell.textContent=session.end?sessionDateText(session.end):"—";durationCell.textContent=fmt(Math.floor(sessionDuration(session)/60000));
     const source=document.createElement("span");source.className="session-source";source.textContent=sessionSourceLabels[session.source]||session.source||"Manuel";if(session.dated===false)source.textContent+=" · non datée";sourceCell.append(source);
+    if(session.orphan||!session.gameId){const orphan=document.createElement("span");orphan.className="health-tag warn";orphan.textContent="Session orpheline";orphan.title="Cette session ne pointe vers aucun jeu connu.";sourceCell.append(orphan);}
     noteCell.className="session-note-cell";noteCell.textContent=String(session.note||"").trim()||"—";noteCell.title=session.note||"";
     actionsCell.className="session-actions";
     const editButton=document.createElement("button");editButton.type="button";editButton.dataset.action="edit";editButton.textContent="Modifier";editButton.addEventListener("click",()=>showSessionForm(session,"edit"));
@@ -2362,36 +2973,226 @@ sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionM
   document.getElementById("data-folder").addEventListener("click",()=>runDataAction(()=>window.tracker.openBackupFolder(),"Dossier de sauvegarde ouvert."));
   document.getElementById("data-backup-now").addEventListener("click",()=>runDataAction(()=>window.tracker?.backupNow?window.tracker.backupNow():Promise.resolve({ok:false,message:"Disponible après la prochaine mise à jour d’Orbit."}),"Sauvegarde créée et vérifiée."));
   document.getElementById("data-verify").addEventListener("click",()=>runDataAction(()=>window.tracker?.verifyLatestBackup?window.tracker.verifyLatestBackup():Promise.resolve({ok:false,message:"Disponible après la prochaine mise à jour d’Orbit."}),"Dernière sauvegarde vérifiée."));
-  const healthReport=$("health-report"),healthMessage=$("health-message");
-  const healthRow=(label,value,state="")=>{const row=document.createElement("div");row.className="data-health-row"+(state?" "+state:"");const name=document.createElement("span");name.textContent=label;const amount=document.createElement("b");amount.textContent=value;row.append(name,amount);return row;};
-  async function analyzeHealth(){
-    healthMessage.textContent="Analyse en cours…";
-    try{
-      const response=await fetch("/api/health");if(!response.ok)throw new Error();
-      const health=await response.json(),report=healthReport;
-      report.textContent="";report.hidden=false;
-      report.append(healthRow("Jeux et sessions",`${health.data.games} · ${health.data.sessions}`));
-      report.append(healthRow("Films et séries",`${health.data.films} · ${health.data.series}`));
-      report.append(healthRow("Sessions orphelines",String(health.anomalies.orphanSessions),health.anomalies.orphanSessions?"warn":"good"));
-      report.append(healthRow("Métadonnées orphelines",String(health.anomalies.orphanMeta),health.anomalies.orphanMeta?"warn":"good"));
-      report.append(healthRow("Jeux sans jaquette",String(health.anomalies.gamesWithoutCover),health.anomalies.gamesWithoutCover?"warn":"good"));
-      report.append(healthRow("Films sans affiche",String(health.anomalies.filmsWithoutPoster),health.anomalies.filmsWithoutPoster?"warn":"good"));
-      report.append(healthRow("Applications classées",`${health.anomalies.apps} · ${health.anomalies.gamesWithoutKind} sans type`));
-      report.append(healthRow("Doublons probables",String(health.anomalies.duplicateGames),health.anomalies.duplicateGames?"warn":"good"));
-      report.append(healthRow("Heures de jeu / sessions datées",`${Math.round(health.time.gameMinutes/60)} h · ${Math.round(health.time.sessionMinutes/60)} h`));
-      report.append(healthRow("Dernière sauvegarde",health.data.lastBackup?`${new Date(health.data.lastBackup.at).toLocaleDateString("fr-FR")} · ${health.data.lastBackup.verified===true?"vérifiée":health.data.lastBackup.verified===false?"échec":"ancienne"}`:"Aucune"));
-      healthMessage.textContent="Analyse terminée. Aucune donnée n’a été modifiée.";
-    }catch{healthMessage.textContent="Analyse impossible : le pont Orbit ne répond pas.";}
+  const healthReport = $("health-report"), healthAnomalies = $("health-anomalies"), healthJournal = $("health-journal"), healthMessage = $("health-message");
+  const healthPreviewDialog = document.getElementById("health-preview"), healthIgnoreDialog = document.getElementById("health-ignore");
+  const healthPreviewTarget = document.getElementById("health-preview-target"), healthPreviewChanges = document.getElementById("health-preview-changes"), healthPreviewWarnings = document.getElementById("health-preview-warnings"), healthPreviewSummary = document.getElementById("health-preview-summary"), healthPreviewTitle = document.getElementById("health-preview-title"), healthPreviewOk = document.getElementById("health-preview-ok");
+  let healthData = null, healthAction = null, healthPreviewResult = null, healthIgnoreTarget = null;
+  const healthTypes = {
+    orphanSessions: ["Sessions orphelines", "Ces sessions ne pointent vers aucun jeu connu. Elles gardent leurs dates, durées et notes."],
+    orphanMeta: ["Métadonnées orphelines", "Ces fiches n'ont plus de jeu correspondant. Elles peuvent être rattachées ou archivées sans suppression."],
+    gamesWithoutCover: ["Jeux sans jaquette", "Aucune couverture locale ou Steam n'a été trouvée pour ces titres."],
+    filmsWithoutPoster: ["Films sans affiche", "Ces films n'ont pas encore d'affiche enregistrée."],
+    duplicateGames: ["Doublons probables", "Deux entrées portent le même nom. Orbit ne fusionne jamais automatiquement : vérifie chaque fiche."],
+    gamesWithoutKind: ["Applications non classées", "Ces titres n'ont ni type jeu ni type application. Le classement change leur présentation dans Orbit Play."]
+  };
+  const healthDate = value => { const date = new Date(Number(value)); return Number.isFinite(date.getTime()) ? date.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "Date inconnue"; };
+  const healthMinutes = value => fmt(Math.max(0, Math.round(Number(value) / 60000)));
+  const healthMake = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
+  const healthRow = (label, value, state = "") => { const row = healthMake("div", "data-health-row" + (state ? " " + state : "")); row.append(healthMake("span", "", label), healthMake("b", "", value)); return row; };
+  function healthSelect(label, options, selected = "") {
+    const wrap = healthMake("label", "health-target");
+    wrap.append(document.createTextNode(label));
+    const select = document.createElement("select"); select.className = "field"; select.id = "health-target-game";
+    const placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = "Choisir un jeu…"; select.append(placeholder);
+    for (const option of options) { const node = document.createElement("option"); node.value = option.value; node.textContent = option.label; if (option.value === selected) node.selected = true; select.append(node); }
+    wrap.append(select); return wrap;
   }
-  document.getElementById("health-run").addEventListener("click",analyzeHealth);
-  document.getElementById("health-copy").addEventListener("click",async()=>{
-    try{
-      const response=await fetch("/api/diagnostics");if(!response.ok)throw new Error();
-      const diagnostics=await response.json(),text=JSON.stringify(diagnostics,null,2);
-      try{await navigator.clipboard.writeText(text);}catch{const area=document.createElement("textarea");area.value=text;document.body.append(area);area.select();document.execCommand("copy");area.remove();}
-      healthMessage.textContent="Diagnostic copié. Aucun jeton ni clé n’y figure.";
+  function healthGameOptions() {
+    return [...S.games].sort(byName).map(game => ({ value: game.id, label: game.n + (game.kind === "app" ? " · application" : "") }));
+  }
+  function healthReasonField(label = "Justification (obligatoire)") {
+    const wrap = healthMake("label", "health-reason-field"); wrap.append(document.createTextNode(label));
+    const area = document.createElement("textarea"); area.className = "field"; area.id = "health-correction-reason"; area.maxLength = 300; area.rows = 3; area.placeholder = "Explique pourquoi cette correction est sûre."; wrap.append(area); return wrap;
+  }
+  function healthMatch(type, item) {
+    return (healthData?.anomalies?.ignores || []).find(entry => entry.type === type && entry.target === item.target) || null;
+  }
+  function healthIgnoreButton(type, item) {
+    const ignored = healthMatch(type, item);
+    const button = healthMake("button", "btn", ignored ? "Réafficher" : "Ignorer");
+    button.type = "button"; button.title = ignored ? "Retirer cette anomalie de la liste ignorée" : "Masquer cette anomalie avec une justification";
+    button.addEventListener("click", () => ignored ? restoreHealthAnomaly(ignored) : openHealthIgnore(type, item));
+    return button;
+  }
+  function healthActionButton(label, handler, title = "") {
+    const button = healthMake("button", "btn", label); button.type = "button"; if (title) button.title = title;
+    button.addEventListener("click", handler); return button;
+  }
+  function healthExaminer(type, item, detailNode) {
+    const button = healthActionButton("Examiner", () => { detailNode.hidden = !detailNode.hidden; button.textContent = detailNode.hidden ? "Examiner" : "Réduire"; button.setAttribute("aria-expanded", String(!detailNode.hidden)); }, "Voir le détail avant toute correction");
+    button.setAttribute("aria-expanded", "false"); return button;
+  }
+  function healthDetail(type, item) {
+    const detail = healthMake("div", "health-item-detail"); detail.hidden = true;
+    const lines = [];
+    if (type === "orphanSessions") lines.push(`Identifiant : ${item.id}`, `Libellé conservé : ${item.gameNameSnapshot || item.game || "aucun"}`, `Source : ${item.source || "manuelle"}`, `Début : ${healthDate(item.start)}`, `Fin : ${item.end ? healthDate(item.end) : "non renseignée"}`, `Durée : ${healthMinutes(item.durationMs)}`);
+    else if (type === "orphanMeta") lines.push(`Clé : ${item.key}`, `Titre : ${item.title || "aucun"}`, `Champs : ${(item.fields || []).join(", ") || "aucun"}`);
+    else if (type === "gamesWithoutCover" || type === "gamesWithoutKind") lines.push(`Identifiant : ${item.id}`, `Nom : ${item.name || "sans nom"}`, ...(type === "gamesWithoutKind" ? [`Type bibliothèque : ${item.kind || "inconnu"}`, `Type fiche : ${item.playKind || "inconnu"}`] : []));
+    else if (type === "filmsWithoutPoster") lines.push(`Identifiant : ${item.id}`, `Titre : ${item.title || "sans titre"}`, `Type : ${item.type === "series" ? "Série" : "Film"}`, `Année : ${item.year || "inconnue"}`);
+    else if (type === "duplicateGames") lines.push(`Clé : ${item.key}`, ...(item.games || []).map(game => `${game.name} · ${game.id || "sans identifiant"}`));
+    for (const line of lines) detail.append(healthMake("span", "", line));
+    return detail;
+  }
+  function healthItem(type, item) {
+    const row = healthMake("div", "health-item" + (item.ignored ? " ignored" : ""));
+    const main = healthMake("div", "health-item-main"), actions = healthMake("div", "health-item-actions");
+    const title = healthMake("b", "", item.name || item.title || item.gameNameSnapshot || item.game || item.key || item.target || "Anomalie");
+    const detailText = type === "orphanSessions" ? `${healthDate(item.start)} · ${healthMinutes(item.durationMs)} · ${item.source || "manuel"}`
+      : type === "orphanMeta" ? `Clé ${item.key} · ${item.fields?.length || 0} champ(s)`
+      : type === "gamesWithoutCover" ? "Aucune jaquette trouvée"
+      : type === "filmsWithoutPoster" ? `${item.type === "series" ? "Série" : "Film"}${item.year ? " · " + item.year : ""}`
+      : type === "duplicateGames" ? `${item.games?.length || item.names?.length || 0} entrées · ${(item.names || item.games?.map(game => game.name) || []).join(" / ")}`
+      : type === "gamesWithoutKind" ? `Type actuel : ${item.kind || item.playKind || "inconnu"}`
+      : "";
+    main.append(title, healthMake("small", "", detailText));
+    if (item.ignored) { const tag = healthMake("span", "health-tag warn", "Ignorée"); main.append(tag); if (item.ignoreReason) main.append(healthMake("small", "", "Justification : " + item.ignoreReason)); }
+    const detail = healthDetail(type, item);
+    actions.append(healthExaminer(type, item, detail));
+    if (type === "orphanSessions" && !item.ignored) actions.append(healthActionButton("Rattacher", () => openHealthCorrection(type, "attach", { ids: [item.id] }, "Rattacher une session orpheline"), "Choisir le jeu cible, puis prévisualiser"));
+    if (type === "orphanMeta" && !item.ignored) {
+      actions.append(healthActionButton("Rattacher", () => openHealthCorrection(type, "attach", { keys: [item.key] }, "Rattacher une métadonnée orpheline"), "Choisir le jeu cible, puis prévisualiser"));
+      actions.append(healthActionButton("Archiver", () => openHealthCorrection(type, "archive", { keys: [item.key] }, "Archiver une métadonnée orpheline"), "Déplacer la fiche dans l'archive, sans suppression"));
+    }
+    if (type === "gamesWithoutKind" && !item.ignored) {
+      actions.append(healthActionButton("Marquer jeu", () => openHealthCorrection(type, "classify", { ids: [item.id], kind: "game" }, "Classer comme jeu"), "Prévisualiser le classement"));
+      actions.append(healthActionButton("Marquer application", () => openHealthCorrection(type, "classify", { ids: [item.id], kind: "app" }, "Classer comme application"), "Prévisualiser le classement"));
+    }
+    actions.append(healthIgnoreButton(type, item));
+    row.append(main, actions, detail);
+    return row;
+  }
+  function renderHealthSummary() {
+    const health = healthData; healthReport.textContent = ""; healthReport.hidden = false;
+    healthReport.append(healthRow("Jeux et sessions", `${health.data.games} · ${health.data.sessions}`));
+    healthReport.append(healthRow("Films et séries", `${health.data.films} · ${health.data.series}`));
+    healthReport.append(healthRow("Jaquettes · sauvegardes", `${health.data.covers} · ${health.data.backups}`));
+    healthReport.append(healthRow("Schéma de données", `v${health.data.schemaVersion}`));
+    healthReport.append(healthRow("Heures de jeu / sessions datées", `${Math.round(health.time.gameMinutes / 60)} h · ${Math.round(health.time.sessionMinutes / 60)} h`));
+    healthReport.append(healthRow("Applications classées", `${health.anomalies.apps} · ${health.anomalies.gamesWithoutKind} sans type`));
+    healthReport.append(healthRow("Dernière sauvegarde", health.data.lastBackup ? `${new Date(health.data.lastBackup.at).toLocaleDateString("fr-FR")} · ${health.data.lastBackup.verified === true ? "vérifiée" : health.data.lastBackup.verified === false ? "échec" : "ancienne"}` : "Aucune", health.data.lastBackup?.verified === false ? "warn" : ""));
+    healthReport.append(healthRow("Dernier import", health.data.lastImport ? `${health.data.lastImport.label} · ${healthDate(health.data.lastImport.at)}${health.data.lastImport.count ? " · " + health.data.lastImport.count : ""}` : "Aucun"));
+    healthReport.append(healthRow("Anomalies ignorées", String(health.anomalies.ignoredTotal || 0)));
+  }
+  function renderHealthGroups() {
+    healthAnomalies.textContent = "";
+    for (const [type, [label, description]] of Object.entries(healthTypes)) {
+      const items = healthData.anomalies.items?.[type] || [], active = items.filter(item => !item.ignored).length, ignored = items.length - active;
+      const group = document.createElement("details"); group.className = "health-group"; if (active || ignored) group.open = type === "orphanSessions" || type === "gamesWithoutKind";
+      const head = document.createElement("summary"); head.className = "health-group-head";
+      const count = healthMake("span", "health-count " + (active ? "warn" : "good"), String(active));
+      head.append(healthMake("b", "", label), count); if (ignored) head.append(healthMake("span", "health-tag", `${ignored} ignorée${ignored > 1 ? "s" : ""}`));
+      const body = healthMake("div", "health-group-body");
+      const help = healthMake("div", "health-empty", description); body.append(help);
+      for (const item of items) body.append(healthItem(type, item));
+      if (!items.length) body.append(healthMake("div", "health-empty", "Aucune anomalie détectée."));
+      group.append(head, body); healthAnomalies.append(group);
+    }
+  }
+  function renderHealthJournal() {
+    const corrections = healthData?.corrections || []; healthJournal.textContent = ""; healthJournal.hidden = !corrections.length;
+    if (!corrections.length) return;
+    healthJournal.append(healthMake("b", "", "Corrections récentes"));
+    for (const correction of [...corrections].reverse()) {
+      const row = healthMake("div", "health-journal-row");
+      row.append(healthMake("span", "", `${correction.title || correction.action || correction.type} · ${healthDate(correction.appliedAt)}`));
+      row.append(healthActionButton("Annuler", () => undoHealthCorrection(correction.id), "Restaurer exactement l'état précédent"));
+      healthJournal.append(row);
+    }
+  }
+  function renderHealth() { if (!healthData) return; renderHealthSummary(); renderHealthGroups(); renderHealthJournal(); }
+  async function analyzeHealth(force = true) {
+    healthMessage.textContent = "Analyse en cours…";
+    try {
+      const response = await fetch("/api/health" + (force ? "?refresh=1" : ""), { cache: "no-store" }); if (!response.ok) throw new Error();
+      healthData = await response.json(); renderHealth();
+      const active = Object.keys(healthTypes).reduce((total, type) => total + (healthData.anomalies.items?.[type] || []).filter(item => !item.ignored).length, 0);
+      healthMessage.textContent = active ? `${active} anomalie${active > 1 ? "s" : ""} à examiner. Aucune donnée n'a été modifiée.` : "Analyse terminée : aucune anomalie active. Aucune donnée n'a été modifiée.";
+    } catch { healthMessage.textContent = "Analyse impossible : le pont Orbit ne répond pas."; }
+  }
+  async function healthRequest(target, body) {
+    const response = await fetch(target, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    let data = {}; try { data = await response.json(); } catch {}
+    if (!response.ok) throw Object.assign(new Error(data.error || "Opération impossible"), { data, status: response.status });
+    return data;
+  }
+  function openHealthCorrection(type, action, payload, title) {
+    healthAction = { type, action, payload, title }; healthPreviewResult = null;
+    healthPreviewTitle.textContent = title; healthPreviewSummary.textContent = "Vérifie la cible puis prévisualise les changements. Rien n'est appliqué avant ta confirmation.";
+    healthPreviewTarget.textContent = ""; healthPreviewChanges.textContent = ""; healthPreviewChanges.hidden = true; healthPreviewWarnings.hidden = true; healthPreviewWarnings.textContent = "";
+    if (type === "orphanSessions" || (type === "orphanMeta" && action === "attach")) healthPreviewTarget.append(healthSelect("Jeu cible", healthGameOptions()));
+    if (type === "orphanMeta" && action === "archive") healthPreviewTarget.append(healthReasonField("Justification de l'archivage"));
+    healthPreviewOk.textContent = "Prévisualiser"; healthPreviewOk.disabled = false;
+    if (!healthPreviewDialog.open) healthPreviewDialog.showModal();
+    healthPreviewTarget.querySelector("select, textarea")?.focus();
+  }
+  function healthCollectedPayload() {
+    const payload = { ...(healthAction?.payload || {}) };
+    payload.type = healthAction?.type; payload.action = healthAction?.action;
+    const target = document.getElementById("health-target-game"); if (target) payload.targetGameId = target.value;
+    const reason = document.getElementById("health-correction-reason"); if (reason) payload.reason = reason.value.trim();
+    return payload;
+  }
+  async function healthPreview() {
+    if (!healthAction) return;
+    if (healthPreviewResult) {
+      healthPreviewOk.disabled = true;
+      try {
+        const result = await healthRequest("/api/health/apply", { id: healthPreviewResult.id, confirm: true });
+        healthPreviewDialog.close(); toast("Correction appliquée et annulable.");
+        await analyzeHealth(true);
+        healthMessage.textContent = `${result.title || "Correction appliquée"} · ${result.applied || 0} élément(s). Annulation possible dans le journal ci-dessous.`;
+      } catch (error) { healthPreviewSummary.textContent = error.data?.error || error.message || "Application impossible."; healthPreviewOk.disabled = false; }
+      return;
+    }
+    healthPreviewOk.disabled = true; healthPreviewSummary.textContent = "Prévisualisation en cours…";
+    try {
+      const result = await healthRequest("/api/health/preview", healthCollectedPayload());
+      healthPreviewResult = result; healthPreviewSummary.textContent = result.summary || "Vérifie les changements avant d'appliquer.";
+      healthPreviewChanges.textContent = ""; healthPreviewChanges.hidden = !result.changes?.length;
+      for (const change of result.changes || []) healthPreviewChanges.append(healthMake("span", "", `${change.label} : ${change.before} → ${change.after}`));
+      healthPreviewWarnings.hidden = !result.warnings?.length;
+      healthPreviewWarnings.textContent = (result.warnings || []).join(" ");
+      healthPreviewOk.textContent = "Appliquer la correction"; healthPreviewOk.disabled = false;
+    } catch (error) { healthPreviewSummary.textContent = error.data?.error || error.message || "Prévisualisation impossible."; healthPreviewOk.disabled = false; }
+  }
+  async function undoHealthCorrection(id) {
+    healthMessage.textContent = "Annulation en cours…";
+    try { const result = await healthRequest("/api/health/undo", { id }); toast("Correction annulée."); await analyzeHealth(true); healthMessage.textContent = `${result.restored || "Correction"} : état précédent restauré.`; }
+    catch (error) { healthMessage.textContent = error.data?.error || "Annulation impossible."; }
+  }
+  function openHealthIgnore(type, item) {
+    healthIgnoreTarget = { type, target: item.target, label: item.name || item.title || item.gameNameSnapshot || item.game || item.key || item.target };
+    document.getElementById("health-ignore-label").textContent = `Anomalie : ${healthIgnoreTarget.label}. Elle restera dans les données, mais sera masquée de la liste active.`;
+    const reason = document.getElementById("health-ignore-reason"); reason.value = ""; healthIgnoreDialog.showModal(); reason.focus();
+  }
+  async function restoreHealthAnomaly(ignore) {
+    healthMessage.textContent = "Réaffichage en cours…";
+    try { await healthRequest("/api/health/unignore", { id: ignore.id }); await analyzeHealth(true); healthMessage.textContent = "Anomalie réaffichée."; }
+    catch (error) { healthMessage.textContent = error.data?.error || "Réaffichage impossible."; }
+  }
+  document.getElementById("health-run").addEventListener("click", () => analyzeHealth(true));
+  document.getElementById("health-copy").addEventListener("click", async() => {
+    try {
+      const response = await fetch("/api/diagnostics"); if (!response.ok) throw new Error();
+      const diagnostics = await response.json(), text = JSON.stringify(diagnostics, null, 2);
+      try { await navigator.clipboard.writeText(text); } catch { const area = document.createElement("textarea"); area.value = text; document.body.append(area); area.select(); document.execCommand("copy"); area.remove(); }
+      healthMessage.textContent = "Diagnostic copié. Aucun jeton ni clé n'y figure.";
       toast("Diagnostic copié.");
-    }catch{healthMessage.textContent="Copie impossible : le pont Orbit ne répond pas.";}
+    } catch { healthMessage.textContent = "Copie impossible : le pont Orbit ne répond pas."; }
+  });
+  const downloadHealth = format => { const link = document.createElement("a"); link.href = "/api/health/export?format=" + format; link.download = `orbit-sante-${new Date().toISOString().slice(0, 10)}.${format}`; document.body.append(link); link.click(); link.remove(); toast(`Rapport ${format.toUpperCase()} exporté.`); };
+  document.getElementById("health-export-json").addEventListener("click", () => downloadHealth("json"));
+  document.getElementById("health-export-csv").addEventListener("click", () => downloadHealth("csv"));
+  healthPreviewOk.addEventListener("click", healthPreview);
+  document.getElementById("health-preview-close").addEventListener("click", () => healthPreviewDialog.close());
+  document.getElementById("health-preview-cancel").addEventListener("click", () => healthPreviewDialog.close());
+  document.getElementById("health-ignore-close").addEventListener("click", () => healthIgnoreDialog.close());
+  document.getElementById("health-ignore-cancel").addEventListener("click", () => healthIgnoreDialog.close());
+  document.getElementById("health-ignore-form").addEventListener("submit", async event => {
+    event.preventDefault(); if (!healthIgnoreTarget) return;
+    const reason = document.getElementById("health-ignore-reason").value.trim(); if (reason.length < 3) { toast("Écris une justification de 3 caractères minimum."); return; }
+    try { await healthRequest("/api/health/ignore", { ...healthIgnoreTarget, reason }); healthIgnoreDialog.close(); await analyzeHealth(true); healthMessage.textContent = "Anomalie ignorée avec justification. Elle reste dans les données."; }
+    catch (error) { toast(error.data?.error || "Mise en ignore impossible."); }
   });
   function playThemeSound(kind){
     if(config.sound&&config.sound.enabled===false)return;const volume=Math.max(0,Math.min(1,Number(config.sound&&config.sound.volume)||0));if(volume===0)return;const cue=themeBoot.current().sounds?.[kind];if(!cue)return;const AudioContextClass=window.AudioContext||window.webkitAudioContext;if(!AudioContextClass)return;

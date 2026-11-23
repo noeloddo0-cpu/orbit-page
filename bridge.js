@@ -57,6 +57,7 @@ const THEMES_DIR = path.join(ASSET_DIR, "themes");
 const UI_PREFS_FILE = path.join(DATA_DIR, "ui-preferences.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const RECAP_FILE = path.join(DATA_DIR, "recap.json");
+const HEALTH_FILE = path.join(DATA_DIR, "data-health.json");
 const atomicWrite = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 }); const temp = file + ".tmp"; fs.writeFileSync(temp, JSON.stringify(value, null, 2), { encoding: "utf8", mode: 0o600 }); fs.renameSync(temp, file); try { fs.chmodSync(file, 0o600); } catch {} };
 const CINEMA_FILE = path.join(DATA_DIR, "cinema.json");
 const TMDB_KEY_FILE = path.join(DATA_DIR, "tmdb-api-key.txt");
@@ -133,11 +134,48 @@ const SHELL_CSS = Object.fromEntries(Object.keys(SHELLS).map(id => {
 const UI_THEMES = new Set(Object.keys(THEMES).filter(id => Object.hasOwn(SHELLS, id)));
 const LEGACY_THEME_IDS = { minuit: "apple-tv", ocean: "apple-tv", aurore: "apple-tv", foret: "apple-tv", braise: "apple-tv", clair: "apple-tv" };
 function validTheme(id) { return UI_THEMES.has(id) ? id : (LEGACY_THEME_IDS[id] && UI_THEMES.has(LEGACY_THEME_IDS[id]) ? LEGACY_THEME_IDS[id] : "apple-tv"); }
+const LIBRARY_SORTS = new Set(["nom", "statut", "temps", "recent"]);
+const LIBRARY_TYPES = new Set(["games", "apps", "all"]);
+function sanitizeLibraryFilters(value) {
+  const filter = value && typeof value === "object" ? value : {};
+  const status = filter.s === null || filter.s === undefined || filter.s === "" ? null : Number(filter.s);
+  return {
+    q: String(filter.q || "").slice(0, 200),
+    s: Number.isInteger(status) && status >= 0 && status <= 5 ? status : null,
+    c: ["", "0", "1", "2"].includes(String(filter.c ?? "")) ? String(filter.c ?? "") : "",
+    o: LIBRARY_SORTS.has(filter.o) ? filter.o : "nom",
+    fav: filter.fav === true,
+    type: LIBRARY_TYPES.has(filter.type) ? filter.type : "games"
+  };
+}
+function sanitizeLibraryViews(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 30).map((view) => {
+    if (!view || typeof view !== "object") return null;
+    const name = String(view.name || "").trim().slice(0, 60);
+    const filter = view.filter && typeof view.filter === "object" ? view.filter : {};
+    const status = filter.s === null || filter.s === undefined || filter.s === "" ? null : Number(filter.s);
+    const completion = ["", "0", "1", "2"].includes(String(filter.c ?? "")) ? String(filter.c ?? "") : "";
+    return {
+      id: typeof view.id === "string" && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(view.id) ? view.id : crypto.randomUUID(),
+      name,
+      filter: {
+        q: String(filter.q || "").slice(0, 200),
+        s: Number.isInteger(status) && status >= 0 && status <= 5 ? status : null,
+        c: completion,
+        o: LIBRARY_SORTS.has(filter.o) ? filter.o : "nom",
+        fav: filter.fav === true,
+        type: LIBRARY_TYPES.has(filter.type) ? filter.type : "games"
+      },
+      createdAt: Math.max(0, Number(view.createdAt) || Date.now())
+    };
+  }).filter((view) => view && view.name);
+}
 function readUiPrefs() {
-  const defaults = { theme: validTheme("apple-tv"), accent: "", volume: 0.07, introEnabled: true, tileSize: "medium", effectsQuality: "balanced", glassQuality: "balanced" };
+  const defaults = { theme: validTheme("apple-tv"), accent: "", volume: 0.07, introEnabled: true, tileSize: "medium", effectsQuality: "balanced", glassQuality: "balanced", libraryViews: [], libraryFilters: sanitizeLibraryFilters() };
   try {
     const p = settingsDocument;
-    return { theme: validTheme(p.theme), accent: /^#[\da-f]{6}$/i.test(p.accent || "") ? p.accent : "", volume: Number.isFinite(+p.volume) ? Math.max(0, Math.min(1, +p.volume)) : defaults.volume, introEnabled: typeof p.introEnabled === "boolean" ? p.introEnabled : true, tileSize: ["small","medium","large"].includes(p.tileSize) ? p.tileSize : defaults.tileSize, effectsQuality: ["max","balanced","light"].includes(p.effectsQuality) ? p.effectsQuality : defaults.effectsQuality, glassQuality: ["max","balanced","light"].includes(p.glassQuality) ? p.glassQuality : defaults.glassQuality };
+    return { theme: validTheme(p.theme), accent: /^#[\da-f]{6}$/i.test(p.accent || "") ? p.accent : "", volume: Number.isFinite(+p.volume) ? Math.max(0, Math.min(1, +p.volume)) : defaults.volume, introEnabled: typeof p.introEnabled === "boolean" ? p.introEnabled : true, tileSize: ["small","medium","large"].includes(p.tileSize) ? p.tileSize : defaults.tileSize, effectsQuality: ["max","balanced","light"].includes(p.effectsQuality) ? p.effectsQuality : defaults.effectsQuality, glassQuality: ["max","balanced","light"].includes(p.glassQuality) ? p.glassQuality : defaults.glassQuality, libraryViews: sanitizeLibraryViews(p.libraryViews), libraryFilters: sanitizeLibraryFilters(p.libraryFilters) };
   } catch (e) { return defaults; }
 }
 const DEFAULT_APP_CONFIG = {
@@ -444,7 +482,8 @@ function saveMeta() {
       ? buildMetaDocument({ canonical: state.meta, aliases: state.metaAliases, orphans: state.metaOrphans, archived: state.metaArchived })
       : state.meta;
     fs.writeFileSync(META_FILE + ".tmp", JSON.stringify(value, null, 1)); fs.renameSync(META_FILE + ".tmp", META_FILE);
-  } catch (e) { logger.error("Cache infos impossible", { error: e }); }
+    return true;
+  } catch (e) { logger.error("Cache infos impossible", { error: e }); return false; }
 }
 function coverIndex() {
   const found = {};
@@ -740,8 +779,62 @@ function lastBackupSummary() {
     };
   } catch { return null; }
 }
+const HEALTH_TYPES = new Set(["orphanSessions", "orphanMeta", "gamesWithoutCover", "filmsWithoutPoster", "duplicateGames", "gamesWithoutKind"]);
+const HEALTH_TYPE_LABELS = {
+  orphanSessions: "Sessions orphelines",
+  orphanMeta: "Métadonnées orphelines",
+  gamesWithoutCover: "Jeux sans jaquette",
+  filmsWithoutPoster: "Films sans affiche",
+  duplicateGames: "Doublons probables",
+  gamesWithoutKind: "Applications non classées"
+};
+const healthPreviews = new Map();
+function healthStateDefaults() { return { version: 1, ignores: [], corrections: [], lastImport: null }; }
+function healthIgnoreKey(type, target) { return `${type}|${target}`; }
+function readHealthState() {
+  try {
+    const value = JSON.parse(fs.readFileSync(HEALTH_FILE, "utf8"));
+    if (!value || typeof value !== "object") return healthStateDefaults();
+    const ignores = Array.isArray(value.ignores)
+      ? value.ignores.filter(entry => entry && HEALTH_TYPES.has(entry.type) && typeof entry.target === "string" && entry.target && entry.target.length <= 500 && typeof entry.reason === "string" && entry.reason.trim())
+        .slice(0, 5000)
+        .map(entry => ({
+          id: typeof entry.id === "string" && entry.id ? entry.id : healthIgnoreKey(entry.type, entry.target),
+          type: entry.type,
+          target: entry.target,
+          reason: entry.reason.trim().slice(0, 300),
+          createdAt: Math.max(0, Number(entry.createdAt) || Date.now())
+        }))
+      : [];
+    const corrections = Array.isArray(value.corrections)
+      ? value.corrections.filter(entry => entry && typeof entry === "object" && typeof entry.id === "string" && HEALTH_TYPES.has(entry.type)).slice(-50)
+      : [];
+    const lastImport = value.lastImport && typeof value.lastImport === "object" && Number.isFinite(Number(value.lastImport.at))
+      ? { at: Number(value.lastImport.at), source: String(value.lastImport.source || "import").slice(0, 40), label: String(value.lastImport.label || "Import").slice(0, 120), count: Math.max(0, Number(value.lastImport.count) || 0) }
+      : null;
+    return { version: 1, ignores, corrections, lastImport };
+  } catch { return healthStateDefaults(); }
+}
+function saveHealthState(next) {
+  atomicWrite(HEALTH_FILE, { version: 1, ignores: Array.isArray(next.ignores) ? next.ignores : [], corrections: Array.isArray(next.corrections) ? next.corrections.slice(-50) : [], lastImport: next.lastImport || null });
+}
+function invalidateHealth() { healthCache = { at: 0, value: null }; }
+function lastImportSummary() {
+  const saved = readHealthState().lastImport;
+  const imported = state.sessions.filter(session => session.source === "import").sort((a, b) => b.start - a.start);
+  const candidates = [];
+  if (saved) candidates.push(saved);
+  if (imported.length) candidates.push({ at: imported[0].start, source: "session", label: "Sessions importées", count: imported.length });
+  if (!candidates.length) return null;
+  const best = candidates.sort((a, b) => Number(b.at) - Number(a.at))[0];
+  return { at: new Date(best.at).toISOString(), source: best.source, label: best.label, count: best.count || 0 };
+}
 function healthReport() {
   if (healthCache.value && Date.now() - healthCache.at < 5000) return healthCache.value;
+  const health = readHealthState();
+  const ignored = new Set(health.ignores.map(entry => healthIgnoreKey(entry.type, entry.target)));
+  const ignoreReasons = new Map(health.ignores.map(entry => [healthIgnoreKey(entry.type, entry.target), entry.reason]));
+  const mark = (type, item) => ({ ...item, ignored: ignored.has(healthIgnoreKey(type, item.target)), ignoreReason: ignoreReasons.get(healthIgnoreKey(type, item.target)) || "" });
   const artwork = artworkIndices();
   const covered = new Set([...Object.keys(artwork.covers), ...Object.keys(artwork.steamCovers)]);
   const knownNames = new Set(state.games.map(game => ckey(game.n || game.name)));
@@ -751,30 +844,68 @@ function healthReport() {
   for (const game of state.games) {
     const key = ckey(game.n || game.name);
     if (!duplicateMap.has(key)) duplicateMap.set(key, []);
-    duplicateMap.get(key).push(game.name || game.n);
+    duplicateMap.get(key).push({ id: game.id || null, name: game.name || game.n });
   }
-  const duplicateGames = [...duplicateMap.entries()].filter(([, names]) => names.length > 1).map(([key, names]) => ({ key, names }));
+  const duplicateGames = [...duplicateMap.entries()].filter(([, games]) => games.length > 1).map(([key, games]) => ({ target: key, key, names: games.map(game => game.name), games }));
   const orphanSessions = state.sessions.filter(session => {
     if (session.orphan === true) return true;
     if (state.schemaVersion === LIBRARY_VERSION) return !session.gameId || !gameIds.has(session.gameId);
     return !knownNames.has(ckey(session.game));
   });
-  const orphanMeta = [
-    ...new Map([
-      ...Object.entries(state.meta).filter(([key]) => !metaKeys.has(key) && !Object.hasOwn(state.metaAliases, key)),
-      ...(state.schemaVersion === LIBRARY_VERSION ? Object.entries(state.metaOrphans) : [])
-    ]).entries()
-  ];
+  const orphanMetaEntries = [...new Map([
+    ...Object.entries(state.meta).filter(([key]) => !metaKeys.has(key) && !Object.hasOwn(state.metaAliases, key)),
+    ...(state.schemaVersion === LIBRARY_VERSION ? Object.entries(state.metaOrphans) : [])
+  ]).entries()];
   const missingCovers = state.games.filter(game => !covered.has(ckey(game.n || game.name)));
   const filmsWithoutPoster = cinema.items.filter(item => item.type === 'film' && !item.poster);
-  const gamesWithoutKind = state.games.filter(game => !['game', 'app'].includes(gameMeta(game)?.playDetails?.kind));
-  const apps = state.games.filter(game => gameMeta(game)?.playDetails?.kind === 'app');
+  const gamesWithoutKind = state.games.filter(game => !["game", "app"].includes(game.kind) && !["game", "app"].includes(gameMeta(game)?.playDetails?.kind));
+  const apps = state.games.filter(game => game.kind === "app" || gameMeta(game)?.playDetails?.kind === "app");
   const statusCounts = {};
   for (const game of state.games) statusCounts[normalizeStatus(game.s)] = (statusCounts[normalizeStatus(game.s)] || 0) + 1;
   let coversFiles = 0;
   try { coversFiles = fs.readdirSync(COVERS).filter(name => ['.jpg', '.jpeg', '.png', '.webp'].includes(path.extname(name).toLowerCase())).length; } catch {}
   const sessionMinutes = Math.round(state.sessions.reduce((total, session) => total + Math.max(0, Number(session.durationMs) || Number(session.minutes) * 60000 || 0), 0) / 60000);
   const gameMinutes = state.games.reduce((total, game) => total + Math.max(0, Number(game.m) || 0), 0);
+  const items = {
+    orphanSessions: orphanSessions.map(session => mark("orphanSessions", {
+      target: session.id,
+      id: session.id,
+      game: session.game,
+      gameNameSnapshot: session.gameNameSnapshot || session.game,
+      start: session.start,
+      end: session.end || null,
+      durationMs: sessionDuration(session),
+      source: session.source || "manual"
+    })),
+    orphanMeta: orphanMetaEntries.map(([key, meta]) => mark("orphanMeta", {
+      target: key,
+      key,
+      title: String(meta?.title || ""),
+      fields: Object.keys(meta || {}).filter(field => !field.startsWith("_")).slice(0, 20)
+    })),
+    gamesWithoutCover: missingCovers.map(game => mark("gamesWithoutCover", {
+      target: game.id,
+      id: game.id,
+      name: game.name || game.n
+    })),
+    filmsWithoutPoster: filmsWithoutPoster.map(item => mark("filmsWithoutPoster", {
+      target: item.id,
+      id: item.id,
+      title: item.title,
+      type: item.type,
+      year: item.year || null
+    })),
+    duplicateGames: duplicateGames.map(group => mark("duplicateGames", group)),
+    gamesWithoutKind: gamesWithoutKind.map(game => mark("gamesWithoutKind", {
+      target: game.id,
+      id: game.id,
+      name: game.name || game.n,
+      kind: game.kind || null,
+      playKind: gameMeta(game)?.playDetails?.kind || null
+    }))
+  };
+  const active = type => items[type].filter(item => !item.ignored);
+  const ignoredCounts = Object.fromEntries(Object.keys(items).map(type => [type, items[type].length - active(type).length]));
   const value = {
     app: { version: APP_VERSION, schemaVersion: Number(state.schemaVersion) || 1, startedAt: new Date(startedAt).toISOString(), uptimeMs: Date.now() - startedAt, platform: process.platform, arch: process.arch, node: process.versions.node, electron: process.versions.electron || null },
     data: {
@@ -782,32 +913,502 @@ function healthReport() {
       films: cinema.items.filter(item => item.type === 'film').length,
       series: cinema.items.filter(item => item.type === 'series').length,
       covers: coversFiles, backups: (() => { try { return fs.readdirSync(path.join(DATA_DIR, 'backups'), { withFileTypes: true }).filter(entry => entry.isDirectory()).length; } catch { return 0; } })(),
-      lastBackup: lastBackupSummary()
+      schemaVersion: Number(state.schemaVersion) || 1,
+      lastBackup: lastBackupSummary(),
+      lastImport: lastImportSummary()
     },
     anomalies: {
-      orphanSessions: orphanSessions.length,
-      orphanSessionsSample: orphanSessions.slice(0, 10).map(session => ({ game: session.game, start: session.start })),
-      orphanMeta: orphanMeta.length,
-      orphanMetaSample: orphanMeta.slice(0, 10).map(([key, meta]) => ({ key, title: meta?.title || '' })),
-      gamesWithoutCover: missingCovers.length,
-      gamesWithoutCoverSample: missingCovers.slice(0, 10).map(game => game.n),
-      filmsWithoutPoster: filmsWithoutPoster.length,
-      filmsWithoutPosterSample: filmsWithoutPoster.slice(0, 10).map(item => item.title),
-      gamesWithoutKind: gamesWithoutKind.length,
+      orphanSessions: active("orphanSessions").length,
+      orphanSessionsSample: active("orphanSessions").slice(0, 10).map(session => ({ game: session.game, start: session.start })),
+      orphanMeta: active("orphanMeta").length,
+      orphanMetaSample: active("orphanMeta").slice(0, 10).map(meta => ({ key: meta.key, title: meta.title })),
+      gamesWithoutCover: active("gamesWithoutCover").length,
+      gamesWithoutCoverSample: active("gamesWithoutCover").slice(0, 10).map(game => game.name),
+      filmsWithoutPoster: active("filmsWithoutPoster").length,
+      filmsWithoutPosterSample: active("filmsWithoutPoster").slice(0, 10).map(item => item.title),
+      gamesWithoutKind: active("gamesWithoutKind").length,
       apps: apps.length,
-      duplicateGames: duplicateGames.length,
-      duplicateGamesSample: duplicateGames.slice(0, 10),
+      duplicateGames: active("duplicateGames").length,
+      duplicateGamesSample: active("duplicateGames").slice(0, 10),
       sessionsWithoutId: state.sessions.filter(session => !session.id).length,
-      legacySessionIds: state.sessions.filter(session => String(session.id || "").startsWith("legacy-")).length
+      legacySessionIds: state.sessions.filter(session => String(session.id || "").startsWith("legacy-")).length,
+      items,
+      ignoredCounts,
+      ignoredTotal: health.ignores.length,
+      ignores: health.ignores
     },
     time: { gameMinutes, sessionMinutes, importedOrManualMinutes: Math.max(0, gameMinutes - sessionMinutes) },
     statusCounts,
+    corrections: health.corrections.slice(-10).map(entry => ({ id: entry.id, type: entry.type, action: entry.action, title: entry.title, appliedAt: entry.appliedAt })),
     discord: { status: disc.status, playing: disc.playing },
     paths: { data: DATA_DIR, assets: ASSET_DIR, logs: path.join(DATA_DIR, 'logs') },
     generatedAt: new Date().toISOString()
   };
   healthCache = { at: Date.now(), value };
   return value;
+}
+function csvCell(value) { return '"' + String(value ?? "").replace(/"/g, '""') + '"'; }
+function healthCsv(report = healthReport()) {
+  const rows = [["Section", "Catégorie", "Cible", "Détail", "Ignorée", "Justification"]];
+  rows.push(["Résumé", "Jeux", "", String(report.data.games), "", ""]);
+  rows.push(["Résumé", "Sessions", "", String(report.data.sessions), "", ""]);
+  rows.push(["Résumé", "Films", "", String(report.data.films), "", ""]);
+  rows.push(["Résumé", "Séries", "", String(report.data.series), "", ""]);
+  rows.push(["Résumé", "Jaquettes", "", String(report.data.covers), "", ""]);
+  rows.push(["Résumé", "Sauvegardes", "", String(report.data.backups), "", ""]);
+  rows.push(["Résumé", "Version du schéma", "", String(report.data.schemaVersion), "", ""]);
+  rows.push(["Résumé", "Dernière sauvegarde", "", report.data.lastBackup ? `${report.data.lastBackup.name} (${report.data.lastBackup.verified === true ? "vérifiée" : report.data.lastBackup.verified === false ? "échec" : "ancienne"})` : "Aucune", "", ""]);
+  rows.push(["Résumé", "Dernier import", "", report.data.lastImport ? `${report.data.lastImport.label} · ${report.data.lastImport.at}` : "Aucun", "", ""]);
+  for (const type of Object.keys(report.anomalies.items || {})) {
+    for (const item of report.anomalies.items[type]) {
+      const detail = item.name || item.title || item.game || item.key || (item.games ? item.games.map(game => game.name).join(" / ") : item.id) || "";
+      rows.push(["Anomalie", HEALTH_TYPE_LABELS[type] || type, item.target || item.id || "", detail, item.ignored ? "oui" : "non", item.ignoreReason || ""]);
+    }
+  }
+  return "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
+}
+function healthPreviewFailure(error, code = 400) { return { error, code }; }
+function normalizeHealthIds(value, limit = 1000) {
+  return [...new Set((Array.isArray(value) ? value : []).filter(id => typeof id === "string" && id.trim()).map(id => id.trim().slice(0, 200)))].slice(0, limit);
+}
+function createHealthPreview(input) {
+  if (state.schemaVersion !== LIBRARY_VERSION) return healthPreviewFailure("migration v2 requise", 409);
+  const type = String(input?.type || "");
+  const action = String(input?.action || "");
+  if (!HEALTH_TYPES.has(type)) return healthPreviewFailure("type d’anomalie inconnu");
+  const finish = (title, summary, changes, data, warnings = []) => {
+    const id = crypto.randomUUID();
+    const preview = { ok: true, id, type, action, title, summary, changes, warnings, reversible: true, createdAt: Date.now() };
+    healthPreviews.set(id, { ...preview, data });
+    if (healthPreviews.size > 100) {
+      const cutoff = Date.now() - 15 * 60 * 1000;
+      for (const [key, value] of healthPreviews) { if (value.createdAt < cutoff) healthPreviews.delete(key); }
+      while (healthPreviews.size > 100) healthPreviews.delete(healthPreviews.keys().next().value);
+    }
+    return preview;
+  };
+  if (type === "orphanSessions" && action === "attach") {
+    const ids = normalizeHealthIds(input?.ids);
+    if (!ids.length) return healthPreviewFailure("aucune session sélectionnée");
+    const sessions = ids.map(id => state.sessions.find(session => session.id === id)).filter(Boolean);
+    if (sessions.length !== ids.length) return healthPreviewFailure("session introuvable", 404);
+    const orphanIds = new Set(healthReport().anomalies.items.orphanSessions.map(item => item.id));
+    const selected = sessions.filter(session => orphanIds.has(session.id));
+    if (!selected.length) return healthPreviewFailure("ces sessions ne sont plus orphelines");
+    const target = findGameById(String(input?.targetGameId || ""));
+    if (!target) return healthPreviewFailure("jeu cible introuvable", 404);
+    const changes = selected.map(session => ({
+      target: session.id,
+      label: `${session.game || session.gameNameSnapshot || "Session"} · ${new Date(session.start).toLocaleString("fr-FR")}`,
+      before: "Session orpheline",
+      after: `Rattachée à ${target.name || target.n}`
+    }));
+    return finish(`Rattacher ${selected.length} session${selected.length > 1 ? "s" : ""} à ${target.name || target.n}`, "Les sessions gardent leurs dates, durées et notes. Seul leur jeu change.", changes, {
+      sessionIds: selected.map(session => session.id), targetId: target.id,
+      before: selected.map(session => ({ id: session.id, gameId: session.gameId, game: session.game, gameNameSnapshot: session.gameNameSnapshot, orphan: session.orphan }))
+    });
+  }
+  if (type === "orphanMeta" && (action === "attach" || action === "archive")) {
+    const keys = normalizeHealthIds(input?.keys ?? input?.ids, 200);
+    if (!keys.length) return healthPreviewFailure("aucune métadonnée sélectionnée");
+    const sources = [];
+    for (const key of keys) {
+      const inOrphans = Object.hasOwn(state.metaOrphans, key);
+      const inMeta = Object.hasOwn(state.meta, key) && !Object.hasOwn(state.metaAliases, key) && !findGameById(key);
+      if (!inOrphans && !inMeta) return healthPreviewFailure("métadonnée orpheline introuvable", 404);
+      sources.push({ key, meta: inOrphans ? state.metaOrphans[key] : state.meta[key], location: inOrphans ? "orphans" : "meta" });
+    }
+    if (action === "archive") {
+      const reason = String(input?.reason || "").trim().slice(0, 300);
+      if (reason.length < 3) return healthPreviewFailure("une justification de 3 caractères minimum est nécessaire");
+      const changes = sources.map(source => ({ target: source.key, label: source.meta?.title || source.key, before: "Métadonnée orpheline", after: "Archivée dans meta.json" }));
+      return finish(`Archiver ${sources.length} métadonnée${sources.length > 1 ? "s" : ""}`, "Aucune donnée n’est supprimée : la fiche est déplacée dans l’archive du fichier meta.json.", changes, { keys, sources, reason });
+    }
+    const target = findGameById(String(input?.targetGameId || ""));
+    if (!target) return healthPreviewFailure("jeu cible introuvable", 404);
+    const targetBefore = state.meta[target.id] ? JSON.parse(JSON.stringify(state.meta[target.id])) : null;
+    let merged = targetBefore ? { ...targetBefore } : {};
+    const warnings = [];
+    for (const source of sources) {
+      if (state.metaAliases[source.key] && state.metaAliases[source.key] !== target.id) warnings.push(`La clé ${source.key} est déjà associée à un autre jeu ; elle sera réassociée à ${target.name || target.n}.`);
+      merged = { ...(source.meta || {}), ...merged };
+    }
+    const addedFields = [...new Set(sources.flatMap(source => Object.keys(source.meta || {}).filter(field => !targetBefore || targetBefore[field] === undefined)))].slice(0, 20);
+    const conflicts = [...new Set(sources.flatMap(source => Object.keys(source.meta || {}).filter(field => targetBefore && targetBefore[field] !== undefined)))].slice(0, 20);
+    const changes = sources.map(source => ({
+      target: source.key,
+      label: source.meta?.title || source.key,
+      before: "Métadonnée orpheline",
+      after: `Rattachée à ${target.name || target.n}${addedFields.length ? ` (${addedFields.length} champ(s) ajouté(s))` : " (aucun champ ajouté)"}`
+    }));
+    if (conflicts.length) warnings.push(`Les champs déjà présents sur ${target.name || target.n} sont conservés : ${conflicts.join(", ")}.`);
+    return finish(`Rattacher ${sources.length} métadonnée${sources.length > 1 ? "s" : ""} à ${target.name || target.n}`, "La fiche existante du jeu garde la priorité. Une copie de la métadonnée d’origine est archivée.", changes, {
+      keys, sources, targetId: target.id, targetBefore, merged, addedFields, conflicts,
+      aliasesBefore: Object.fromEntries(keys.map(key => [key, Object.hasOwn(state.metaAliases, key) ? state.metaAliases[key] : null]))
+    }, warnings);
+  }
+  if (type === "gamesWithoutKind" && action === "classify") {
+    const ids = normalizeHealthIds(input?.ids);
+    if (!ids.length) return healthPreviewFailure("aucun jeu sélectionné");
+    const games = ids.map(id => findGameById(id)).filter(Boolean);
+    if (games.length !== ids.length) return healthPreviewFailure("jeu introuvable", 404);
+    const kind = input?.kind === "app" ? "app" : input?.kind === "game" ? "game" : "";
+    if (!kind) return healthPreviewFailure("type invalide");
+    const changes = games.map(game => ({
+      target: game.id,
+      label: game.name || game.n,
+      before: gameMeta(game)?.playDetails?.kind || game.kind || "non classé",
+      after: kind === "app" ? "Application" : "Jeu"
+    }));
+    return finish(`Classer ${games.length} titre${games.length > 1 ? "s" : ""} en ${kind === "app" ? "application" : "jeu"}`, "Le classement change la façon dont Orbit Play et la bibliothèque présentent ces titres.", changes, {
+      ids: games.map(game => game.id), kind,
+      before: games.map(game => ({ id: game.id, gameKind: game.kind, meta: state.meta[game.id] ? JSON.parse(JSON.stringify(state.meta[game.id])) : null }))
+    });
+  }
+  return healthPreviewFailure("correction non prise en charge");
+}
+function applyHealthPreview(id, confirm) {
+  const entry = healthPreviews.get(String(id || ""));
+  if (!entry) return healthPreviewFailure("prévisualisation introuvable ou expirée", 404);
+  if (Date.now() - entry.createdAt > 15 * 60 * 1000) { healthPreviews.delete(entry.id); return healthPreviewFailure("prévisualisation expirée", 410); }
+  if (confirm !== true) return { ...healthPreviewFailure("confirmation requise", 409), requiresConfirmation: true, preview: { ...entry, data: undefined } };
+  const data = entry.data;
+  let undo = null, libraryChanged = false, metaChanged = false;
+  const rollbackLibrary = () => {
+    if (entry.type === "orphanSessions" && undo?.sessions) for (const item of undo.sessions) {
+      const session = state.sessions.find(value => value.id === item.id);
+      if (session) { session.gameId = item.gameId; session.game = item.game; session.gameNameSnapshot = item.gameNameSnapshot; if (item.orphan) session.orphan = true; else delete session.orphan; }
+    }
+    if (entry.type === "gamesWithoutKind" && undo?.classify) for (const item of undo.classify) {
+      const game = findGameById(item.id);
+      if (game) { if (item.gameKind === undefined) delete game.kind; else game.kind = item.gameKind; }
+      if (item.meta === null) delete state.meta[item.id]; else state.meta[item.id] = item.meta;
+    }
+    if (entry.type === "orphanMeta" && undo?.meta) {
+      for (const item of undo.meta) {
+        if (item.targetBefore === null) delete state.meta[item.targetId]; else state.meta[item.targetId] = item.targetBefore;
+        for (const [key, value] of Object.entries(item.aliasesBefore || {})) { if (value === null) delete state.metaAliases[key]; else state.metaAliases[key] = value; }
+        for (const source of item.sources) { if (source.location === "orphans") state.metaOrphans[source.key] = source.meta; else state.meta[source.key] = source.meta; }
+        state.metaArchived = state.metaArchived.filter(archive => archive.id !== item.archiveId);
+      }
+    }
+  };
+  try {
+    if (entry.type === "orphanSessions") {
+      const target = findGameById(data.targetId);
+      if (!target) return healthPreviewFailure("jeu cible introuvable", 404);
+      const sessions = data.sessionIds.map(sessionId => state.sessions.find(session => session.id === sessionId)).filter(Boolean);
+      if (sessions.length !== data.sessionIds.length) return healthPreviewFailure("session introuvable", 404);
+      undo = { sessions: data.before };
+      for (const session of sessions) {
+        session.gameId = target.id;
+        session.game = target.name || target.n;
+        session.gameNameSnapshot = session.gameNameSnapshot || data.before.find(item => item.id === session.id)?.game || session.game;
+        delete session.orphan;
+        session.updatedAt = Date.now();
+      }
+      libraryChanged = true;
+      if (!writeLibrary()) { rollbackLibrary(); return healthPreviewFailure("écriture impossible", 500); }
+    } else if (entry.type === "orphanMeta" && entry.action === "attach") {
+      const target = findGameById(data.targetId);
+      if (!target) return healthPreviewFailure("jeu cible introuvable", 404);
+      const aliasesBefore = { ...data.aliasesBefore };
+      for (const source of data.sources) {
+        const titleKey = source.meta?.title ? metaKey(source.meta.title) : "";
+        if (titleKey && !Object.hasOwn(aliasesBefore, titleKey)) aliasesBefore[titleKey] = Object.hasOwn(state.metaAliases, titleKey) ? state.metaAliases[titleKey] : null;
+      }
+      undo = { meta: [{ targetId: target.id, targetBefore: data.targetBefore, sources: data.sources, aliasesBefore, archiveId: crypto.randomUUID() }] };
+      state.meta[target.id] = data.merged;
+      for (const source of data.sources) {
+        delete state.metaOrphans[source.key];
+        delete state.meta[source.key];
+        state.metaAliases[source.key] = target.id;
+        if (source.meta?.title) state.metaAliases[metaKey(source.meta.title)] = target.id;
+      }
+      state.metaArchived.push({ id: undo.meta[0].archiveId, reason: "sante-rattachement", key: data.keys.join(","), gameId: target.id, name: target.name || target.n, method: "health-attach", title: data.sources.map(source => source.meta?.title).filter(Boolean).join(" · ").slice(0, 200), value: data.sources.length === 1 ? data.sources[0].meta : data.sources.map(source => ({ key: source.key, value: source.meta })), archivedAt: Date.now() });
+      if (state.metaArchived.length > 5000) state.metaArchived.splice(0, state.metaArchived.length - 5000);
+      metaChanged = true;
+      if (!saveMeta()) { rollbackLibrary(); return healthPreviewFailure("écriture des métadonnées impossible", 500); }
+    } else if (entry.type === "orphanMeta" && entry.action === "archive") {
+      undo = { meta: [{ targetId: null, targetBefore: null, sources: data.sources, aliasesBefore: {}, archiveId: crypto.randomUUID() }] };
+      state.metaArchived.push({ id: undo.meta[0].archiveId, reason: "sante-archivage-manuel", key: data.keys.join(","), title: data.sources.map(source => source.meta?.title).filter(Boolean).join(" · ").slice(0, 200), note: data.reason, value: data.sources.length === 1 ? data.sources[0].meta : data.sources.map(source => ({ key: source.key, value: source.meta })), archivedAt: Date.now() });
+      for (const source of data.sources) { delete state.metaOrphans[source.key]; delete state.meta[source.key]; }
+      if (state.metaArchived.length > 5000) state.metaArchived.splice(0, state.metaArchived.length - 5000);
+      metaChanged = true;
+      if (!saveMeta()) { rollbackLibrary(); return healthPreviewFailure("écriture des métadonnées impossible", 500); }
+    } else if (entry.type === "gamesWithoutKind") {
+      undo = { classify: data.before };
+      for (const gameId of data.ids) {
+        const game = findGameById(gameId);
+        if (!game) continue;
+        game.kind = data.kind;
+        game.updatedAt = Date.now();
+        state.meta[game.id] = { ...(state.meta[game.id] || {}), playDetails: { ...(state.meta[game.id]?.playDetails || {}), kind: data.kind } };
+        state.metaAliases[metaKey(game.name || game.n)] = game.id;
+      }
+      libraryChanged = true;
+      metaChanged = true;
+      if (!writeLibrary() || !saveMeta()) {
+        rollbackLibrary();
+        writeLibrary();
+        saveMeta();
+        return healthPreviewFailure("écriture impossible", 500);
+      }
+    } else return healthPreviewFailure("correction non prise en charge");
+    const health = readHealthState();
+    const undoId = crypto.randomUUID();
+    health.corrections.push({ id: undoId, type: entry.type, action: entry.action, title: entry.title, appliedAt: Date.now(), undo: { ...undo, libraryChanged, metaChanged } });
+    health.corrections = health.corrections.slice(-50);
+    try { saveHealthState(health); } catch (error) { logger.error("Journal de santé impossible à enregistrer", { error }); }
+    healthPreviews.delete(entry.id);
+    invalidateHealth();
+    broadcast();
+    return { ok: true, applied: entry.changes.length, undoId, title: entry.title };
+  } catch (error) {
+    rollbackLibrary();
+    logger.error("Correction de santé impossible", { error });
+    return healthPreviewFailure("correction impossible", 500);
+  }
+}
+function undoHealthCorrection(id) {
+  const health = readHealthState();
+  const correction = health.corrections.find(entry => entry.id === String(id || ""));
+  if (!correction) return healthPreviewFailure("correction introuvable", 404);
+  const undo = correction.undo || {};
+  try {
+    if (correction.type === "orphanSessions" && Array.isArray(undo.sessions)) {
+      for (const item of undo.sessions) {
+        const session = state.sessions.find(value => value.id === item.id);
+        if (!session) continue;
+        session.gameId = item.gameId;
+        session.game = item.game;
+        session.gameNameSnapshot = item.gameNameSnapshot;
+        if (item.orphan) session.orphan = true; else delete session.orphan;
+        session.updatedAt = Date.now();
+      }
+      if (!writeLibrary()) return healthPreviewFailure("écriture impossible", 500);
+    }
+    if (correction.type === "orphanMeta" && Array.isArray(undo.meta)) {
+      for (const item of undo.meta) {
+        if (item.targetId) {
+          if (item.targetBefore === null) delete state.meta[item.targetId]; else state.meta[item.targetId] = item.targetBefore;
+        }
+        for (const [key, value] of Object.entries(item.aliasesBefore || {})) {
+          if (value === null) delete state.metaAliases[key]; else state.metaAliases[key] = value;
+        }
+        for (const source of item.sources || []) {
+          if (source.location === "meta") state.meta[source.key] = source.meta; else state.metaOrphans[source.key] = source.meta;
+        }
+        state.metaArchived = state.metaArchived.filter(archive => archive.id !== item.archiveId);
+      }
+      if (!saveMeta()) return healthPreviewFailure("écriture des métadonnées impossible", 500);
+    }
+    if (correction.type === "gamesWithoutKind" && Array.isArray(undo.classify)) {
+      for (const item of undo.classify) {
+        const game = findGameById(item.id);
+        if (game) { if (item.gameKind === undefined || item.gameKind === null) delete game.kind; else game.kind = item.gameKind; }
+        if (item.meta === null) delete state.meta[item.id]; else state.meta[item.id] = item.meta;
+      }
+      if (!writeLibrary() || !saveMeta()) return healthPreviewFailure("écriture impossible", 500);
+    }
+    health.corrections = health.corrections.filter(entry => entry.id !== correction.id);
+    try { saveHealthState(health); } catch {}
+    invalidateHealth();
+    broadcast();
+    return { ok: true, restored: correction.title, undoId: correction.id };
+  } catch (error) {
+    logger.error("Annulation de santé impossible", { error });
+    return healthPreviewFailure("annulation impossible", 500);
+  }
+}
+function ignoreHealthAnomaly(input) {
+  const type = String(input?.type || ""), target = String(input?.target || "").trim().slice(0, 500), reason = String(input?.reason || "").trim().slice(0, 300);
+  if (!HEALTH_TYPES.has(type)) return healthPreviewFailure("type d’anomalie inconnu");
+  if (!target) return healthPreviewFailure("cible manquante");
+  if (reason.length < 3) return healthPreviewFailure("une justification de 3 caractères minimum est nécessaire");
+  invalidateHealth();
+  const report = healthReport();
+  const item = report.anomalies.items[type]?.find(entry => entry.target === target);
+  if (!item) return healthPreviewFailure("anomalie introuvable", 404);
+  const health = readHealthState();
+  const existing = health.ignores.find(entry => entry.type === type && entry.target === target);
+  if (existing) { existing.reason = reason; existing.createdAt = Date.now(); }
+  else health.ignores.push({ id: crypto.randomUUID(), type, target, reason, createdAt: Date.now() });
+  try { saveHealthState(health); } catch (error) { return healthPreviewFailure("enregistrement impossible", 500); }
+  invalidateHealth();
+  return { ok: true, id: existing?.id || health.ignores.at(-1).id, type, target, reason };
+}
+function unignoreHealthAnomaly(id) {
+  const health = readHealthState();
+  const before = health.ignores.length;
+  health.ignores = health.ignores.filter(entry => entry.id !== String(id || "") && healthIgnoreKey(entry.type, entry.target) !== String(id || ""));
+  if (health.ignores.length === before) return healthPreviewFailure("anomalie ignorée introuvable", 404);
+  try { saveHealthState(health); } catch (error) { return healthPreviewFailure("enregistrement impossible", 500); }
+  invalidateHealth();
+  return { ok: true, removed: before - health.ignores.length };
+}
+function recordHealthImport(input) {
+  const source = ["csv", "steam", "manual", "backup", "import"].includes(String(input?.source || "")) ? String(input.source) : "import";
+  const count = Math.max(0, Math.min(100000, Number(input?.count) || 0));
+  const label = String(input?.label || "Import").trim().slice(0, 120) || "Import";
+  const health = readHealthState();
+  health.lastImport = { at: Date.now(), source, label, count };
+  try { saveHealthState(health); } catch (error) { return healthPreviewFailure("enregistrement impossible", 500); }
+  invalidateHealth();
+  return { ok: true, lastImport: health.lastImport };
+}
+const gameBatchUndos = new Map();
+const GAME_BATCH_UNDO_MS = 10 * 1000;
+function cloneJson(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
+function cleanBatchIds(value) {
+  return [...new Set((Array.isArray(value) ? value : []).filter(id => typeof id === "string" && id.trim()).map(id => id.trim()))].slice(0, 1000);
+}
+function cleanBatchList(value) {
+  return [...new Set((Array.isArray(value) ? value : []).map(entry => String(entry || "").trim().slice(0, 60)).filter(Boolean))].slice(0, 20);
+}
+function rememberGameBatchUndo(entry) {
+  const id = crypto.randomUUID(), now = Date.now();
+  gameBatchUndos.set(id, { ...entry, id, createdAt: now, expiresAt: now + GAME_BATCH_UNDO_MS });
+  for (const [key, value] of gameBatchUndos) if (value.expiresAt < now) gameBatchUndos.delete(key);
+  while (gameBatchUndos.size > 50) gameBatchUndos.delete(gameBatchUndos.keys().next().value);
+  return id;
+}
+function batchFailure(error, code = 400, extra = {}) { return { error, code, ...extra }; }
+function rollbackGameBatch(snapshots, favorites) {
+  for (const snapshot of snapshots) {
+    const index = state.games.findIndex(game => game.id === snapshot.id);
+    if (index >= 0) state.games[index] = snapshot.game;
+    else if (snapshot.index !== undefined) state.games.splice(Math.min(snapshot.index, state.games.length), 0, snapshot.game);
+    if (snapshot.meta === null) delete state.meta[snapshot.id];
+    else if (snapshot.meta !== undefined) state.meta[snapshot.id] = snapshot.meta;
+  }
+  if (Array.isArray(favorites)) state.favorites = favorites;
+}
+function applyGameBatch(input) {
+  if (state.schemaVersion !== LIBRARY_VERSION) return batchFailure("migration v2 requise", 409);
+  const ids = cleanBatchIds(input?.ids ?? input?.gameIds);
+  const action = input?.action === "delete" ? "delete" : input?.action === "update" ? "update" : "";
+  if (!action) return batchFailure("action inconnue");
+  if (!ids.length) return batchFailure("aucun jeu sélectionné");
+  const selected = ids.map(id => findGameById(id));
+  const missing = ids.filter((id, index) => !selected[index]);
+  if (missing.length) return batchFailure("jeu introuvable", 404, { missing });
+  const beforeFavorites = [...state.favorites];
+  const now = Date.now();
+  if (action === "delete") {
+    const snapshots = selected.map(game => ({
+      id: game.id,
+      game: cloneJson(game),
+      index: state.games.findIndex(entry => entry.id === game.id),
+      favorite: state.favorites.includes(game.id),
+      deletedAt: now
+    }));
+    state.games = state.games.filter(game => !ids.includes(game.id));
+    state.favorites = state.favorites.filter(id => !ids.includes(id));
+    for (const snapshot of snapshots) {
+      state.deletedGames = state.deletedGames.filter(entry => entry.id !== snapshot.id);
+      state.deletedGames.push({ id: snapshot.id, name: snapshot.game.name || snapshot.game.n, deletedAt: now, favorite: snapshot.favorite, snapshot: snapshot.game });
+    }
+    if (state.deletedGames.length > 1000) state.deletedGames = state.deletedGames.slice(-1000);
+    if (!writeLibrary()) { rollbackGameBatch(snapshots, beforeFavorites); return batchFailure("écriture impossible", 500); }
+    const undoId = rememberGameBatchUndo({ action, snapshots, favorites: beforeFavorites });
+    broadcast();
+    return { ok: true, action, changed: snapshots.length, deleted: snapshots.length, undoId, undoExpiresAt: Date.now() + 10000 };
+  }
+  const changes = input?.changes && typeof input.changes === "object" ? input.changes : input;
+  const hasStatus = Object.hasOwn(changes, "status") || Object.hasOwn(changes, "s");
+  const hasCompletion = Object.hasOwn(changes, "completion") || Object.hasOwn(changes, "c");
+  const hasKind = Object.hasOwn(changes, "kind");
+  const hasTags = Object.hasOwn(changes, "tags");
+  const hasPlatforms = Object.hasOwn(changes, "platforms");
+  const hasFavorite = Object.hasOwn(changes, "favorite");
+  const hasOwnership = Object.hasOwn(changes, "ownership");
+  if (![hasStatus, hasCompletion, hasKind, hasTags, hasPlatforms, hasFavorite, hasOwnership].some(Boolean)) return batchFailure("aucune modification");
+  if (hasKind && !["game", "app"].includes(changes.kind)) return batchFailure("type invalide");
+  if (hasFavorite && ![true, false, "toggle"].includes(changes.favorite)) return batchFailure("favori invalide");
+  const status = hasStatus ? normalizeStatus(changes.status ?? changes.s) : null;
+  const completion = hasCompletion ? Math.max(0, Math.min(2, Number(changes.completion ?? changes.c) || 0)) : null;
+  const tagsMode = ["add", "remove", "replace"].includes(changes.tagsMode) ? changes.tagsMode : "replace";
+  const platformsMode = ["add", "remove", "replace"].includes(changes.platformsMode) ? changes.platformsMode : "replace";
+  const tags = hasTags ? cleanBatchList(changes.tags) : null;
+  const platforms = hasPlatforms ? cleanBatchList(changes.platforms) : null;
+  const ownership = hasOwnership ? String(changes.ownership || "").trim().slice(0, 100) : null;
+  const snapshots = selected.map(game => ({ id: game.id, game: cloneJson(game), meta: state.meta[game.id] ? cloneJson(state.meta[game.id]) : null }));
+  let metaChanged = false;
+  for (const game of selected) {
+    const index = state.games.findIndex(entry => entry.id === game.id);
+    if (index < 0) continue;
+    const next = { ...state.games[index] };
+    if (hasStatus) { next.s = status; next.status = status; }
+    if (hasCompletion) { next.c = completion; next.completion = completion; }
+    if (hasKind) next.kind = changes.kind;
+    if (hasTags) {
+      const base = tagsMode === "replace" ? [] : Array.isArray(next.tags) ? next.tags : [];
+      next.tags = tagsMode === "remove" ? base.filter(tag => !tags.includes(tag)) : [...new Set([...base, ...tags])];
+      metaChanged = true;
+    }
+    if (hasPlatforms) {
+      const base = platformsMode === "replace" ? [] : Array.isArray(next.platforms) ? next.platforms : [];
+      next.platforms = platformsMode === "remove" ? base.filter(platform => !platforms.includes(platform)) : [...new Set([...base, ...platforms])];
+      metaChanged = true;
+    }
+    if (hasOwnership) next.ownership = ownership;
+    next.updatedAt = now;
+    state.games[index] = next;
+    if (hasKind || hasTags || hasPlatforms) {
+      const previous = state.meta[game.id] && typeof state.meta[game.id] === "object" ? state.meta[game.id] : {};
+      state.meta[game.id] = {
+        ...previous,
+        playDetails: {
+          ...(previous.playDetails || {}),
+          ...(hasKind ? { kind: changes.kind } : {}),
+          ...(hasTags ? { collections: next.tags } : {}),
+          ...(hasPlatforms ? { platforms: next.platforms } : {})
+        }
+      };
+      metaChanged = true;
+    }
+    if (hasFavorite) {
+      const shouldFavorite = changes.favorite === "toggle" ? !state.favorites.includes(next.id) : changes.favorite;
+      state.favorites = shouldFavorite ? [...new Set([...state.favorites, next.id])] : state.favorites.filter(id => id !== next.id);
+    }
+  }
+  if (!writeLibrary()) { rollbackGameBatch(snapshots, beforeFavorites); return batchFailure("écriture impossible", 500); }
+  if (metaChanged && !saveMeta()) {
+    rollbackGameBatch(snapshots, beforeFavorites);
+    writeLibrary();
+    saveMeta();
+    return batchFailure("écriture des métadonnées impossible", 500);
+  }
+  const undoId = rememberGameBatchUndo({ action, snapshots, favorites: beforeFavorites });
+  broadcast();
+  return { ok: true, action, changed: snapshots.length, undoId, undoExpiresAt: Date.now() + 10000 };
+}
+function undoGameBatch(id) {
+  const entry = gameBatchUndos.get(String(id || ""));
+  if (!entry) return batchFailure("annulation introuvable ou expirée", 404);
+  if (entry.expiresAt < Date.now()) { gameBatchUndos.delete(entry.id); return batchFailure("annulation expirée", 410); }
+  try {
+    if (entry.action === "delete") {
+      for (const snapshot of [...entry.snapshots].sort((a, b) => a.index - b.index)) {
+        if (state.games.some(game => game.id === snapshot.id)) continue;
+        state.games.splice(Math.min(snapshot.index, state.games.length), 0, snapshot.game);
+        state.deletedGames = state.deletedGames.filter(item => !(item.id === snapshot.id && item.deletedAt === snapshot.deletedAt));
+      }
+      state.favorites = [...entry.favorites];
+      if (!writeLibrary()) return batchFailure("écriture impossible", 500);
+    } else {
+      rollbackGameBatch(entry.snapshots, entry.favorites);
+      if (!writeLibrary()) return batchFailure("écriture impossible", 500);
+      if (!saveMeta()) return batchFailure("écriture des métadonnées impossible", 500);
+    }
+    gameBatchUndos.delete(entry.id);
+    broadcast();
+    return { ok: true, restored: entry.snapshots.length, action: entry.action };
+  } catch (error) {
+    logger.error("Annulation de lot impossible", { error });
+    return batchFailure("annulation impossible", 500);
+  }
 }
 function migrateLegacyCovers() {
   let changed = false;
@@ -1314,7 +1915,78 @@ http.createServer(async (req, res) => {
   if (url === "/api/steam/coop" && (req.method==="POST" || req.method==="GET")) {
     return json(200, req.method==="GET" ? coopIndex.snapshot() : coopIndex.start(Object.values(playDetailsIndex()).map(d=>d.steamAppId)));
   }
-  if (url === "/api/health" && req.method === "GET") return json(200, healthReport());
+  if (url === "/api/health" && req.method === "GET") {
+    if (parsed.searchParams.get("refresh") === "1") invalidateHealth();
+    return json(200, healthReport());
+  }
+  if (url === "/api/health/export" && req.method === "GET") {
+    const format = parsed.searchParams.get("format") === "csv" ? "csv" : "json";
+    const report = healthReport();
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (format === "csv") {
+      res.writeHead(200, {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="orbit-sante-${stamp}.csv"`,
+        "Cache-Control": "no-store"
+      });
+      return res.end(healthCsv(report));
+    }
+    const exportValue = { ...report, exportFormat: "orbit-health-v1" };
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Disposition": `attachment; filename="orbit-sante-${stamp}.json"`,
+      "Cache-Control": "no-store"
+    });
+    return res.end(JSON.stringify(exportValue, null, 2));
+  }
+  if (url === "/api/health/preview" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 200000));
+      const result = createHealthPreview(input);
+      if (result.code) return json(result.code, { error: result.error });
+      return json(200, result);
+    } catch (error) { return json(400, { error: "demande de correction invalide" }); }
+  }
+  if (url === "/api/health/apply" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 200000));
+      const result = applyHealthPreview(input?.id, input?.confirm === true);
+      if (result.code) return json(result.code, result);
+      return json(200, result);
+    } catch (error) { return json(400, { error: "application impossible" }); }
+  }
+  if (url === "/api/health/undo" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 20000));
+      const result = undoHealthCorrection(input?.id);
+      if (result.code) return json(result.code, { error: result.error });
+      return json(200, result);
+    } catch (error) { return json(400, { error: "annulation impossible" }); }
+  }
+  if (url === "/api/health/ignore" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 20000));
+      const result = ignoreHealthAnomaly(input);
+      if (result.code) return json(result.code, { error: result.error });
+      return json(200, result);
+    } catch (error) { return json(400, { error: "mise en ignore impossible" }); }
+  }
+  if (url === "/api/health/unignore" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 20000));
+      const result = unignoreHealthAnomaly(input?.id);
+      if (result.code) return json(result.code, { error: result.error });
+      return json(200, result);
+    } catch (error) { return json(400, { error: "retrait impossible" }); }
+  }
+  if (url === "/api/health/import" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 20000));
+      const result = recordHealthImport(input);
+      if (result.code) return json(result.code, { error: result.error });
+      return json(200, result);
+    } catch (error) { return json(400, { error: "import non enregistré" }); }
+  }
   if (url === "/api/diagnostics" && req.method === "GET") return json(200, {
     generatedAt: new Date().toISOString(),
     health: healthReport(),
@@ -1440,7 +2112,7 @@ http.createServer(async (req, res) => {
   if (url === "/api/flush" && req.method === "POST") { endSession(); writeLibrary(); saveRecap(); return json(200, { ok: true }); }
   if (url === "/api/preferences" && req.method === "PUT") {
     try {
-      const p = JSON.parse(await body(req, 2000)), clean = readUiPrefs();
+      const p = JSON.parse(await body(req, 24000)), clean = readUiPrefs();
       if (typeof p.theme === "string") clean.theme = validTheme(p.theme);
       if (Object.hasOwn(p, "accent")) clean.accent = /^#[\da-f]{6}$/i.test(p.accent || "") ? p.accent : "";
       if (Number.isFinite(+p.volume)) clean.volume = Math.max(0, Math.min(1, +p.volume));
@@ -1448,6 +2120,8 @@ http.createServer(async (req, res) => {
       if (["small","medium","large"].includes(p.tileSize)) clean.tileSize = p.tileSize;
       if (["max","balanced","light"].includes(p.effectsQuality)) clean.effectsQuality = p.effectsQuality;
       if (["max","balanced","light"].includes(p.glassQuality)) clean.glassQuality = p.glassQuality;
+      if (Object.hasOwn(p, "libraryViews")) clean.libraryViews = sanitizeLibraryViews(p.libraryViews);
+      if (Object.hasOwn(p, "libraryFilters")) clean.libraryFilters = sanitizeLibraryFilters(p.libraryFilters);
       settingsDocument = { version: 1, ...clean }; atomicWrite(SETTINGS_FILE, settingsDocument);
       return json(200, { ok: true });
     } catch (e) { return json(400, { error: "Préférences impossibles à enregistrer" }); }
@@ -1602,6 +2276,22 @@ http.createServer(async (req, res) => {
     } catch (e) { return json(400, { error: "session impossible à démarrer" }); }
   }
   if (url === "/api/session/stop" && req.method === "POST") { const ok=endSession()!==false; return json(ok?200:500, {ok}); }
+  if (url === "/api/v1/games/batch" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 200000));
+      const result = applyGameBatch(input);
+      if (result.code) return json(result.code, { error: result.error, missing: result.missing });
+      return json(200, result);
+    } catch (error) { return json(400, { error: "lot invalide" }); }
+  }
+  if (url === "/api/v1/games/batch/undo" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 20000));
+      const result = undoGameBatch(input?.id);
+      if (result.code) return json(result.code, { error: result.error });
+      return json(200, result);
+    } catch (error) { return json(400, { error: "annulation impossible" }); }
+  }
   if (url === "/api/v1/games" && req.method === "POST") {
     if (state.schemaVersion !== LIBRARY_VERSION) return json(409, { error: "migration v2 requise" });
     try {

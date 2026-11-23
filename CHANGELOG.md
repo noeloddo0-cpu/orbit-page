@@ -2,6 +2,32 @@
 
 Les notes sont orientées usage. Les données personnelles ne sont jamais incluses dans ce fichier.
 
+## 1.0.33 — 23 novembre 2026
+
+### Centre de santé des données
+
+- Nouveau panneau **Réglages → Santé et diagnostic** enrichi : résumé lisible, anomalies groupées, examen détaillé et filtres.
+- Les anomalies détectées restent visibles sans être modifiées : sessions orphelines, métadonnées orphelines, jeux sans jaquette, films sans affiche et doublons probables.
+- Chaque correction est d’abord **prévisualisée**, puis appliquée avec un journal d’annulation. Une session peut être rattachée à un jeu, une métadonnée rattachée ou archivée, un jeu ou une application classé.
+- Les anomalies sans correction sûre restent dans **Examiner** ; rien n’est supprimé automatiquement.
+- Les anomalies peuvent être ignorées avec une justification, puis réactivées. Le rapport et les exports **JSON** et **CSV** contiennent les mêmes compteurs.
+- Badges discrets sur les tuiles (**Sans jaquette**, **Type inconnu**) et dans le gestionnaire de sessions (**Session orpheline**).
+
+### Actions de masse et vues sauvegardées
+
+- Nouveau mode **Sélectionner** dans la bibliothèque : cases à cocher, plage avec **Maj+clic**, **Ctrl+A** pour tout sélectionner dans le filtre, **Suppr** pour ouvrir la confirmation et **Échap** pour quitter.
+- Barre d’actions pour changer en une fois le statut, la complétion, le type, les tags, les plateformes ou le favori de plusieurs jeux.
+- Suppression multiple avec confirmation explicite, corbeille Orbit et annulation de 10 secondes. Les sessions et les fiches restent conservées ; une restauration remet les jeux et les favoris à l’identique.
+- Filtre par type (**Jeux**, **Applications**, **Tout**) sans changer l’affichage par défaut de la bibliothèque.
+- **Vues sauvegardées** : enregistrer la recherche, les filtres, le tri et le type affiché, appliquer une vue en un clic ou la supprimer avec confirmation.
+- Chips de filtres actifs avec retrait individuel, compteur **X résultats sur Y**, et restauration du dernier filtre, tri et recherche après redémarrage.
+- Les préférences sont enregistrées côté serveur et en local ; les vues restent disponibles après redémarrage.
+
+### Qualité
+
+- 37 tests sur 37 réussis, dont 50 jeux modifiés puis annulés à l’identique, 3 suppressions restaurées avec favoris, l’expiration de l’annulation après 10 secondes et le rechargement des vues.
+- Lint : 0 erreur (3 avertissements préexistants dans `launcher.js`) ; formatage vérifié.
+
 ## 1.0.32 — 23 novembre 2026
 
 ### Sauvegardes et restauration
