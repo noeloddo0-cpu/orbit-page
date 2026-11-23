@@ -720,6 +720,78 @@ header { padding-top:max(38px,calc(env(safe-area-inset-top,0px) + 28px)); paddin
 .session-undo { position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom,0px));z-index:70;display:flex;align-items:center;gap:14px;max-width:calc(100% - 24px);padding:10px 12px 10px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2,#1b1b21);color:var(--fg);box-shadow:0 16px 48px rgba(0,0,0,.55);transform:translateX(-50%);font-size:13px; }
 .session-undo[hidden] { display:none; }
 .session-undo .btn { padding:6px 10px;font-size:12px;white-space:nowrap; }
+#add-veil { position:fixed;inset:0;z-index:74;background:rgb(0 0 0 / .62);backdrop-filter:blur(6px); }
+#add-veil[hidden], #add-dialog[hidden] { display:none !important; }
+#add-dialog { position:fixed;inset:0;margin:auto;z-index:75;display:flex;flex-direction:column;gap:16px;width:min(1040px,calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:24px;border:1px solid var(--line,rgba(255,255,255,.14));border-radius:18px;background:linear-gradient(145deg,var(--surface-2,#202027),var(--surface,#141419));color:var(--fg);box-shadow:0 28px 80px rgba(0,0,0,.6); }
+#add-dialog .p-top { gap:18px; }
+#add-dialog .note { margin-top:4px; }
+.add-names { width:100%;min-height:104px;resize:vertical;font:inherit;color:var(--fg); }
+.import-tabs { display:flex;flex-wrap:wrap;gap:4px;align-self:flex-start;padding:4px;border:1px solid var(--line,rgba(255,255,255,.14));border-radius:12px;background:rgba(118,118,128,.12); }
+.import-tab { padding:8px 14px;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;font:inherit; }
+.import-tab:hover { color:var(--fg);background:rgba(255,255,255,.06); }
+.import-tab[aria-selected="true"] { color:var(--fg);background:var(--surface-2,#2a2a32);box-shadow:inset 0 0 0 1px var(--line,rgba(255,255,255,.16)); }
+.import-pane { display:flex;flex-direction:column;gap:12px; }
+.import-pane[hidden] { display:none; }
+.add-controls { display:flex;flex-wrap:wrap;align-items:end;gap:12px; }
+.add-controls label { display:grid;gap:6px;font-size:11px;color:var(--muted); }
+.add-controls .field { min-width:140px; }
+.add-results { display:flex;flex-direction:column;gap:14px;max-height:32vh;overflow:auto; }
+.add-group { display:flex;flex-direction:column;gap:6px; }
+.add-group h3 { margin:0;font-size:13px;font-weight:600;color:var(--fg); }
+.add-candidate { display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:10px;background:rgba(255,255,255,.025);cursor:pointer; }
+.add-candidate:hover { background:rgba(255,255,255,.06); }
+.add-candidate input { flex:none; }
+.add-candidate img { width:34px;height:51px;object-fit:cover;border-radius:4px;background:rgba(255,255,255,.06); }
+.add-candidate span { display:grid;gap:2px;min-width:0; }
+.add-candidate b { overflow-wrap:anywhere; }
+.add-candidate small { color:var(--muted); }
+.add-placeholder { display:grid;place-items:center;width:34px;height:51px;flex:none;border-radius:4px;background:rgba(255,255,255,.06);color:var(--muted);font-size:9px;text-align:center; }
+.import-file-row { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.import-file { cursor:pointer; }
+.import-file-row .note { margin:0; }
+.import-mapping { display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px 12px;padding:12px;border:1px solid var(--line,rgba(255,255,255,.14));border-radius:12px;background:rgba(255,255,255,.025); }
+.import-mapping > .note, .import-mapping > .import-actions { grid-column:1 / -1;margin:0; }
+.import-mapping[hidden] { display:none; }
+.import-mapping label { display:grid;gap:4px;font-size:11px;color:var(--muted); }
+.import-mapping .field { min-width:0;width:100%; }
+.import-preview { display:flex;flex-direction:column;gap:4px;max-height:42vh;overflow:auto;padding:6px;border:1px solid var(--line,rgba(255,255,255,.14));border-radius:12px;background:rgba(0,0,0,.12); }
+.import-preview[hidden] { display:none; }
+.import-summary { display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px; }
+.import-summary b { color:var(--fg);font-weight:600; }
+.import-row { display:grid;grid-template-columns:40px minmax(150px,1.8fr) repeat(3,minmax(64px,.65fr)) minmax(170px,1.5fr) minmax(145px,1fr);gap:8px;align-items:center;padding:8px;border-bottom:1px solid var(--line,rgba(255,255,255,.09)); }
+.import-row:last-child { border-bottom:0; }
+.import-row[data-invalid="true"] { box-shadow:inset 3px 0 0 #d46b63; }
+.import-row[data-similar="true"] { box-shadow:inset 3px 0 0 #d8a657; }
+.import-row img { width:34px;height:51px;object-fit:cover;border-radius:4px;background:rgba(255,255,255,.06); }
+.import-cover-empty { display:grid;place-items:center;width:34px;height:51px;border-radius:4px;background:rgba(255,255,255,.06);color:var(--muted);font-size:9px;text-align:center; }
+.import-title { display:flex;flex-direction:column;gap:2px;min-width:0; }
+.import-title strong { font-size:13px;overflow-wrap:anywhere; }
+.import-title small { color:var(--muted);font-size:11px;line-height:1.35; }
+.import-cell { color:var(--muted);font-size:12px; }
+.import-duplicate { color:#e4c078;font-size:11px;line-height:1.35;overflow-wrap:anywhere; }
+.import-duplicate strong { color:var(--fg); }
+.import-duplicate[data-reason="exact"], .import-duplicate[data-reason="alias"], .import-duplicate[data-reason="appId"], .import-duplicate[data-reason="batch"] { color:#e0a39e; }
+.import-duplicate[data-reason="invalid"] { color:#e0a39e; }
+.import-action select { width:100%;min-width:0; }
+.import-report { display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid var(--line,rgba(255,255,255,.14));border-radius:12px;background:rgba(255,255,255,.025); }
+.import-report[hidden] { display:none; }
+.import-report-head { display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center; }
+.import-report-head h3 { margin:0;font-size:16px; }
+.import-report-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px; }
+.import-report-stat { padding:10px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:10px;background:var(--surface,rgba(0,0,0,.12)); }
+.import-report-stat b { display:block;font-size:20px; }
+.import-report-stat span { color:var(--muted);font-size:11px; }
+.import-report-lines { display:flex;flex-direction:column;max-height:26vh;overflow:auto;font-size:12px; }
+.import-report-lines div { display:grid;grid-template-columns:52px minmax(0,1fr) minmax(80px,.6fr);gap:8px;padding:5px 0;border-bottom:1px solid var(--line,rgba(255,255,255,.08)); }
+.import-report-lines div:last-child { border-bottom:0; }
+.import-report-lines span { overflow-wrap:anywhere; }
+.import-actions { display:flex;flex-wrap:wrap;gap:8px;align-items:center; }
+.add-bottom { display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--line,rgba(255,255,255,.12)); }
+.add-bottom .note { margin:0; }
+.add-bottom .note.import-error { color:#e0a39e; }
+#add-dialog :focus-visible { outline:2px solid var(--orbit-accent,var(--accent));outline-offset:2px; }
+@media(max-width:760px) { .import-row { grid-template-columns:34px minmax(0,1fr); } .import-row .import-cell, .import-row .import-duplicate, .import-row .import-action { grid-column:1 / -1; } .import-row img, .import-cover-empty { grid-row:1 / span 2; } .import-report-lines div { grid-template-columns:44px minmax(0,1fr); } .import-report-lines div span:last-child { grid-column:2;color:var(--muted); } }
+@media(prefers-reduced-motion:reduce) { #add-veil, #add-dialog, .import-tab, .add-candidate { transition:none !important;backdrop-filter:none; } }
 @media(max-width:640px) { .session-manager-head { align-items:flex-start; } .session-form-grid { grid-template-columns:1fr; } .session-manager-message { text-align:left; } }
 .profile-setting { display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);text-align:left;cursor:pointer; }
 .profile-setting[aria-pressed="true"] { border-color:color-mix(in srgb,var(--accent) 65%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent); }
@@ -1029,7 +1101,7 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
       <div class="overflow-menu views-menu"><button class="btn" id="views-toggle" type="button" aria-expanded="false" aria-controls="views-items" aria-label="Vues sauvegardées">Vues</button><div class="overflow-items" id="views-items" hidden></div></div>
       <button id="select-mode" class="btn" type="button" aria-pressed="false">Sélectionner</button>
       <div class="overflow-menu"><button class="btn overflow-toggle" id="overflow-toggle" type="button" aria-expanded="false" aria-label="Autres actions">⋯</button><div class="overflow-items" id="overflow-items" hidden><button id="imp" type="button">Importer</button><button id="exp" type="button">Exporter</button></div></div>
-      <input id="file" type="file" accept=".csv,text/csv" hidden>
+
     </div>
   </div>
 </div>
@@ -1063,11 +1135,29 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
 <div id="veil"></div>
 <div id="add-veil" hidden></div>
 <section id="add-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="add-title">
-  <div class="p-top"><div><h2 id="add-title">Ajouter des jeux</h2><div class="note">Écris un nom par ligne. Vérifie les résultats avant de les ajouter.</div></div><button class="x" id="add-close" type="button" aria-label="Fermer">×</button></div>
-  <label class="lbl" for="add-names">Noms des jeux</label><textarea id="add-names" class="field add-names" rows="4" placeholder="Ex. Hades II&#10;Hollow Knight: Silksong"></textarea>
-  <div class="add-controls"><label for="add-status">Statut</label><select id="add-status" class="field"><option value="2">À faire</option><option value="5">Neutre</option><option value="0">En cours</option></select><button class="btn" id="add-search" type="button">Chercher</button></div>
-  <div id="add-results" class="add-results" aria-live="polite"></div>
-  <div class="add-bottom"><span id="add-hint" class="note"></span><button class="go" id="add-confirm" type="button" disabled>Ajouter la sélection</button></div>
+  <div class="p-top"><div><h2 id="add-title">Ajouter des jeux</h2><div class="note" id="add-subtitle">Prévisualise chaque ligne : rien n’est écrit avant ta confirmation.</div></div><button class="x" id="add-close" type="button" aria-label="Fermer">×</button></div>
+  <div class="import-tabs" role="tablist" aria-label="Méthode d’ajout">
+    <button class="import-tab" id="import-mode-names" type="button" role="tab" aria-selected="true" aria-controls="import-pane-names">Noms</button>
+    <button class="import-tab" id="import-mode-csv" type="button" role="tab" aria-selected="false" aria-controls="import-pane-csv">Fichier CSV</button>
+    <button class="import-tab" id="import-mode-steam" type="button" role="tab" aria-selected="false" aria-controls="import-pane-steam">Steam</button>
+  </div>
+  <div id="import-pane-names" class="import-pane" role="tabpanel" aria-labelledby="import-mode-names">
+    <label class="lbl" for="add-names">Noms des jeux</label>
+    <textarea id="add-names" class="field add-names" rows="4" placeholder="Ex. Hades II&#10;Hollow Knight: Silksong"></textarea>
+    <div class="add-controls"><label for="add-status">Statut<select id="add-status" class="field"><option value="2">À faire</option><option value="0">En cours</option><option value="1">En pause</option><option value="3">Terminé</option><option value="4">Abandonné</option><option value="5">Neutre</option></select></label><label for="add-kind">Type<select id="add-kind" class="field"><option value="game">Jeu</option><option value="app">Application</option></select></label></div>
+    <p class="note">Les jaquettes sont recherchées après l’import. Les doublons exacts, alias et appId Steam sont signalés avant toute écriture.</p>
+  </div>
+  <div id="import-pane-csv" class="import-pane" role="tabpanel" aria-labelledby="import-mode-csv" hidden>
+    <div class="import-file-row"><label class="btn import-file" for="import-csv-file">Choisir un fichier CSV</label><input id="import-csv-file" type="file" accept=".csv,text/csv" hidden><span id="import-csv-info" class="note">Colonnes reconnues : titre, statut, complétion, minutes, plateformes, tags, type.</span></div>
+    <div id="import-mapping" class="import-mapping" hidden></div>
+  </div>
+  <div id="import-pane-steam" class="import-pane" role="tabpanel" aria-labelledby="import-mode-steam" hidden>
+    <p class="note">Orbit lit les jeux installés dans Steam sur cet ordinateur. La prévisualisation indique les doublons et les appId déjà connus avant toute écriture.</p>
+    <p class="note" id="import-steam-info">Clique sur « Analyser Steam » pour préparer l’aperçu.</p>
+  </div>
+  <div id="import-preview" class="import-preview" hidden aria-live="polite"></div>
+  <div id="import-report" class="import-report" hidden aria-live="polite"></div>
+  <div class="add-bottom"><span id="add-hint" class="note" role="status" aria-live="polite"></span><div class="import-actions"><button class="btn" id="import-reset" type="button" hidden>Recommencer</button><button class="go" id="add-confirm" type="button" disabled>Prévisualiser</button></div></div>
 </section>
 <aside id="panel" role="dialog" aria-modal="true" aria-labelledby="p-name" aria-hidden="true" tabindex="-1" inert>
   <div class="p-top"><div><h2 id="p-name"></h2><div id="p-tags" class="p-tags"></div></div><div class="p-actions"><button class="x" id="p-copy-title" type="button" aria-label="Copier le titre" title="Copier le titre">⧉</button><button class="x" id="p-edit-toggle" type="button" aria-label="Modifier" title="Modifier">⚙</button><button class="x" id="p-close" type="button" aria-label="Fermer">×</button></div></div>
@@ -1169,6 +1259,7 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
 <div id="session-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="session-undo-text"></span><button class="btn" id="session-undo-button" type="button">Annuler la suppression</button></div>
 <div id="game-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="game-undo-text"></span><button class="btn" id="game-undo-button" type="button">Annuler la suppression</button></div>
 <div id="batch-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="batch-undo-text"></span><button class="btn" id="batch-undo-button" type="button">Annuler</button></div>
+<div id="import-undo" class="session-undo" role="status" aria-live="polite" hidden><span id="import-undo-text"></span><button class="btn" id="import-undo-button" type="button">Annuler l’import</button></div>
 <div id="selection-bar" class="selection-bar" role="region" aria-label="Actions sur la sélection" hidden>
   <div class="selection-count" role="status" aria-live="polite"><b id="selection-count">0</b><span id="selection-label">jeu sélectionné</span></div>
   <div class="selection-actions">
@@ -2162,31 +2253,730 @@ window.addEventListener("resize", () => placeGlass(false));
 
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeGlass(false));
 
+/* Ajout et import P1-04 : aperçu, décisions, transaction et annulation. */
+const importState = {
+  mode: "names",
+  preview: null,
+  csvText: "",
+  csvName: "",
+  decisions: new Map(),
+  report: null,
+  undoId: "",
+  undoExpiresAt: 0,
+  undoTimer: 0,
+  busy: false,
+  lastFocus: null
+};
+const IMPORT_FIELD_LABELS = [
+  ["title", "Titre (obligatoire)"],
+  ["status", "Statut"],
+  ["completion", "Complétion"],
+  ["minutes", "Minutes"],
+  ["platforms", "Plateformes"],
+  ["tags", "Tags"],
+  ["kind", "Type"],
+  ["appId", "appId Steam"]
+];
+const IMPORT_ACTION_LABELS = { add: "Ajouter", merge: "Fusionner", update: "Remplacer", ignore: "Ignorer", reject: "Rejeter" };
+const IMPORT_RESULT_LABELS = {
+  added: "Ajouté",
+  merged: "Fusionné",
+  updated: "Mis à jour",
+  ignored: "Ignoré",
+  rejected: "Rejeté"
+};
+
+function importHint(message, error = false) {
+  const hint = $("add-hint");
+  hint.textContent = message;
+  hint.classList.toggle("import-error", !!error);
+}
+function importActionFor(entry) {
+  return importState.decisions.get(entry.index) || entry.action;
+}
+function importKindLabel(value) {
+  return value === "app" ? "Application" : "Jeu";
+}
+function importDuplicateText(entry) {
+  const duplicate = entry.duplicate;
+  if (entry.errors.length) {
+    return "Ligne invalide : " + entry.errors.map((error) => error.message).join(" ; ");
+  }
+  if (!duplicate) return "Nouveau titre";
+  if (duplicate.reason === "exact") return "Doublon exact de « " + duplicate.name + " »";
+  if (duplicate.reason === "alias") return "Alias déjà associé à « " + duplicate.name + " »";
+  if (duplicate.reason === "appId") return "Même appId Steam que « " + duplicate.name + " »";
+  if (duplicate.reason === "batch") return "Déjà présent dans ce fichier, ligne " + (duplicate.line || "?");
+  const percent = Math.round(Number(duplicate.similarity || 0) * 100);
+  const others = (duplicate.candidates || []).slice(0, 2).map((item) => item.game?.name || item.name).filter(Boolean);
+  return "Ressemble à « " + duplicate.name + " » (" + percent + " %)" + (others.length ? " · aussi " + others.join(", ") : "");
+}
+function importCover(entry) {
+  const src = entry.cover || (entry.title ? coverSrc(entry.title) : "");
+  if (src) {
+    const image = document.createElement("img");
+    image.src = src;
+    image.alt = "";
+    image.loading = "lazy";
+    image.onerror = () => image.replaceWith(importPlaceholder());
+    return image;
+  }
+  return importPlaceholder();
+}
+function importPlaceholder() {
+  const placeholder = document.createElement("span");
+  placeholder.className = "import-cover-empty";
+  placeholder.textContent = "Aperçu";
+  return placeholder;
+}
+function importActionSelect(entry, refresh) {
+  const select = document.createElement("select");
+  select.className = "field";
+  select.setAttribute("aria-label", "Action pour " + (entry.title || "la ligne " + entry.line));
+  const option = (value, label) => {
+    const item = document.createElement("option");
+    item.value = value;
+    item.textContent = label;
+    select.append(item);
+  };
+  const duplicate = entry.duplicate;
+  if (entry.errors.length) {
+    option("reject", "Rejeter la ligne");
+    option("ignore", "Ignorer");
+  } else if (duplicate?.reason === "batch") {
+    option("ignore", "Ignorer");
+    select.disabled = true;
+  } else if (duplicate?.reason === "similar") {
+    option("ignore", "Ignorer");
+    option("add", "Ajouter quand même");
+  } else if (duplicate) {
+    option("merge", "Fusionner");
+    option("add", "Ajouter quand même");
+    option("ignore", "Ignorer");
+  } else {
+    option("add", "Ajouter");
+    option("ignore", "Ignorer");
+  }
+  select.value = importState.decisions.get(entry.index) || entry.action;
+  if (!select.value || ![...select.options].some((item) => item.value === select.value)) {
+    select.value = select.options[0]?.value || "ignore";
+  }
+  select.onchange = () => {
+    importState.decisions.set(entry.index, select.value);
+    refresh();
+    updateImportConfirm();
+  };
+  return select;
+}
+function importRow(entry) {
+  const row = document.createElement("div");
+  row.className = "import-row";
+  row.dataset.invalid = entry.errors.length ? "true" : "false";
+  row.dataset.similar = entry.duplicate?.reason === "similar" ? "true" : "false";
+  const note = document.createElement("div");
+  note.className = "import-duplicate";
+  const refresh = () => {
+    const action = importActionFor(entry);
+    const base = importDuplicateText(entry);
+    note.dataset.reason = entry.errors.length ? "invalid" : entry.duplicate?.reason || "new";
+    if (action === "add" && entry.duplicate && ["exact", "alias", "appId"].includes(entry.duplicate.reason)) {
+      note.textContent = base + " · ajouté sous « " + (entry.duplicate.addName || entry.title + " (2)") + " »";
+    } else if (action === "merge" || action === "update") {
+      note.textContent = base + " · les champs fournis seront fusionnés";
+    } else {
+      note.textContent = base;
+    }
+  };
+  const title = document.createElement("div");
+  title.className = "import-title";
+  const strong = document.createElement("strong");
+  strong.textContent = entry.title || "Sans titre";
+  const small = document.createElement("small");
+  const details = ["Ligne " + entry.line, importKindLabel(entry.kind)];
+  if (entry.appId) details.push("appId " + entry.appId);
+  small.textContent = details.join(" · ");
+  title.append(strong, small);
+  const status = document.createElement("div");
+  status.className = "import-cell";
+  status.textContent = entry.status === null || entry.status === undefined ? "—" : ST[entry.status] || "—";
+  const completion = document.createElement("div");
+  completion.className = "import-cell";
+  completion.textContent = entry.completion === null || entry.completion === undefined ? "—" : CO[entry.completion] || "—";
+  const minutes = document.createElement("div");
+  minutes.className = "import-cell";
+  minutes.textContent = entry.minutes === null || entry.minutes === undefined ? "—" : fmt(entry.minutes);
+  const action = document.createElement("div");
+  action.className = "import-action";
+  action.append(importActionSelect(entry, refresh));
+  row.append(importCover(entry), title, status, completion, minutes, note, action);
+  refresh();
+  return row;
+}
+function renderImportPreview(preview) {
+  const box = $("import-preview");
+  box.textContent = "";
+  const summary = document.createElement("div");
+  summary.className = "import-summary";
+  const add = (label, value) => {
+    const item = document.createElement("span");
+    item.textContent = label + " ";
+    const strong = document.createElement("b");
+    strong.textContent = String(value);
+    item.append(strong);
+    summary.append(item);
+  };
+  add("Lignes", preview.summary.total);
+  add("Doublons", preview.summary.duplicates);
+  add("Ressemblances", preview.summary.similar);
+  add("Invalides", preview.summary.invalid);
+  const notice = document.createElement("span");
+  notice.textContent = "Rien n’est écrit avant « Appliquer ».";
+  summary.append(notice);
+  box.append(summary);
+  for (const entry of preview.entries) box.append(importRow(entry));
+  box.hidden = false;
+}
+function renderImportMapping(preview) {
+  const box = $("import-mapping");
+  box.textContent = "";
+  if (!preview.columns?.length) {
+    box.hidden = true;
+    return;
+  }
+  const note = document.createElement("p");
+  note.className = "note";
+  const separator = preview.delimiter === ";" ? "point-virgule" : preview.delimiter === "\t" ? "tabulation" : "virgule";
+  note.textContent =
+    "Séparateur : " +
+    separator +
+    " · " +
+    (preview.hasHeader ? "en-tête détecté" : "pas d’en-tête, colonnes numérotées") +
+    " · vérifie le mapping puis relance l’aperçu.";
+  box.append(note);
+  for (const [field, label] of IMPORT_FIELD_LABELS) {
+    const wrapper = document.createElement("label");
+    wrapper.textContent = label;
+    const select = document.createElement("select");
+    select.className = "field";
+    select.dataset.importField = field;
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = "—";
+    select.append(empty);
+    preview.columns.forEach((column, index) => {
+      const option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = String(column || "Colonne " + (index + 1));
+      select.append(option);
+    });
+    const selected = preview.mapping?.[field];
+    select.value = selected === undefined || selected === null ? "" : String(selected);
+    wrapper.append(select);
+    box.append(wrapper);
+  }
+  const actions = document.createElement("div");
+  actions.className = "import-actions";
+  const applyMapping = document.createElement("button");
+  applyMapping.type = "button";
+  applyMapping.className = "btn";
+  applyMapping.textContent = "Relire avec ce mapping";
+  applyMapping.onclick = () => previewCsv(importMappingFromForm());
+  actions.append(applyMapping);
+  box.append(actions);
+  $("import-csv-info").textContent =
+    (importState.csvName || "Fichier CSV") +
+    " · " +
+    preview.summary.total +
+    " ligne" +
+    (preview.summary.total > 1 ? "s" : "") +
+    " · " +
+    (preview.hasHeader ? "en-tête détecté" : "sans en-tête");
+  box.hidden = false;
+}
+function importMappingFromForm() {
+  const mapping = {};
+  for (const [field] of IMPORT_FIELD_LABELS) {
+    const select = document.querySelector('[data-import-field="' + field + '"]');
+    mapping[field] = select && select.value !== "" ? Number(select.value) : null;
+  }
+  return mapping;
+}
+function updateImportConfirm() {
+  const confirm = $("add-confirm");
+  const reset = $("import-reset");
+  if (importState.busy) {
+    confirm.disabled = true;
+    return;
+  }
+  if (importState.report) {
+    confirm.disabled = false;
+    confirm.textContent = "Fermer";
+    reset.hidden = false;
+    return;
+  }
+  reset.hidden = !importState.preview;
+  if (!importState.preview) {
+    confirm.disabled = false;
+    confirm.textContent = importState.mode === "steam" ? "Analyser Steam" : "Prévisualiser";
+    return;
+  }
+  const count = importState.preview.entries.filter((entry) =>
+    ["add", "merge", "update"].includes(importActionFor(entry))
+  ).length;
+  confirm.textContent = count ? "Appliquer " + count + " modification" + (count > 1 ? "s" : "") : "Rien à appliquer";
+  confirm.disabled = count === 0;
+}
+function resetImport() {
+  importState.preview = null;
+  importState.decisions.clear();
+  $("import-preview").textContent = "";
+  $("import-preview").hidden = true;
+  $("import-report").textContent = "";
+  $("import-report").hidden = true;
+  $("import-mapping").textContent = "";
+  $("import-mapping").hidden = true;
+  updateImportConfirm();
+}
+function resetImportAll() {
+  resetImport();
+  importState.report = null;
+  importState.csvText = "";
+  importState.csvName = "";
+  $("import-csv-file").value = "";
+  $("import-csv-info").textContent =
+    "Colonnes reconnues : titre, statut, complétion, minutes, plateformes, tags, type.";
+  $("import-steam-info").textContent = "Clique sur « Analyser Steam » pour préparer l’aperçu.";
+  $("add-names").value = "";
+  importHint("Un nom par ligne. Rien n’est écrit avant ta confirmation.");
+  updateImportConfirm();
+}
+function setImportMode(mode, focus = true) {
+  importState.mode = ["names", "csv", "steam"].includes(mode) ? mode : "names";
+  importState.report = null;
+  const tabs = { names: $("import-mode-names"), csv: $("import-mode-csv"), steam: $("import-mode-steam") };
+  const panes = { names: $("import-pane-names"), csv: $("import-pane-csv"), steam: $("import-pane-steam") };
+  for (const [key, tab] of Object.entries(tabs)) tab.setAttribute("aria-selected", String(key === importState.mode));
+  for (const [key, pane] of Object.entries(panes)) pane.hidden = key !== importState.mode;
+  resetImport();
+  importHint(
+    importState.mode === "csv"
+      ? "Choisis un fichier CSV, vérifie le mapping puis prévisualise."
+      : importState.mode === "steam"
+        ? "Clique sur « Analyser Steam » pour préparer l’aperçu."
+        : "Un nom par ligne. Rien n’est écrit avant ta confirmation."
+  );
+  if (focus) {
+    if (importState.mode === "names") $("add-names").focus();
+    else if (importState.mode === "csv") $("import-csv-file").focus();
+    else $("import-mode-steam").focus();
+  }
+}
+async function previewImport(payload) {
+  if (!SRV) {
+    importHint("Le pont local n’est pas actif. Rouvre Orbit depuis l’application pour importer avec aperçu et annulation.", true);
+    return null;
+  }
+  if (importState.busy) return null;
+  importState.busy = true;
+  updateImportConfirm();
+  importHint("Analyse des lignes…");
+  try {
+    const response = await fetch("/api/v1/import/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Prévisualisation impossible.");
+    importState.preview = data;
+    importState.decisions.clear();
+    importState.report = null;
+    $("import-report").hidden = true;
+    renderImportPreview(data);
+    renderImportMapping(data);
+    if (data.mode === "steam") {
+      $("import-steam-info").textContent =
+        data.installed + " jeu" + (data.installed > 1 ? "x" : "") + " installé" + (data.installed > 1 ? "s" : "") + " détecté" + (data.installed > 1 ? "s" : "") + ".";
+    }
+    importHint(
+      data.summary.duplicates
+        ? data.summary.duplicates + " doublon" + (data.summary.duplicates > 1 ? "s" : "") + " détecté" + (data.summary.duplicates > 1 ? "s" : "") + ". Vérifie chaque choix."
+        : "Aucun doublon détecté. Vérifie l’aperçu puis applique."
+    );
+    return data;
+  } catch (error) {
+    importHint(error.message || "Prévisualisation impossible.", true);
+    return null;
+  } finally {
+    importState.busy = false;
+    updateImportConfirm();
+  }
+}
+function namesFromForm() {
+  return [
+    ...new Set(
+      $("add-names")
+        .value.split(/\r?\n/)
+        .map((name) => name.replace(/\s+/g, " ").trim())
+        .filter(Boolean)
+    )
+  ];
+}
+function previewNames() {
+  const names = namesFromForm();
+  if (!names.length) {
+    importHint("Écris au moins un nom.", true);
+    return null;
+  }
+  if (names.length > 500) {
+    importHint("Limite : 500 noms par import.", true);
+    return null;
+  }
+  const status = Number($("add-status").value);
+  const kind = $("add-kind").value === "app" ? "app" : "game";
+  return previewImport({ mode: "names", items: names.map((title) => ({ title, status, kind })) });
+}
+function previewCsv(mapping = null) {
+  if (!importState.csvText.trim()) {
+    importHint("Choisis un fichier CSV.", true);
+    $("import-csv-file").click();
+    return null;
+  }
+  return previewImport({ mode: "csv", csv: importState.csvText, mapping });
+}
+async function applyImportPreview() {
+  if (!importState.preview) return;
+  if (importState.busy) return;
+  importState.busy = true;
+  updateImportConfirm();
+  importHint("Application de l’import…");
+  try {
+    const decisions = importState.preview.entries.map((entry) => ({
+      index: entry.index,
+      action: importActionFor(entry)
+    }));
+    const response = await fetch("/api/v1/import/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        previewId: importState.preview.previewId,
+        revision: importState.preview.revision,
+        decisions
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 409) {
+        importState.preview = null;
+        $("import-preview").hidden = true;
+        $("import-mapping").hidden = true;
+        importHint("La bibliothèque a changé depuis l’aperçu. Relance la prévisualisation.", true);
+        return;
+      }
+      throw new Error(data.error || "Application impossible.");
+    }
+    importState.preview = null;
+    importState.report = data.report;
+    importState.undoId = data.undoId || "";
+    importState.undoExpiresAt = Number(data.undoExpiresAt) || Date.now() + 30000;
+    $("import-preview").hidden = true;
+    $("import-mapping").hidden = true;
+    renderImportReport(data);
+    showImportUndo(data);
+    importHint(
+      data.report.added + data.report.merged + data.report.updated + " modification" +
+        (data.report.added + data.report.merged + data.report.updated > 1 ? "s" : "") +
+        " appliquée" +
+        (data.report.added + data.report.merged + data.report.updated > 1 ? "s" : "") +
+        "."
+    );
+    await refreshAfterImport();
+  } catch (error) {
+    importHint(error.message || "Application impossible.", true);
+  } finally {
+    importState.busy = false;
+    updateImportConfirm();
+  }
+}
+async function refreshAfterImport() {
+  try {
+    const response = await fetch("/api/state", { cache: "no-store" });
+    if (!response.ok) return;
+    const server = await response.json();
+    if (Array.isArray(server.games)) {
+      applyServer(server, false);
+      render();
+    }
+  } catch (error) {}
+}
+function renderImportReport(data) {
+  const box = $("import-report");
+  box.textContent = "";
+  const report = data.report;
+  const head = document.createElement("div");
+  head.className = "import-report-head";
+  const heading = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = "Import terminé";
+  const meta = document.createElement("div");
+  meta.className = "note";
+  meta.textContent =
+    report.label +
+    " · " +
+    new Date(report.at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) +
+    " · " +
+    (report.durationMs / 1000).toFixed(1) +
+    " s";
+  heading.append(title, meta);
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "btn";
+  close.textContent = "Fermer";
+  close.onclick = closeAddDialog;
+  head.append(heading, close);
+  box.append(head);
+  const grid = document.createElement("div");
+  grid.className = "import-report-grid";
+  const stat = (label, value) => {
+    const item = document.createElement("div");
+    item.className = "import-report-stat";
+    const number = document.createElement("b");
+    number.textContent = String(value);
+    const caption = document.createElement("span");
+    caption.textContent = label;
+    item.append(number, caption);
+    grid.append(item);
+  };
+  stat("Lignes", report.total);
+  stat("Ajoutés", report.added);
+  stat("Fusionnés", report.merged);
+  stat("Mis à jour", report.updated);
+  stat("Ignorés", report.ignored);
+  stat("Rejetés", report.rejected);
+  stat("Doublons", report.duplicates);
+  stat("Ressemblances", report.similar);
+  stat("Invalides", report.invalid);
+  box.append(grid);
+  const lines = document.createElement("div");
+  lines.className = "import-report-lines";
+  for (const line of report.lines) {
+    const row = document.createElement("div");
+    const lineNumber = document.createElement("span");
+    lineNumber.textContent = String(line.line || "");
+    const name = document.createElement("span");
+    name.textContent =
+      (line.name || line.title || "") +
+      " · " +
+      (IMPORT_ACTION_LABELS[line.action] || line.action) +
+      " → " +
+      (IMPORT_RESULT_LABELS[line.result] || line.result);
+    const error = document.createElement("span");
+    error.textContent = line.error || "";
+    row.append(lineNumber, name, error);
+    lines.append(row);
+  }
+  box.append(lines);
+  const actions = document.createElement("div");
+  actions.className = "import-actions";
+  const exportJson = document.createElement("a");
+  exportJson.className = "btn";
+  exportJson.href = data.reportUrl || "/api/v1/import/report/" + encodeURIComponent(report.id);
+  exportJson.download = "orbit-import.json";
+  exportJson.textContent = "Exporter JSON";
+  const exportCsv = document.createElement("a");
+  exportCsv.className = "btn";
+  exportCsv.href = (data.reportUrl || "/api/v1/import/report/" + encodeURIComponent(report.id)) + "?format=csv";
+  exportCsv.download = "orbit-import.csv";
+  exportCsv.textContent = "Exporter CSV";
+  actions.append(exportJson, exportCsv);
+  if (importState.undoId) {
+    const undo = document.createElement("button");
+    undo.type = "button";
+    undo.className = "btn";
+    undo.id = "import-report-undo";
+    undo.textContent = "Annuler l’import";
+    undo.onclick = undoImportNow;
+    actions.append(undo);
+  }
+  const again = document.createElement("button");
+  again.type = "button";
+  again.className = "btn";
+  again.textContent = "Nouvel import";
+  again.onclick = () => {
+    resetImportAll();
+    setImportMode(importState.mode);
+  };
+  actions.append(again);
+  box.append(actions);
+  box.hidden = false;
+}
+function showImportUndo(data) {
+  clearInterval(importState.undoTimer);
+  const box = $("import-undo");
+  const text = $("import-undo-text");
+  const button = $("import-undo-button");
+  const total = Number(data.report.added) + Number(data.report.merged) + Number(data.report.updated);
+  button.disabled = false;
+  button.onclick = undoImportNow;
+  const tick = () => {
+    const left = Math.max(0, Math.ceil((importState.undoExpiresAt - Date.now()) / 1000));
+    text.textContent =
+      "Import appliqué · " + total + " modification" + (total > 1 ? "s" : "") + " · annulation possible " + left + " s";
+    if (left <= 0) hideImportUndo();
+  };
+  box.hidden = false;
+  tick();
+  importState.undoTimer = setInterval(tick, 1000);
+}
+function hideImportUndo() {
+  clearInterval(importState.undoTimer);
+  importState.undoTimer = 0;
+  $("import-undo").hidden = true;
+  const reportUndo = $("import-report-undo");
+  if (reportUndo) {
+    reportUndo.disabled = true;
+    reportUndo.textContent = "Annulation expirée";
+  }
+}
+async function undoImportNow() {
+  if (!importState.undoId) return;
+  const id = importState.undoId;
+  const button = $("import-undo-button");
+  if (button) button.disabled = true;
+  try {
+    const response = await fetch("/api/v1/import/undo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 404 || response.status === 410) {
+        importState.undoId = "";
+        hideImportUndo();
+      }
+      throw new Error(data.error || "Annulation impossible.");
+    }
+    importState.undoId = "";
+    hideImportUndo();
+    const reportUndo = $("import-report-undo");
+    if (reportUndo) {
+      reportUndo.disabled = true;
+      reportUndo.textContent = "Import annulé";
+    }
+    toast("Import annulé");
+    await refreshAfterImport();
+  } catch (error) {
+    toast(error.message || "Annulation impossible.");
+    if (button) button.disabled = false;
+  }
+}
 function addGame(name) {
+  if (SRV) {
+    openAddDialog("names", name);
+    return;
+  }
   const g = { id: nextId++, n: name, s: 2, c: 0, m: 0 };
   S.games.push(g); save(); $("q").value = ""; fq.q = ""; render(); openPanel(g.id); toast("Jeu ajouté");
 }
-function openAddDialog(){$("add-veil").hidden=false;$("add-dialog").hidden=false;$("add-names").focus();}
-function closeAddDialog(){$("add-veil").hidden=true;$("add-dialog").hidden=true;}
-$("add-open").onclick=openAddDialog;$("add-close").onclick=closeAddDialog;$("add-veil").onclick=closeAddDialog;
-$("add-search").onclick=async()=>{
-  const names=[...new Set($("add-names").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
-  const results=$("add-results"),hint=$("add-hint"),confirm=$("add-confirm");results.textContent="";confirm.disabled=true;
-  if(!names.length){hint.textContent="Écris au moins un nom.";return;}if(names.length>20){hint.textContent="Limite : 20 noms à la fois.";return;}
-  hint.textContent="Recherche des jeux…";$("add-search").disabled=true;
-  try{
-    const groups=await Promise.all(names.map(async name=>{let found=[];if(SRV)try{const r=await fetch("/api/search-games?name="+encodeURIComponent(name));if(r.ok){const j=await r.json();found=Array.isArray(j.results)?j.results:[];}}catch(e){};
-      if(!found.length)found=[{name,image:"",source:"Ajout manuel",score:0,manual:true}];
-      const exact=found.findIndex(x=>ckey(x.name)===ckey(name));return {query:name,items:found,selected:exact>=0?exact:found.length===1?0:-1};}));
-    results.textContent="";
-    groups.forEach((group,gi)=>{const section=document.createElement("section"),title=document.createElement("h3");section.className="add-group";title.textContent=group.query;section.append(title);
-      group.items.forEach((item,ii)=>{const label=document.createElement("label"),radio=document.createElement("input"),nameWrap=document.createElement("span");label.className="add-candidate";radio.type="radio";radio.name="candidate-"+gi;radio.value=ii;radio.checked=ii===group.selected;radio.onchange=()=>{group.selected=ii;confirm.disabled=groups.some(x=>x.selected<0);};
-        let image;if(item.image){image=document.createElement("img");image.src=item.image;image.alt="";image.loading="lazy";}else{image=document.createElement("span");image.className="add-placeholder";image.textContent="Sans image";}
-        const title=document.createElement("b"),source=document.createElement("small");title.textContent=item.name;source.textContent=item.source+(item.score===100?" · nom exact":"");nameWrap.append(title,source);label.append(radio,image,nameWrap);section.append(label);});results.append(section);});
-    confirm.disabled=groups.some(x=>x.selected<0);hint.textContent=groups.length===1?"Vérifie le résultat puis ajoute-le.":`${groups.length} jeux prêts à ajouter.`;
-    confirm.onclick=()=>{let count=0,status=+$("add-status").value;groups.forEach(g=>{const item=g.items[g.selected];if(!item||S.games.some(x=>ckey(x.n)===ckey(item.name)))return;S.games.push({id:nextId++,n:item.name,s:status,c:0,m:0,t:0});count++;});save();render();closeAddDialog();toast(count?`${count} jeu(x) ajouté(s)`:"Ces jeux sont déjà dans ta bibliothèque");};
-  }catch(e){hint.textContent="Recherche impossible. Vérifie ta connexion ou ajoute le nom écrit.";}finally{$("add-search").disabled=false;}
+function openAddDialog(mode = "names", prefill = "") {
+  importState.lastFocus = document.activeElement;
+  $("add-veil").hidden = false;
+  $("add-dialog").hidden = false;
+  resetImportAll();
+  if (prefill) $("add-names").value = prefill;
+  setImportMode(mode, false);
+  requestAnimationFrame(() => {
+    if (mode === "names") $("add-names").focus();
+    else if (mode === "csv") $("import-csv-file").focus();
+    else $("import-mode-steam").focus();
+  });
+}
+function closeAddDialog() {
+  $("add-veil").hidden = true;
+  $("add-dialog").hidden = true;
+  if (importState.lastFocus && typeof importState.lastFocus.focus === "function") importState.lastFocus.focus();
+  importState.lastFocus = null;
+}
+$("add-open").onclick = () => openAddDialog("names");
+$("add-close").onclick = closeAddDialog;
+$("add-veil").onclick = closeAddDialog;
+$("add-confirm").onclick = () => {
+  if (importState.report) {
+    closeAddDialog();
+    return;
+  }
+  if (importState.preview) {
+    applyImportPreview();
+    return;
+  }
+  if (importState.mode === "names") previewNames();
+  else if (importState.mode === "csv") previewCsv($("import-mapping").hidden ? null : importMappingFromForm());
+  else previewImport({ mode: "steam" });
 };
+$("import-reset").onclick = () => {
+  resetImportAll();
+  setImportMode(importState.mode);
+};
+$("import-mode-names").onclick = () => setImportMode("names");
+$("import-mode-csv").onclick = () => setImportMode("csv");
+$("import-mode-steam").onclick = () => setImportMode("steam");
+$("add-dialog").addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeAddDialog();
+    return;
+  }
+  if (event.key === "Tab") {
+    const items = [...$("add-dialog").querySelectorAll("button:not([disabled]), select:not([disabled]), input:not([disabled]), textarea:not([disabled]), a[href]")].filter(
+      (item) => item.offsetParent !== null
+    );
+    if (!items.length) return;
+    const first = items[0];
+    const last = items.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+    return;
+  }
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  const tab = event.target.closest?.(".import-tab");
+  if (!tab) return;
+  const tabs = [...document.querySelectorAll(".import-tab")];
+  const index = tabs.indexOf(tab);
+  const next = tabs[(index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+  event.preventDefault();
+  next.focus();
+  next.click();
+});
+$("import-csv-file").onchange = async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    importHint("Fichier trop volumineux : 2 Mo maximum.", true);
+    return;
+  }
+  try {
+    importState.csvText = await file.text();
+    importState.csvName = file.name;
+    $("import-csv-info").textContent =
+      file.name + " · " + (file.size / 1024).toFixed(1).replace(".", ",") + " Ko";
+    await previewCsv();
+  } catch (error) {
+    importHint("Lecture du fichier impossible.", true);
+  }
+};
+// Le dialogue est global : il doit aussi s’ouvrir depuis Orbit Play.
+document.body.append($("add-veil"), $("add-dialog"));
+window.orbitImport = {
+  open: (mode = "names") => openAddDialog(mode)
+};
+updateImportConfirm();
 
 /* Panneau */
 function seg(boxId, labels, cur, onPick, dots) {
@@ -2963,35 +3753,12 @@ document.addEventListener("keydown", e => {
   if (go !== undefined && tiles[go]) { e.preventDefault(); tiles[go].focus(); tiles[go].scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
 });
 
-/* CSV */
-function parseCSV(text) {
-  const rows = []; let row = [], cur = "", q = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
-    else if (ch === '"') q = true;
-    else if (ch === "," || ch === ";") { row.push(cur); cur = ""; }
-    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cur); cur = ""; if (row.some(x => x.trim())) rows.push(row); row = []; }
-    else cur += ch;
-  }
-  row.push(cur); if (row.some(x => x.trim())) rows.push(row);
-  return rows;
-}
-$("imp").onclick = () => { const p=$("overflow-items");p.hidden=true;$("overflow-toggle").setAttribute("aria-expanded","false");$("file").click(); };
-$("file").onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
-  const rows = parseCSV((await f.text()).replace(/^﻿/, ""));
-  let add = 0, upd = 0;
-  for (const r of rows) {
-    const name = (r[0] || "").trim();
-    if (!name || norm(name) === "jeu") continue;
-    const s = ST.findIndex(x => norm(x) === norm(r[1] || "")), c = CO.findIndex(x => norm(x) === norm(r[2] || ""));
-    const m = parseInt(r[3], 10);
-    const ex = S.games.find(g => norm(g.n) === norm(name));
-    if (ex) { if (s >= 0) ex.s = s; if (c >= 0) ex.c = c; if (!isNaN(m)) ex.m = m; upd++; }
-    else { S.games.push({ id: nextId++, n: name, s: s >= 0 ? s : NEUTRAL_STATUS, c: c >= 0 ? c : 0, m: isNaN(m) ? 0 : m }); add++; }
-  }
-  save(); render(); toast(`${add} ajouté(s), ${upd} mis à jour`);
+/* Import CSV : même aperçu transactionnel que l’ajout par noms. */
+$("imp").onclick = () => {
+  const menu = $("overflow-items");
+  menu.hidden = true;
+  $("overflow-toggle").setAttribute("aria-expanded", "false");
+  openAddDialog("csv");
 };
 $("exp").onclick = async () => {
   const menu=$("overflow-items");menu.hidden=true;$("overflow-toggle").setAttribute("aria-expanded","false");

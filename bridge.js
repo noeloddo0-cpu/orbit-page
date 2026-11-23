@@ -9,6 +9,7 @@ import { shells as SHELL_REGISTRY } from "./themes/index.js";
 import { createLogger } from "./orbit-log.mjs";
 import { getSecret, setSecret, deleteSecret, secretsAvailable } from "./orbit-secrets.mjs";
 import { buildMetaDocument, isStableId, LIBRARY_VERSION, parseMetaDocument, stableGameId } from "./orbit-library.mjs";
+import { cleanTitle, entryFromItem, entryFromRow, IMPORT_MAX_ROWS, nameSimilarity, readCsvDocument, reportToCsv, SIMILARITY_THRESHOLD } from "./orbit-import.mjs";
 const require = createRequire(import.meta.url);
 const __dirname = require("node:path").dirname(require("node:url").fileURLToPath(import.meta.url));
 
@@ -1444,6 +1445,570 @@ function undoGameBatch(id) {
     return batchFailure("annulation impossible", 500);
   }
 }
+
+/* ---------- Ajout et import P1-04 ---------- */
+const importPreviews = new Map();
+const importUndos = new Map();
+const importReports = new Map();
+const IMPORT_PREVIEW_MS = 15 * 60 * 1000;
+const IMPORT_UNDO_MS = 30 * 1000;
+const IMPORT_REPORT_MS = 24 * 60 * 60 * 1000;
+const IMPORT_MEMORY_LIMIT = 20;
+
+function pruneImportMap(map, ttl) {
+  const now = Date.now();
+  for (const [id, entry] of map) {
+    if (!entry || now - Number(entry.createdAt || 0) > ttl) map.delete(id);
+  }
+  while (map.size > IMPORT_MEMORY_LIMIT) map.delete(map.keys().next().value);
+}
+
+function libraryRevision() {
+  const games = state.games
+    .map(game => [game.id, game.name || game.n, game.updatedAt || 0, game.status ?? game.s, game.minutes ?? game.m].join(":"))
+    .join("|");
+  return crypto.createHash("sha1").update(games + "#" + state.favorites.join(",")).digest("hex");
+}
+
+function importGameSummary(game) {
+  if (!game) return null;
+  const meta = gameMeta(game);
+  return {
+    id: game.id,
+    name: game.name || game.n,
+    kind: game.kind === "app" ? "app" : "game",
+    status: normalizeStatus(game.status ?? game.s),
+    completion: [0, 1, 2].includes(Number(game.completion ?? game.c)) ? Number(game.completion ?? game.c) : 0,
+    minutes: Math.max(0, Math.round(Number(game.minutes ?? game.m) || 0)),
+    tags: Array.isArray(game.tags) ? game.tags.slice(0, 20) : [],
+    platforms: Array.isArray(game.platforms) ? game.platforms.slice(0, 20) : [],
+    appId: meta.appId ? String(meta.appId) : meta.localSteamId ? String(meta.localSteamId) : null
+  };
+}
+
+function uniqueImportTitle(title, reserved = new Set()) {
+  const base = cleanTitle(title) || "Sans titre";
+  const used = new Set([...state.games.map(game => ckey(game.name || game.n)), ...reserved]);
+  let candidate = base;
+  for (let occurrence = 2; used.has(ckey(candidate)); occurrence += 1) candidate = base + " (" + occurrence + ")";
+  return candidate;
+}
+
+function importDuplicateFor(entry, seen, index) {
+  if (!entry || !entry.title) return null;
+  const key = ckey(entry.title);
+  const previous = seen.get(key);
+  if (previous) {
+    return {
+      reason: "batch",
+      gameId: null,
+      name: previous.title,
+      line: previous.line,
+      similarity: 1,
+      game: null,
+      addName: uniqueImportTitle(entry.title)
+    };
+  }
+  const direct = state.games.find(game => ckey(game.name || game.n) === key) || null;
+  const aliasId = state.metaAliases[metaKey(entry.title)];
+  const aliasGame = !direct && aliasId ? findGameById(aliasId) : null;
+  const appGame = entry.appId
+    ? state.games.find(game => {
+        const meta = gameMeta(game);
+        return String(meta.appId || meta.localSteamId || meta.playDetails?.steamAppId || "") === String(entry.appId);
+      }) || null
+    : null;
+  const target = direct || aliasGame || appGame || null;
+  if (target) {
+    const reason = direct ? "exact" : aliasGame ? "alias" : "appId";
+    return {
+      reason,
+      gameId: target.id,
+      name: target.name || target.n,
+      line: null,
+      similarity: 1,
+      game: importGameSummary(target),
+      addName: uniqueImportTitle(entry.title)
+    };
+  }
+  const entryTokens = new Set(key.split(" ").filter(Boolean));
+  const candidates = [];
+  for (const candidate of index) {
+    if (!candidate.key) continue;
+    let common = 0;
+    for (const token of entryTokens) if (candidate.tokens.has(token)) common += 1;
+    const dice =
+      entryTokens.size && candidate.tokens.size ? (2 * common) / (entryTokens.size + candidate.tokens.size) : 0;
+    const prefix =
+      (candidate.key.length >= 4 && (key.startsWith(candidate.key + " ") || key === candidate.key)) ||
+      (key.length >= 4 && candidate.key.startsWith(key + " ")) ||
+      (candidate.key.length >= 5 && key.startsWith(candidate.key)) ||
+      (key.length >= 5 && candidate.key.startsWith(key));
+    if (dice < 0.25 && !prefix) continue;
+    const score = nameSimilarity(entry.title, candidate.game.name || candidate.game.n);
+    if (score < SIMILARITY_THRESHOLD) continue;
+    candidates.push({ score, game: importGameSummary(candidate.game) });
+  }
+  candidates.sort((a, b) => b.score - a.score || a.game.name.localeCompare(b.game.name, "fr"));
+  if (!candidates.length) return null;
+  return {
+    reason: "similar",
+    gameId: candidates[0].game.id,
+    name: candidates[0].game.name,
+    line: null,
+    similarity: candidates[0].score,
+    game: candidates[0].game,
+    candidates: candidates.slice(0, 3)
+  };
+}
+
+function importEntryAction(entry, duplicate, mode) {
+  if (entry.errors.length) return "reject";
+  if (!duplicate) return "add";
+  if (duplicate.reason === "batch" || duplicate.reason === "similar") return "ignore";
+  return mode === "names" ? "ignore" : "merge";
+}
+
+function prepareImportEntries(entries, mode) {
+  const seen = new Map();
+  const index = state.games.map(game => {
+    const key = ckey(game.name || game.n);
+    return { game, key, tokens: new Set(key.split(" ").filter(Boolean)) };
+  });
+  entries.forEach((entry, indexPosition) => {
+    entry.index = indexPosition;
+    entry.effectiveStatus = entry.status ?? 2;
+    entry.effectiveCompletion = entry.completion ?? 0;
+    entry.effectiveMinutes = entry.minutes ?? 0;
+    entry.effectiveKind = entry.kind || "game";
+    entry.duplicate = importDuplicateFor(entry, seen, index);
+    entry.action = importEntryAction(entry, entry.duplicate, mode);
+    entry.addName =
+      entry.action === "add" && entry.duplicate && entry.duplicate.reason !== "similar" && entry.duplicate.reason !== "batch"
+        ? entry.duplicate.addName || uniqueImportTitle(entry.title)
+        : "";
+    if (!entry.errors.length && entry.title) seen.set(ckey(entry.title), entry);
+  });
+  return entries;
+}
+
+function importSummary(entries) {
+  const summary = {
+    total: entries.length,
+    add: 0,
+    merge: 0,
+    ignore: 0,
+    reject: 0,
+    duplicates: 0,
+    similar: 0,
+    invalid: 0
+  };
+  for (const entry of entries) {
+    if (Object.hasOwn(summary, entry.action)) summary[entry.action] += 1;
+    if (entry.duplicate) summary.duplicates += 1;
+    if (entry.duplicate?.reason === "similar") summary.similar += 1;
+    if (entry.errors.length) summary.invalid += 1;
+  }
+  return summary;
+}
+
+function createImportPreview(input, forcedMode = "") {
+  if (state.schemaVersion !== LIBRARY_VERSION) return { code: 409, error: "migration v2 requise" };
+  const mode = forcedMode || (input?.mode === "csv" ? "csv" : input?.mode === "steam" ? "steam" : "names");
+  let entries = [];
+  let mapping = null;
+  let columns = [];
+  let hasHeader = false;
+  let delimiter = ",";
+  let label = "Import";
+  let installed = 0;
+  try {
+    if (mode === "csv") {
+      const csv = String(input?.csv || "");
+      if (!csv.trim()) return { code: 400, error: "fichier CSV vide" };
+      if (Buffer.byteLength(csv, "utf8") > 2 * 1024 * 1024) return { code: 413, error: "fichier CSV trop volumineux (2 Mo maximum)" };
+      const document = readCsvDocument(csv, input?.mapping);
+      if (document.mapping.title === undefined) return { code: 400, error: "colonne titre introuvable" };
+      if (document.rows.length > IMPORT_MAX_ROWS) return { code: 413, error: "500 lignes maximum par import" };
+      entries = document.rows.map(row => entryFromRow(row, document.mapping));
+      mapping = document.mapping;
+      columns = document.columns;
+      hasHeader = document.hasHeader;
+      delimiter = document.delimiter;
+      label = "Import CSV";
+    } else if (mode === "steam") {
+      const roots = steamRoots();
+      if (!roots.length) return { code: 409, error: "Steam n’a pas été trouvé sur cet ordinateur" };
+      const games = installedSteamGames(roots);
+      installed = games.length;
+      entries = games.map((game, index) =>
+        entryFromItem(
+          { title: game.name, appId: String(game.appId), kind: "game", source: "Steam local", line: index + 1 },
+          index,
+          { defaultStatus: 2 }
+        )
+      );
+      label = "Import Steam";
+    } else {
+      const items = Array.isArray(input?.items)
+        ? input.items
+        : String(input?.names || "")
+            .split(/\r?\n/)
+            .map(name => ({ title: name }));
+      if (items.length > IMPORT_MAX_ROWS) return { code: 413, error: "500 lignes maximum par import" };
+      entries = items.map((item, index) =>
+        entryFromItem(item, index, {
+          defaultStatus: input?.defaultStatus ?? 2,
+          providedStatus: input?.defaultStatus !== undefined
+        })
+      );
+      label = "Ajout de " + entries.length + " titre" + (entries.length > 1 ? "s" : "");
+    }
+  } catch (error) {
+    logger.error("Analyse d’import impossible", { error });
+    return { code: 400, error: "import illisible" };
+  }
+  if (!entries.length) return { code: 400, error: "aucune ligne à importer" };
+  prepareImportEntries(entries, mode);
+  const preview = {
+    id: crypto.randomUUID(),
+    mode,
+    label,
+    entries,
+    summary: importSummary(entries),
+    revision: libraryRevision(),
+    mapping,
+    columns,
+    hasHeader,
+    delimiter,
+    installed,
+    createdAt: Date.now()
+  };
+  pruneImportMap(importPreviews, IMPORT_PREVIEW_MS);
+  importPreviews.set(preview.id, preview);
+  return {
+    ok: true,
+    previewId: preview.id,
+    mode,
+    label,
+    summary: preview.summary,
+    revision: preview.revision,
+    entries,
+    mapping,
+    columns,
+    hasHeader,
+    delimiter,
+    installed,
+    expiresAt: preview.createdAt + IMPORT_PREVIEW_MS
+  };
+}
+
+function snapshotImportState() {
+  return {
+    games: cloneJson(state.games),
+    favorites: [...state.favorites],
+    meta: cloneJson(state.meta),
+    metaAliases: cloneJson(state.metaAliases),
+    deletedGames: cloneJson(state.deletedGames)
+  };
+}
+
+function restoreImportState(snapshot) {
+  state.games = cloneJson(snapshot.games);
+  state.favorites = [...snapshot.favorites];
+  state.meta = cloneJson(snapshot.meta);
+  state.metaAliases = cloneJson(snapshot.metaAliases);
+  state.deletedGames = cloneJson(snapshot.deletedGames);
+}
+
+function mergeImportLists(current, incoming, action) {
+  if (!Array.isArray(incoming)) return Array.isArray(current) ? current : [];
+  if (action === "update") return [...new Set(incoming)].slice(0, 20);
+  const base = Array.isArray(current) ? current : [];
+  return [...new Set([...base, ...incoming])].slice(0, 20);
+}
+
+function applyImportEntry(entry, action, name, now) {
+  const report = { line: entry.line, title: entry.title, action, result: "ignored", gameId: null, name: "", error: "" };
+  if (action === "ignore") return report;
+  if (action === "reject") {
+    report.result = "rejected";
+    report.error = entry.errors.map(item => item.message).join(" ; ");
+    return report;
+  }
+  if (action === "add") {
+    const title = name || entry.title;
+    const game = newGame(title, entry.status ?? 2);
+    game.kind = entry.kind || "game";
+    game.completion = entry.completion ?? 0;
+    game.c = game.completion;
+    game.minutes = entry.minutes ?? 0;
+    game.m = game.minutes;
+    game.importedMinutes = entry.minutes ?? 0;
+    game.tags = Array.isArray(entry.tags) ? [...new Set(entry.tags)].slice(0, 20) : [];
+    game.platforms = Array.isArray(entry.platforms) ? [...new Set(entry.platforms)].slice(0, 20) : [];
+    game.createdAt = now;
+    game.updatedAt = now;
+    state.games.push(game);
+    if (entry.appId) {
+      setGameMeta(game, { ...(entry.appId ? { appId: entry.appId } : {}), ...(entry.source === "Steam local" ? { localSteamId: entry.appId } : {}) });
+    } else {
+      state.metaAliases[metaKey(game.name)] = game.id;
+    }
+    report.result = "added";
+    report.gameId = game.id;
+    report.name = game.name;
+    return report;
+  }
+  const game = findGameById(entry.duplicate?.gameId);
+  if (!game) {
+    report.result = "rejected";
+    report.error = "jeu cible introuvable";
+    return report;
+  }
+  const meta = state.meta[game.id] || {};
+  const details = meta.playDetails || {};
+  let metaChanged = false;
+  if (entry.provided.status && entry.status !== null && entry.status !== undefined) {
+    game.status = normalizeStatus(entry.status);
+    game.s = game.status;
+  }
+  if (entry.provided.completion && entry.completion !== null && entry.completion !== undefined) {
+    game.completion = entry.completion;
+    game.c = entry.completion;
+  }
+  if (entry.provided.kind && entry.kind) {
+    game.kind = entry.kind;
+    details.kind = entry.kind;
+    metaChanged = true;
+  }
+  if (entry.provided.minutes && entry.minutes !== null && entry.minutes !== undefined) {
+    const previous = Math.max(0, Math.round(Number(game.minutes ?? game.m) || 0));
+    game.manualDelta = (Number(game.manualDelta) || 0) + entry.minutes - previous;
+    game.minutes = entry.minutes;
+    game.m = entry.minutes;
+    game.importedMinutes = entry.minutes;
+  }
+  if (entry.provided.tags) {
+    game.tags = mergeImportLists(game.tags, entry.tags || [], action);
+    details.collections = game.tags;
+    metaChanged = true;
+  }
+  if (entry.provided.platforms) {
+    game.platforms = mergeImportLists(game.platforms, entry.platforms || [], action);
+    details.platforms = game.platforms;
+    metaChanged = true;
+  }
+  if (entry.appId) {
+    const existing = String(meta.appId || meta.localSteamId || "");
+    if (!existing) {
+      meta.appId = entry.appId;
+      if (entry.source === "Steam local") meta.localSteamId = entry.appId;
+      metaChanged = true;
+    } else if (existing !== String(entry.appId)) {
+      report.error = "appId Steam différent conservé";
+    }
+  }
+  game.updatedAt = now;
+  if (metaChanged) state.meta[game.id] = { ...meta, playDetails: details };
+  state.metaAliases[metaKey(entry.title)] = game.id;
+  if (entry.title && ckey(entry.title) !== ckey(game.name || game.n)) state.metaAliases[metaKey(game.name || game.n)] = game.id;
+  report.result = action === "update" ? "updated" : "merged";
+  report.gameId = game.id;
+  report.name = game.name || game.n;
+  return report;
+}
+
+function copySteamPortraits() {
+  const roots = steamRoots();
+  if (!roots.length) return 0;
+  let portraits = 0;
+  for (const game of state.games) {
+    const meta = gameMeta(game);
+    if (!meta?.appId) continue;
+    const portrait = localPortrait(meta.appId, roots);
+    if (!portrait) continue;
+    const filename = "steam-" + meta.appId + "-portrait" + portrait.extension;
+    const target = path.join(COVERS, filename);
+    try {
+      if (!fs.existsSync(target) || !fs.readFileSync(target).equals(portrait.bytes)) {
+        const temp = target + ".tmp";
+        fs.writeFileSync(temp, portrait.bytes);
+        fs.renameSync(temp, target);
+      }
+      meta.steamPortrait = { f: filename, v: Math.round(fs.statSync(target).mtimeMs) };
+      portraits += 1;
+    } catch (error) {
+      logger.warn("Jaquette Steam non copiée", { error });
+    }
+  }
+  if (portraits) saveMeta();
+  return portraits;
+}
+
+function applyImport(input) {
+  if (state.schemaVersion !== LIBRARY_VERSION) return { code: 409, error: "migration v2 requise" };
+  const preview = importPreviews.get(String(input?.previewId || ""));
+  if (!preview) return { code: 404, error: "prévisualisation introuvable ou expirée" };
+  if (Date.now() - preview.createdAt > IMPORT_PREVIEW_MS) {
+    importPreviews.delete(preview.id);
+    return { code: 410, error: "prévisualisation expirée" };
+  }
+  if ((input?.revision && String(input.revision) !== preview.revision) || libraryRevision() !== preview.revision) {
+    return { code: 409, error: "la bibliothèque a changé depuis la prévisualisation" };
+  }
+  const decisions = new Map();
+  if (Array.isArray(input?.decisions)) {
+    for (const decision of input.decisions.slice(0, IMPORT_MAX_ROWS)) {
+      const index = Number(decision?.index);
+      if (Number.isInteger(index) && index >= 0) decisions.set(index, String(decision.action || ""));
+    }
+  }
+  const plan = [];
+  const reserved = new Set(state.games.map(game => ckey(game.name || game.n)));
+  for (const entry of preview.entries) {
+    const action = decisions.has(entry.index) ? decisions.get(entry.index) : entry.action;
+    if (!["add", "merge", "update", "ignore", "reject"].includes(action)) {
+      return { code: 400, error: "action d’import inconnue (ligne " + entry.line + ")" };
+    }
+    if (entry.errors.length && !["ignore", "reject"].includes(action)) {
+      return { code: 400, error: "ligne " + entry.line + " invalide : " + entry.errors.map(item => item.message).join(" ; ") };
+    }
+    if (entry.duplicate?.reason === "batch" && action !== "ignore") {
+      return { code: 400, error: "ligne " + entry.line + " en double dans le fichier" };
+    }
+    if (action === "merge" || action === "update") {
+      const target = entry.duplicate?.gameId ? findGameById(entry.duplicate.gameId) : null;
+      if (!target) return { code: 409, error: "jeu cible introuvable (ligne " + entry.line + ")" };
+      plan.push({ entry, action, target });
+    } else if (action === "add") {
+      let name = uniqueImportTitle(entry.title, reserved);
+      reserved.add(ckey(name));
+      plan.push({ entry, action, name });
+    } else {
+      plan.push({ entry, action });
+    }
+  }
+  const before = snapshotImportState();
+  const started = Date.now();
+  const report = {
+    id: crypto.randomUUID(),
+    mode: preview.mode,
+    label: preview.label,
+    at: started,
+    revision: preview.revision,
+    total: preview.entries.length,
+    added: 0,
+    merged: 0,
+    updated: 0,
+    ignored: 0,
+    rejected: 0,
+    duplicates: preview.summary.duplicates,
+    similar: preview.summary.similar,
+    invalid: preview.summary.invalid,
+    durationMs: 0,
+    lines: []
+  };
+  const addedNames = [];
+  let failed = false;
+  try {
+    for (const item of plan) {
+      if (failed) break;
+      const line = applyImportEntry(item.entry, item.action, item.name, started);
+      report.lines.push(line);
+      if (line.result === "added") {
+        report.added += 1;
+        addedNames.push(line.name);
+      } else if (line.result === "merged") report.merged += 1;
+      else if (line.result === "updated") report.updated += 1;
+      else if (line.result === "rejected") report.rejected += 1;
+      else report.ignored += 1;
+      if (line.result === "rejected" && item.action !== "reject") failed = true;
+    }
+    if (failed) throw new Error("ligne refusée");
+    if (!writeLibrary()) throw new Error("écriture de la bibliothèque impossible");
+    if (!saveMeta()) throw new Error("écriture des métadonnées impossible");
+  } catch (error) {
+    logger.error("Import annulé", { error });
+    restoreImportState(before);
+    writeLibrary();
+    saveMeta();
+    return { code: 500, error: "écriture impossible ; aucune donnée n’a été modifiée" };
+  }
+  report.durationMs = Date.now() - started;
+  if (preview.mode === "steam") {
+    try {
+      report.portraits = copySteamPortraits();
+    } catch (error) {
+      report.portraits = 0;
+      logger.warn("Portraits Steam non copiés", { error });
+    }
+  }
+  const undoId = crypto.randomUUID();
+  const undoExpiresAt = Date.now() + IMPORT_UNDO_MS;
+  importUndos.set(undoId, {
+    id: undoId,
+    before,
+    postRevision: libraryRevision(),
+    reportId: report.id,
+    createdAt: Date.now(),
+    expiresAt: undoExpiresAt
+  });
+  pruneImportMap(importUndos, IMPORT_UNDO_MS);
+  pruneImportMap(importReports, IMPORT_REPORT_MS);
+  importReports.set(report.id, report);
+  importPreviews.delete(preview.id);
+  for (const name of addedNames.slice(0, 30)) scheduleEnrichment(name);
+  try {
+    recordHealthImport({
+      source: preview.mode === "csv" ? "csv" : preview.mode === "steam" ? "steam" : "manual",
+      label: preview.label,
+      count: report.added + report.merged + report.updated
+    });
+  } catch (error) {
+    logger.warn("Import non journalisé dans la santé", { error });
+  }
+  broadcast();
+  return {
+    ok: true,
+    report,
+    undoId,
+    undoExpiresAt,
+    reportUrl: "/api/v1/import/report/" + encodeURIComponent(report.id)
+  };
+}
+
+function undoImport(id) {
+  const entry = importUndos.get(String(id || ""));
+  if (!entry) return { code: 404, error: "annulation introuvable ou expirée" };
+  if (entry.expiresAt < Date.now()) {
+    importUndos.delete(entry.id);
+    return { code: 410, error: "annulation expirée" };
+  }
+  if (libraryRevision() !== entry.postRevision) {
+    return { code: 409, error: "la bibliothèque a changé depuis l’import ; annulation refusée" };
+  }
+  const current = snapshotImportState();
+  try {
+    restoreImportState(entry.before);
+    if (!writeLibrary() || !saveMeta()) {
+      restoreImportState(current);
+      writeLibrary();
+      saveMeta();
+      return { code: 500, error: "écriture impossible ; l’import n’a pas été annulé" };
+    }
+    importUndos.delete(entry.id);
+    broadcast();
+    return { ok: true, restored: true, reportId: entry.reportId };
+  } catch (error) {
+    restoreImportState(current);
+    writeLibrary();
+    saveMeta();
+    logger.error("Annulation d’import impossible", { error });
+    return { code: 500, error: "annulation impossible ; l’import n’a pas été annulé" };
+  }
+}
+
 function migrateLegacyCovers() {
   let changed = false;
   for (const game of state.games) {
@@ -1861,6 +2426,65 @@ http.createServer(async (req, res) => {
     } catch { return json(400, {error: 'Jaquette indisponible ou fichier trop grand.'}); }
   }
 
+  if (url === "/api/v1/import/preview" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 4e6));
+      const result = createImportPreview(input);
+      if (result.code) return json(result.code, result);
+      return json(200, result);
+    } catch (error) {
+      return json(400, { error: "prévisualisation d’import invalide" });
+    }
+  }
+  if (url === "/api/steam/import/preview" && req.method === "POST") {
+    try {
+      const result = createImportPreview({}, "steam");
+      if (result.code) return json(result.code, result);
+      return json(200, result);
+    } catch (error) {
+      return json(500, { error: "prévisualisation Steam impossible" });
+    }
+  }
+  if (url === "/api/v1/import/apply" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 1e6));
+      const result = applyImport(input);
+      if (result.code) return json(result.code, result);
+      return json(200, result);
+    } catch (error) {
+      return json(400, { error: "application de l’import impossible" });
+    }
+  }
+  if (url === "/api/v1/import/undo" && req.method === "POST") {
+    try {
+      const input = JSON.parse(await body(req, 20000));
+      const result = undoImport(input?.id);
+      if (result.code) return json(result.code, result);
+      return json(200, result);
+    } catch (error) {
+      return json(400, { error: "annulation de l’import impossible" });
+    }
+  }
+  if (url.startsWith("/api/v1/import/report/") && req.method === "GET") {
+    const id = decodeURIComponent(url.slice("/api/v1/import/report/".length));
+    const report = importReports.get(id);
+    if (!report) return json(404, { error: "rapport introuvable ou expiré" });
+    const stamp = new Date(report.at).toISOString().slice(0, 10);
+    if (parsed.searchParams.get("format") === "csv") {
+      res.writeHead(200, {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="orbit-import-${stamp}.csv"`,
+        "Cache-Control": "no-store"
+      });
+      return res.end(reportToCsv(report));
+    }
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Disposition": `attachment; filename="orbit-import-${stamp}.json"`,
+      "Cache-Control": "no-store"
+    });
+    return res.end(JSON.stringify(report, null, 2));
+  }
   if(url==="/api/steam/portraits"&&req.method==="POST"){try{return json(200,await runCoverSync(true));}catch{return json(500,{ok:false,message:"Recherche des jaquettes momentanément indisponible"});}}
   if(url==="/api/steam/import"&&req.method==="POST"){try{return json(200,importLocalSteam());}catch(error){return json(500,{ok:false,message:"L’import Steam local a échoué. Réessaie après avoir ouvert Steam."});}}
   if (url === "/api/search-games" && req.method === "GET") {

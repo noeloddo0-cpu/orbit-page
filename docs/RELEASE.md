@@ -31,7 +31,7 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
 ## Contenu attendu de l’installateur
 
 - `desktop-main.js`, `desktop-preload.cjs`, `bridge.js`, `bibliotheque.html`, `launcher.js`, `launcher.css`.
-- `orbit-log.mjs`, `orbit-backup.mjs`, `orbit-secrets.mjs`, `orbit-library.mjs`, `steam-achievements.mjs`, `steam-local.mjs` et les modules cinéma/statistiques.
+- `orbit-log.mjs`, `orbit-backup.mjs`, `orbit-secrets.mjs`, `orbit-library.mjs`, `orbit-import.mjs`, `steam-achievements.mjs`, `steam-local.mjs` et les modules cinéma/statistiques.
 - Les 13 thèmes enregistrés, leurs polices et licences.
 - `THIRD_PARTY.md`, `THIRD-PARTY-NOTICES.md`, `icon.svg`.
 - Aucun fichier de données personnel : ni `library.json`, ni `cinema.json`, ni `meta.json`, ni `covers/`, ni `backups/`, ni `.env`, ni `config.json`, ni `tmdb-api-key.txt`, ni `secrets.json`.
@@ -41,10 +41,13 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
 1. Noter la taille de l’installateur et calculer son empreinte :
 
    ```powershell
-   Get-FileHash .\dist\Orbit-Setup-1.0.34.exe -Algorithm SHA256
+   Get-FileHash .\dist\Orbit-Setup-1.0.35.exe -Algorithm SHA256
    ```
 
 2. Installer dans un dossier de test et vérifier :
+   - sur une **copie isolée**, ajouter des noms avec un doublon : vérifier l’aperçu, choisir **Fusionner**, appliquer, exporter le rapport en JSON puis en CSV, et annuler dans les 30 secondes ;
+   - importer un CSV avec accents, homonymes, doublons exacts et une ligne invalide : vérifier le mapping, l’aperçu, le refus de la ligne invalide et l’annulation exacte ;
+   - préparer un aperçu **Steam** et vérifier qu’aucun jeu n’est écrit avant « Appliquer » ;
    - l’icône de la fenêtre et de la zone de notification ;
    - l’ouverture de la bibliothèque et d’Orbit Play ;
    - les 13 thèmes ;
@@ -60,7 +63,7 @@ La copie de référence est **`Orbit-GitHub`**. Toutes les modifications, les te
    - l’absence de données de test dans le dossier utilisateur réel.
 
 3. Publier l’installateur et son SHA-256 dans la version GitHub.
-4. Taguer `v1.0.34` et pousser le tag.
+4. Taguer `v1.0.35` et pousser le tag.
 
 ## Migration v2 des données réelles
 

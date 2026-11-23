@@ -2,6 +2,29 @@
 
 Les notes sont orientées usage. Les données personnelles ne sont jamais incluses dans ce fichier.
 
+## 1.0.35 — 23 novembre 2026
+
+### Ajout et import avec prévisualisation
+
+- Le dialogue **Ajouter** propose trois modes : **Noms**, **Fichier CSV** et **Steam**. Rien n’est écrit avant la confirmation « Appliquer ».
+- L’ajout en masse accepte jusqu’à 500 noms. L’aperçu affiche la jaquette, le type, le statut, la complétion, le temps et l’action choisie pour chaque ligne.
+- Les doublons sont détectés par nom normalisé (accents et casse ignorés), alias existants, appId Steam, doublon interne au fichier et ressemblance approximative. Une ressemblance n’est **jamais fusionnée automatiquement**.
+- Chaque ligne propose **Ignorer**, **Fusionner** ou **Ajouter quand même** selon le cas. Une ligne invalide est rejetée par défaut, avec son motif.
+- L’import CSV reconnaît les séparateurs virgule, point-virgule et tabulation, le BOM, les guillemets et un en-tête. Le mapping des colonnes **titre, statut, complétion, minutes, plateformes, tags, type et appId Steam** reste modifiable avant l’aperçu.
+- L’import Steam lit les jeux installés localement, affiche leur appId et les doublons connus, puis attend une confirmation. Les jaquettes verticales Steam sont copiées après l’import.
+- L’écriture est **transactionnelle** : instantané avant modification, vérification de révision, puis restauration complète si une écriture échoue. Aucune donnée partielle n’est laissée derrière.
+- L’import complet peut être **annulé pendant 30 secondes**, depuis la barre de notification ou le rapport. L’annulation vérifie que la bibliothèque n’a pas changé entre-temps.
+- Le **rapport** détaille les lignes ajoutées, fusionnées, mises à jour, ignorées et rejetées, ainsi que les doublons, ressemblances et erreurs. Il s’exporte en **JSON** et en **CSV**.
+- Le bouton **Importer Steam** d’Orbit Play ouvre le même dialogue avec aperçu, au lieu d’écrire immédiatement.
+- Le dialogue piège le focus, se ferme avec **Échap**, se navigue au clavier entre les onglets et respecte `prefers-reduced-motion`.
+- Les statuts par défaut de Steam ne remplacent pas une fiche existante. « Neutre » reste réservé à un choix explicite.
+
+### Qualité
+
+- **42 tests sur 42** réussis, dont un CSV de 200 lignes, les accents, les homonymes, les doublons exact/alias/appId/ressemblance/interne, les lignes invalides, le conflit de révision, le rollback et l’annulation exacte.
+- Parcours réel vérifié dans Chrome : aperçu par noms, fusion, rapport, exports JSON/CSV, annulation, import CSV avec mapping et lignes invalides, aperçu Steam de 80 jeux sans écriture, fermeture par **Échap**.
+- Lint : 0 erreur (3 avertissements préexistants dans `launcher.js`) ; formatage vérifié.
+
 ## 1.0.34 — 23 novembre 2026
 
 ### Fiche jeu complète et accessible
