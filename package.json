@@ -1,6 +1,6 @@
 {
   "name": "orbit",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "description": "Carnet personnel de jeux, films et séries pour Windows.",
   "private": true,
   "type": "module",
@@ -10,10 +10,10 @@
     "app": "electron .",
     "dist:portable": "electron-builder --win portable --x64",
     "dist:installer": "electron-builder --win nsis --x64 --publish never",
-    "test": "node --test scripts/smoke.test.mjs scripts/discord-viewing.test.mjs scripts/statistics.test.mjs scripts/safety.test.mjs scripts/secrets.test.mjs scripts/sessions.test.mjs scripts/security.test.mjs scripts/health.test.mjs scripts/health-center.test.mjs scripts/library-batch.test.mjs scripts/migration.test.mjs scripts/library-v2.test.mjs",
-    "test:fast": "node --test scripts/smoke.test.mjs scripts/safety.test.mjs scripts/secrets.test.mjs scripts/sessions.test.mjs scripts/security.test.mjs scripts/health.test.mjs scripts/health-center.test.mjs scripts/library-batch.test.mjs scripts/migration.test.mjs scripts/library-v2.test.mjs",
+    "test": "node --test scripts/smoke.test.mjs scripts/discord-viewing.test.mjs scripts/statistics.test.mjs scripts/safety.test.mjs scripts/secrets.test.mjs scripts/sessions.test.mjs scripts/security.test.mjs scripts/health.test.mjs scripts/health-center.test.mjs scripts/library-batch.test.mjs scripts/game-details.test.mjs scripts/migration.test.mjs scripts/library-v2.test.mjs",
+    "test:fast": "node --test scripts/smoke.test.mjs scripts/safety.test.mjs scripts/secrets.test.mjs scripts/sessions.test.mjs scripts/security.test.mjs scripts/health.test.mjs scripts/health-center.test.mjs scripts/library-batch.test.mjs scripts/game-details.test.mjs scripts/migration.test.mjs scripts/library-v2.test.mjs",
     "lint": "eslint .",
-    "format:check": "prettier --check \"orbit-log.mjs\" \"orbit-backup.mjs\" \"orbit-secrets.mjs\" \"scripts/safety.test.mjs\" \"scripts/health.test.mjs\" \"scripts/health-center.test.mjs\" \"scripts/library-batch.test.mjs\" \"scripts/secrets.test.mjs\" \"scripts/security.test.mjs\" \"docs/RELEASE.md\" \"CHANGELOG.md\" \"README.md\" \"package.json\"",
+    "format:check": "prettier --check \"orbit-log.mjs\" \"orbit-backup.mjs\" \"orbit-secrets.mjs\" \"scripts/safety.test.mjs\" \"scripts/health.test.mjs\" \"scripts/health-center.test.mjs\" \"scripts/library-batch.test.mjs\" \"scripts/game-details.test.mjs\" \"scripts/secrets.test.mjs\" \"scripts/security.test.mjs\" \"docs/RELEASE.md\" \"CHANGELOG.md\" \"README.md\" \"package.json\"",
     "check": "node --check bridge.js && node --check desktop-main.js && node --check desktop-preload.cjs && node --check orbit-log.mjs && node --check orbit-backup.mjs && node --check orbit-secrets.mjs && npm run lint && npm test"
   },
   "dependencies": {

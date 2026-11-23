@@ -299,6 +299,36 @@ select.field { appearance: none; cursor: pointer; padding-right: 14px; }
 .more-btn { align-self: start; }
 #p-edit { display: grid; gap: 18px; }
 #p-edit[hidden], #p-more[hidden] { display: none; }
+/* P1-03 : fiche jeu complète, édition explicite et lecture seule. */
+.p-readonly { margin:0; padding:10px 12px; border:1px solid rgba(255,196,92,.34); border-radius:11px; background:rgba(255,196,92,.08); color:var(--muted); font-size:12.5px; line-height:1.45; }
+.p-readonly[hidden], .p-details[hidden], .p-personal-note[hidden] { display:none; }
+.p-details { display:grid; gap:10px; }
+.p-details-title { margin:0; font-size:17px; font-weight:600; letter-spacing:-.015em; }
+.p-detail-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 10px; margin:0; }
+.p-detail-list > div { min-width:0; padding:9px 11px; border-radius:11px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.075); }
+.p-detail-list dt { color:var(--muted); font-size:11px; }
+.p-detail-list dd { margin:3px 0 0; font-size:13px; overflow-wrap:anywhere; }
+.p-personal-note { margin:0; padding:12px; border-radius:12px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.075); font-size:13px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+#p-edit .edit-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; }
+#p-edit label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:500; }
+#p-edit label > .field, #p-edit .edit-full > .field { width:100%; }
+#p-edit .field { color:var(--fg); padding:9px 10px; min-width:0; }
+#p-edit select.field { min-height:40px; }
+#p-edit textarea.field { resize:vertical; min-height:86px; line-height:1.5; }
+#p-edit .edit-full { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:500; }
+#p-edit .edit-grid .edit-full { grid-column:1/-1; }
+#p-edit .time-row { display:flex; align-items:center; gap:6px; }
+#p-edit .time-row .field { width:76px; text-align:center; }
+#p-edit .p-edit-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+#p-edit .p-edit-actions .go { padding:10px 18px; }
+#p-edit .p-edit-actions .btn { padding:9px 15px; }
+.p-save-state { min-height:16px; color:var(--muted); font-size:12px; line-height:1.4; }
+.p-save-state.dirty { color:var(--s-pause,#ffd479); }
+.p-save-state.saved { color:var(--s-termine,#7ee787); }
+.p-save-state.error { color:var(--s-abandon,#ff9c8d); }
+#p-edit [disabled] { opacity:.55; cursor:not-allowed; }
+#panel:focus { outline:none; }
+@media (max-width:520px) { .p-detail-list, #p-edit .edit-grid { grid-template-columns:1fr; } }
 #panel { backdrop-filter:var(--theme-backdrop,none); -webkit-backdrop-filter:var(--theme-backdrop,none); }
 @media (max-width: 520px) { .p-hero { min-height: 118px; } .p-stats { gap: 7px; } }
 @media (prefers-reduced-motion: reduce) {
@@ -1039,12 +1069,18 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
   <div id="add-results" class="add-results" aria-live="polite"></div>
   <div class="add-bottom"><span id="add-hint" class="note"></span><button class="go" id="add-confirm" type="button" disabled>Ajouter la sélection</button></div>
 </section>
-<aside id="panel" role="dialog" aria-modal="true" aria-labelledby="p-name" aria-hidden="true">
-  <div class="p-top"><div><h2 id="p-name"></h2><div id="p-tags" class="p-tags"></div></div><div class="p-actions"><button class="x" id="p-edit-toggle" type="button" aria-label="Modifier" title="Modifier">⚙</button><button class="x" id="p-close" type="button" aria-label="Fermer">×</button></div></div>
+<aside id="panel" role="dialog" aria-modal="true" aria-labelledby="p-name" aria-hidden="true" tabindex="-1" inert>
+  <div class="p-top"><div><h2 id="p-name"></h2><div id="p-tags" class="p-tags"></div></div><div class="p-actions"><button class="x" id="p-copy-title" type="button" aria-label="Copier le titre" title="Copier le titre">⧉</button><button class="x" id="p-edit-toggle" type="button" aria-label="Modifier" title="Modifier">⚙</button><button class="x" id="p-close" type="button" aria-label="Fermer">×</button></div></div>
+  <p id="p-readonly" class="p-readonly" role="status" hidden>Mode lecture seule : le pont Orbit ne répond pas. Les modifications sont désactivées jusqu’à la reconnexion.</p>
   <div class="p-hero"><img id="p-bg" alt="" hidden><div class="p-hero-shade"></div><div class="p-hero-copy"><span id="p-status"></span><span id="p-completion"></span></div></div>
   <div class="p-launchbar" id="p-sess" role="group" aria-label="Lancer le jeu"></div>
   <section id="p-read">
     <div id="p-rating" class="p-rating" hidden></div>
+    <div id="p-details" class="p-details" hidden>
+      <h3 class="p-details-title">Ma fiche</h3>
+      <dl id="p-detail-list" class="p-detail-list"></dl>
+      <p id="p-personal-note" class="p-personal-note" hidden></p>
+    </div>
     <div class="more-area">
       <p id="p-overview" hidden></p>
       <div id="p-more" class="p-more" hidden></div>
@@ -1068,15 +1104,36 @@ html[data-orbit-mini="1"] #launcher-screen .op-hero.op-with-recent{grid-template
       <button class="btn p-trophy-more" id="p-trophy-more" type="button" hidden>Tous les trophées</button>
     </section>
   </section>
-  <section id="p-edit" hidden>
+  <section id="p-edit" hidden aria-labelledby="p-edit-title">
+    <h3 id="p-edit-title" class="sr-only">Modifier la fiche du jeu</h3>
     <div><div class="lbl">Nom du jeu</div><div class="row"><input id="p-rename" class="field" type="text" maxlength="200" autocomplete="off" aria-label="Nom du jeu"><button class="btn" id="p-rename-set" type="button">Renommer</button></div><div class="note" id="p-rename-note">Le renommage conserve les sessions, la jaquette et les favoris.</div></div>
-    <div class="lbl">Jaquette</div>
-    <div class="cvrow"><div class="cvthumb" id="p-cv"></div><div class="cvcol"><button class="btn" id="p-pick" type="button">Choisir une image</button><button class="btn" id="p-rm" type="button" hidden>Retirer</button></div></div>
-    <div class="note">Colle une image (Ctrl+V) ou glisse une image sur la fiche.</div><input id="p-file" type="file" accept="image/*" hidden>
-    <div><div class="lbl">Statut</div><div class="seg" id="p-st"></div></div>
-    <div><div class="lbl">Complétion</div><div class="seg" id="p-co"></div></div>
-    <div><div class="lbl">Temps total</div><div class="row"><input id="p-h" class="field" type="number" min="0" inputmode="numeric" aria-label="Heures"><span>h</span><input id="p-m" class="field" type="number" min="0" max="59" inputmode="numeric" aria-label="Minutes"><span>min</span><button class="btn" id="p-set" type="button">Enregistrer</button></div></div>
+    <div><div class="lbl" id="p-kind-label">Type</div><div class="seg" id="p-kind" role="group" aria-labelledby="p-kind-label"></div></div>
+    <div><div class="lbl" id="p-st-label">Statut</div><div class="seg" id="p-st" role="group" aria-labelledby="p-st-label"></div></div>
+    <div><div class="lbl" id="p-co-label">Complétion</div><div class="seg" id="p-co" role="group" aria-labelledby="p-co-label"></div></div>
+    <div class="edit-grid">
+      <label for="p-rating-input">Ma note<select class="field" id="p-rating-input"><option value="0">Pas de note</option><option value="1">1 / 5</option><option value="1.5">1,5 / 5</option><option value="2">2 / 5</option><option value="2.5">2,5 / 5</option><option value="3">3 / 5</option><option value="3.5">3,5 / 5</option><option value="4">4 / 5</option><option value="4.5">4,5 / 5</option><option value="5">5 / 5</option></select></label>
+      <label for="p-ownership">Possession<select class="field" id="p-ownership"><option value="">Aucune indication</option><option value="physique">Physique</option><option value="numerique">Numérique</option><option value="abonnement">Abonnement</option><option value="pret">Prêt</option></select></label>
+      <label for="p-format">Format<input class="field" id="p-format" type="text" maxlength="60" autocomplete="off" list="p-format-list" placeholder="Disque, cartouche, code…"></label>
+      <label for="p-store">Boutique<input class="field" id="p-store" type="text" maxlength="80" autocomplete="off" list="p-store-list" placeholder="Steam, Fnac, eShop…"></label>
+      <label for="p-purchase-date">Date d’achat<input class="field" id="p-purchase-date" type="date"></label>
+      <label for="p-start-date">Date de début<input class="field" id="p-start-date" type="date"></label>
+      <label for="p-end-date">Date de fin<input class="field" id="p-end-date" type="date"></label>
+      <label for="p-h">Temps total<div class="time-row"><input id="p-h" class="field" type="number" min="0" max="999999" inputmode="numeric" aria-label="Heures"><span>h</span><input id="p-m" class="field" type="number" min="0" max="59" inputmode="numeric" aria-label="Minutes"><span>min</span></div></label>
+      <label for="p-import-h">Temps importé<div class="time-row"><input id="p-import-h" class="field" type="number" min="0" max="999999" inputmode="numeric" aria-label="Heures importées"><span>h</span><input id="p-import-m" class="field" type="number" min="0" max="59" inputmode="numeric" aria-label="Minutes importées"><span>min</span></div></label>
+    </div>
+    <label class="edit-full" for="p-tags-input">Tags<input class="field" id="p-tags-input" type="text" maxlength="500" autocomplete="off" placeholder="Coop, À jouer ensuite, Rétro…"></label>
+    <label class="edit-full" for="p-platforms-input">Plateformes<input class="field" id="p-platforms-input" type="text" maxlength="500" autocomplete="off" placeholder="PC, PS5, Switch…"></label>
+    <label class="edit-full" for="p-review-input">Critique<textarea class="field" id="p-review-input" rows="3" maxlength="500" placeholder="Ce que tu as aimé, en quelques mots."></textarea></label>
+    <label class="edit-full" for="p-note-input">Note personnelle<textarea class="field" id="p-note-input" rows="3" maxlength="2000" placeholder="Astuces, souvenir, contexte d’achat…"></textarea></label>
+    <div class="note">Sépare les tags et les plateformes par des virgules. Les dates restent vides si tu ne les connais pas.</div>
+    <div><div class="lbl">Jaquette</div>
+      <div class="cvrow"><div class="cvthumb" id="p-cv"></div><div class="cvcol"><button class="btn" id="p-pick" type="button">Choisir une image</button><button class="btn" id="p-rm" type="button" hidden>Retirer</button></div></div>
+      <div class="note">Colle une image (Ctrl+V) ou glisse une image sur la fiche.</div><input id="p-file" type="file" accept="image/*" hidden>
+    </div>
+    <div class="p-edit-actions"><button class="go" id="p-save" type="button">Enregistrer la fiche</button><button class="btn" id="p-cancel" type="button">Annuler</button><span id="p-save-state" class="p-save-state" role="status" aria-live="polite"></span></div>
     <button class="del" id="p-del" type="button">Supprimer ce jeu</button>
+    <datalist id="p-format-list"><option value="Disque"></option><option value="Cartouche"></option><option value="Code"></option><option value="Dématérialisé"></option><option value="Boîte"></option><option value="Collector"></option></datalist>
+    <datalist id="p-store-list"><option value="Steam"></option><option value="Epic Games"></option><option value="GOG"></option><option value="PlayStation Store"></option><option value="Nintendo eShop"></option><option value="Xbox"></option><option value="Amazon"></option><option value="Fnac"></option><option value="Micromania"></option></datalist>
   </section>
 </aside>
 <dialog id="session-manager" aria-labelledby="session-manager-title">
@@ -1343,7 +1400,7 @@ function save() {
   storeLocal();
 }
 function storeLocal() {
-  try { localStorage.setItem(KEY, JSON.stringify({ games: S.games.map(({ id, n, s, c, m, t, firstPlayed, manualDelta }) => ({ id, n, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0 })), schemaVersion: S.schemaVersion, session: S.session, sessions: S.sessions, favorites: S.favorites, profiles: S.profiles, activeProfileId: S.activeProfileId, recap:S.recap })); } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify({ games: S.games.map(({ id, n, name, kind, s, c, m, t, firstPlayed, manualDelta, rating, review, tags, platforms, ownership, format, store, purchaseDate, startDate, endDate, importedMinutes, personalNote, detailsVersion }) => ({ id, n, name: name || n, kind, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0, rating, review, tags, platforms, ownership, format, store, purchaseDate, startDate, endDate, importedMinutes, personalNote, detailsVersion })), schemaVersion: S.schemaVersion, session: S.session, sessions: S.sessions, favorites: S.favorites, profiles: S.profiles, activeProfileId: S.activeProfileId, recap:S.recap })); } catch (e) {}
 }
 function setGameStatus(game, status) {
   if (!game || !Number.isInteger(status) || status < 0 || status >= ST.length || Number(game.s) === status) return false;
@@ -2288,6 +2345,187 @@ function loadTrophies(appId,refresh=false){
   trophyPending.set(appId,request);return request;
 }
 let makeTimeAudit=null;
+const OWNERSHIP_LABELS={physique:"Physique",numerique:"Numérique",abonnement:"Abonnement",pret:"Prêt"};
+function ownershipLabel(value){const text=String(value||"").trim();return OWNERSHIP_LABELS[text.toLowerCase()]||text;}
+function formatDateOnly(value){const match=String(value||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return match?`${match[3]}/${match[2]}/${match[1]}`:"";}
+function renderPanelReadDetails(g,d){
+  const box=$("p-details"),list=$("p-detail-list"),note=$("p-personal-note");
+  if(!box||!list||!note)return;
+  list.textContent="";
+  const tags=Array.isArray(g.tags)?g.tags:(Array.isArray(d.collections)?d.collections:[]);
+  const platforms=Array.isArray(g.platforms)?g.platforms:(Array.isArray(d.platforms)?d.platforms:[]);
+  const rows=[];
+  const add=(label,value)=>{const text=Array.isArray(value)?value.filter(Boolean).join(", "):String(value||"").trim();if(text)rows.push([label,text]);};
+  add("Tags",tags);add("Plateformes",platforms);add("Possession",ownershipLabel(g.ownership));add("Format",g.format);add("Boutique",g.store);
+  add("Acheté le",formatDateOnly(g.purchaseDate));add("Début",formatDateOnly(g.startDate));add("Fin",formatDateOnly(g.endDate));
+  const imported=Math.max(0,Math.round(Number(g.importedMinutes)||0));if(imported)add("Temps importé",fmt(imported));
+  rows.forEach(([label,value])=>{const row=document.createElement("div"),dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=label;dd.textContent=value;row.append(dt,dd);list.append(row);});
+  const personal=String(g.personalNote??d.note??"").trim();
+  note.textContent=personal;note.hidden=!personal;
+  box.hidden=!rows.length&&!personal;
+}
+function splitEditList(value){
+  const items=[...new Set(String(value||"").split(/[,;\n]+/).map(entry=>entry.trim()).filter(Boolean))];
+  return {values:items.slice(0,20),error:items.length>20||items.some(item=>item.length>60)?"20 noms maximum, 60 caractères par nom.":""};
+}
+function readPanelDraft(g){
+  const d=detailsForName(g.n);
+  const dateText=value=>{const text=String(value||"");return /^\d{4}-\d{2}-\d{2}$/.test(text)?text:"";};
+  const tags=Array.isArray(g.tags)?g.tags:(Array.isArray(d.collections)?d.collections:[]);
+  const platforms=Array.isArray(g.platforms)?g.platforms:(Array.isArray(d.platforms)?d.platforms:[]);
+  return {
+    kind:g.kind==="app"?"app":"game",
+    status:normalizeStatus(g.s??g.status),
+    completion:[0,1,2].includes(Number(g.c??g.completion))?Number(g.c??g.completion):0,
+    rating:Math.max(0,Math.min(5,Number(g.rating??d.rating)||0)),
+    review:String(g.review??d.review??""),
+    tags,platforms,
+    ownership:String(g.ownership||""),
+    format:String(g.format||""),
+    store:String(g.store||""),
+    purchaseDate:dateText(g.purchaseDate),
+    startDate:dateText(g.startDate),
+    endDate:dateText(g.endDate),
+    minutes:Math.max(0,Math.round(Number(g.m??g.minutes)||0)),
+    importedMinutes:Math.max(0,Math.round(Number(g.importedMinutes)||0)),
+    personalNote:String(g.personalNote??d.note??"")
+  };
+}
+function draftSeg(boxId,labels,current,onPick,dots){
+  const box=$(boxId);box.textContent="";
+  labels.forEach((label,index)=>{
+    const button=document.createElement("button");button.type="button";button.setAttribute("aria-pressed",String(index===current));
+    if(dots){const dot=document.createElement("span");dot.className="dot d-"+index;button.append(dot);}
+    button.append(label);button.onclick=()=>onPick(index);box.append(button);
+  });
+}
+function renderDraftSegments(){
+  const draft=panelDraft;if(!draft)return;
+  draftSeg("p-kind",["Jeu","Application"],draft.kind==="app"?1:0,index=>{draft.kind=index===1?"app":"game";renderDraftSegments();markPanelDirty();});
+  draftSeg("p-st",ST,normalizeStatus(draft.status),index=>{draft.status=index;renderDraftSegments();markPanelDirty();},true);
+  draftSeg("p-co",CO,draft.completion,index=>{draft.completion=index;renderDraftSegments();markPanelDirty();});
+}
+function ensureOwnershipOption(value){
+  const select=$("p-ownership");if(!select)return;
+  [...select.querySelectorAll("option[data-dynamic]")].forEach(option=>option.remove());
+  if(value&&![...select.options].some(option=>option.value===value)){const option=document.createElement("option");option.dataset.dynamic="1";option.value=value;option.textContent=value;select.append(option);}
+}
+function fillPanelEditFields(draft){
+  if(!draft)return;
+  $("p-rating-input").value=String(draft.rating||0);
+  ensureOwnershipOption(draft.ownership);$("p-ownership").value=draft.ownership||"";
+  $("p-format").value=draft.format||"";$("p-store").value=draft.store||"";
+  $("p-purchase-date").value=draft.purchaseDate||"";$("p-start-date").value=draft.startDate||"";$("p-end-date").value=draft.endDate||"";
+  $("p-tags-input").value=(draft.tags||[]).join(", ");$("p-platforms-input").value=(draft.platforms||[]).join(", ");
+  $("p-review-input").value=draft.review||"";$("p-note-input").value=draft.personalNote||"";
+  $("p-h").value=Math.floor(draft.minutes/60);$("p-m").value=draft.minutes%60;
+  $("p-import-h").value=Math.floor(draft.importedMinutes/60);$("p-import-m").value=draft.importedMinutes%60;
+  renderDraftSegments();
+}
+function setPanelSaveState(text,kind){
+  const element=$("p-save-state");if(!element)return;
+  element.textContent=text||"";element.classList.remove("dirty","saved","error");
+  if(kind)element.classList.add(kind);
+}
+function markPanelDirty(){
+  if(!panelEditing)return;
+  panelDirty=true;
+  if(!panelSaving)setPanelSaveState("Modifications non enregistrées","dirty");
+}
+function syncPanelEditState(readOnly){
+  const edit=$("p-edit");if(!edit)return;
+  edit.setAttribute("aria-busy",String(panelSaving));
+  edit.querySelectorAll("input,select,textarea,button").forEach(element=>{
+    if(element.id==="p-cancel"){element.disabled=panelSaving;return;}
+    if(element.id==="p-del"){element.disabled=readOnly||panelSaving;return;}
+    if(element.id==="p-rename-set"){element.disabled=readOnly||panelSaving||!(SRV&&S.schemaVersion===2);return;}
+    element.disabled=readOnly||panelSaving;
+  });
+  $("p-save").disabled=readOnly||panelSaving;
+  $("p-save").textContent=panelSaving?"Enregistrement…":"Enregistrer la fiche";
+  if(readOnly)setPanelSaveState("Mode lecture seule : impossible d’enregistrer.","error");
+  else if(!panelSaving&&!panelDirty)setPanelSaveState("","");
+}
+function beginPanelEditing(){
+  const g=S.games.find(x=>x.id===openId);
+  if(!g||panelReadOnly())return;
+  panelEditing=true;panelDirty=false;panelSaving=false;panelDraft=readPanelDraft(g);panelEditInitialized=false;
+  renderPanel();
+  requestAnimationFrame(()=>{if(panelEditing)$("p-rating-input")?.focus({preventScroll:true});});
+}
+function exitPanelEditing(force=false){
+  if(!panelEditing)return true;
+  if(panelSaving){toast("Enregistrement en cours…");return false;}
+  if(panelDirty&&!force&&!window.confirm("Abandonner les modifications non enregistrées ?"))return false;
+  panelEditing=false;panelDirty=false;panelSaving=false;panelDraft=null;panelEditInitialized=false;
+  renderPanel();return true;
+}
+function absorbServerGame(serverGame){
+  if(!serverGame)return;
+  const name=String(serverGame.name||serverGame.n||"");
+  if(!name)return;
+  const rating=Math.max(0,Math.min(5,Number(serverGame.rating)||0));
+  const tags=Array.isArray(serverGame.tags)?serverGame.tags:[];
+  const platforms=Array.isArray(serverGame.platforms)?serverGame.platforms:[];
+  const completion=Number(serverGame.c??serverGame.completion);
+  const normalized={
+    ...serverGame,id:serverGame.id,n:name,name,kind:serverGame.kind==="app"?"app":"game",
+    s:normalizeStatus(serverGame.s??serverGame.status),c:[0,1,2].includes(completion)?completion:0,
+    m:Math.max(0,Math.round(Number(serverGame.m??serverGame.minutes)||0)),
+    t:Number(serverGame.t??serverGame.lastPlayedAt)||0,firstPlayed:Number(serverGame.firstPlayed??serverGame.firstPlayedAt)||0,
+    manualDelta:Number(serverGame.manualDelta)||0,rating,
+    review:String(serverGame.review||""),tags,platforms,ownership:String(serverGame.ownership||""),
+    format:String(serverGame.format||""),store:String(serverGame.store||""),
+    purchaseDate:String(serverGame.purchaseDate||""),startDate:String(serverGame.startDate||""),endDate:String(serverGame.endDate||""),
+    importedMinutes:Math.max(0,Math.round(Number(serverGame.importedMinutes)||0)),
+    personalNote:String(serverGame.personalNote||"")
+  };
+  S.games=S.games.map(entry=>String(entry.id)===String(serverGame.id)?{...entry,...normalized}:entry);
+  playDetails[ckey(name)]={...detailsForName(name),kind:normalized.kind,note:normalized.personalNote,collections:normalized.tags,platforms:normalized.platforms,rating:normalized.rating,review:normalized.review};
+}
+async function savePanelEdits(){
+  if(!panelEditing||panelSaving)return;
+  const game=S.games.find(x=>x.id===openId);if(!game)return;
+  if(panelReadOnly()){setPanelSaveState("Mode lecture seule : le pont ne répond pas.","error");return;}
+  const draft=panelDraft;if(!draft)return;
+  if(SRV&&S.schemaVersion!==2){setPanelSaveState("Enregistrement sécurisé disponible après la migration v2.","error");return;}
+  const tags=splitEditList($("p-tags-input").value),platforms=splitEditList($("p-platforms-input").value);
+  if(tags.error||platforms.error){setPanelSaveState(tags.error||platforms.error,"error");(tags.error?$("p-tags-input"):$("p-platforms-input")).focus();return;}
+  const rating=Number($("p-rating-input").value)||0;
+  if(!Number.isFinite(rating)||rating<0||rating>5){setPanelSaveState("La note doit être comprise entre 0 et 5.","error");return;}
+  const purchaseDate=$("p-purchase-date").value.trim(),startDate=$("p-start-date").value.trim(),endDate=$("p-end-date").value.trim();
+  const validDate=value=>!value||/^\d{4}-\d{2}-\d{2}$/.test(value);
+  if(!validDate(purchaseDate)||!validDate(startDate)||!validDate(endDate)){setPanelSaveState("Utilise des dates valides au format AAAA-MM-JJ.","error");return;}
+  if(startDate&&endDate&&startDate>endDate){setPanelSaveState("La date de fin doit être après la date de début.","error");$("p-end-date").focus();return;}
+  const hours=Math.max(0,Math.min(999999,parseInt($("p-h").value,10)||0)),minutes=Math.max(0,Math.min(59,parseInt($("p-m").value,10)||0));
+  const importHours=Math.max(0,Math.min(999999,parseInt($("p-import-h").value,10)||0)),importMinutes=Math.max(0,Math.min(59,parseInt($("p-import-m").value,10)||0));
+  const payload={kind:draft.kind,status:normalizeStatus(draft.status),completion:draft.completion,rating,review:$("p-review-input").value.trim(),tags:tags.values,platforms:platforms.values,ownership:$("p-ownership").value,format:$("p-format").value.trim(),store:$("p-store").value.trim(),purchaseDate,startDate,endDate,minutes:hours*60+minutes,importedMinutes:importHours*60+importMinutes,personalNote:$("p-note-input").value.trim()};
+  panelSaving=true;setPanelSaveState("Enregistrement…","");syncPanelEditState(false);
+  try{
+    let savedGame;
+    if(SRV&&S.schemaVersion===2){
+      const response=await fetch(`/api/v1/games/${encodeURIComponent(game.id)}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||"Enregistrement impossible");
+      savedGame=data.game;
+      absorbServerGame(savedGame);
+      await refreshSessionState();
+      savedGame=S.games.find(entry=>String(entry.id)===String(game.id))||savedGame;
+    }else{
+      savedGame={...game,...payload,status:payload.status,s:payload.status,completion:payload.completion,c:payload.completion,minutes:payload.minutes,m:payload.minutes,updatedAt:Date.now()};
+      absorbServerGame(savedGame);storeLocal();render();
+    }
+    panelSaving=false;panelDirty=false;panelDraft=readPanelDraft(savedGame);panelEditInitialized=false;
+    renderPanel();renderGrid();renderSub();renderChips();
+    setPanelSaveState("Enregistré à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}),"saved");
+    toast("Fiche enregistrée");
+  }catch(error){
+    panelSaving=false;
+    if(error?.name==="TypeError")setBridgeOnline(false);
+    syncPanelEditState(panelReadOnly());
+    setPanelSaveState(error?.message||"Enregistrement impossible","error");
+  }
+}
 function renderPanel() {
   const moreOpen=$("p-more") && !$("p-more").hidden;
   const g=S.games.find(x=>x.id===openId);if(!g)return;
@@ -2298,17 +2536,29 @@ function renderPanel() {
   rating.replaceChildren();
   if(ratingValue){const stars=document.createElement('span');stars.className='p-rating-stars';stars.textContent=ratingStars(ratingValue);const value=document.createElement('span');value.textContent=ratingValue.toLocaleString('fr-FR')+' / 5';rating.append(stars,value);}
   if(d.review){const review=document.createElement('p');review.className='p-rating-review';review.textContent=d.review;rating.append(review);}
+  renderPanelReadDetails(g,d);
+  const readOnly=panelReadOnly();
+  $("p-readonly").hidden=!readOnly;
   $('p-personal').hidden=!SRV;
+  $('p-personal').disabled=readOnly;
   $('p-personal').onclick=()=>window.dispatchEvent(new CustomEvent('orbit:personal-game',{detail:g}));
   $("p-name").textContent=g.n;$("p-status").textContent=ST[statusIndex(g)]||ST[NEUTRAL_STATUS];$("p-completion").textContent=CO[g.c]||CO[0];
   const renameInput=$("p-rename");if(document.activeElement!==renameInput)renameInput.value=g.n;
   $("p-rename-note").textContent=SRV&&S.schemaVersion===2?"Le renommage conserve les sessions, la jaquette et les favoris.":"Le renommage sécurisé est disponible après la migration v2.";
-  $("p-rename-set").disabled=!(SRV&&S.schemaVersion===2);
-  $("p-edit").hidden=!panelEditing;$("p-read").hidden=panelEditing;$("p-edit-toggle").setAttribute("aria-label",panelEditing?"Terminer la modification":"Modifier");$("p-edit-toggle").title=panelEditing?"Terminer la modification":"Modifier";
-  $("p-edit-toggle").textContent=panelEditing?"✓":"⚙";
+  $("p-rename-set").disabled=readOnly||!(SRV&&S.schemaVersion===2);
+  $("p-edit").hidden=!panelEditing;$("p-read").hidden=panelEditing;
+  const editToggle=$("p-edit-toggle");
+  editToggle.disabled=readOnly&&!panelEditing;
+  editToggle.setAttribute("aria-label",panelEditing?"Terminer la modification":readOnly?"Modification indisponible hors ligne":"Modifier");
+  editToggle.title=panelEditing?"Terminer la modification":readOnly?"Modification indisponible hors ligne":"Modifier";
+  editToggle.textContent=panelEditing?"✓":"⚙";
   const cu=coverSrc(g.n),th=$("p-cv");th.textContent="";th.classList.toggle("has",!!cu);if(cu){const im=document.createElement("img");im.src=cu;im.alt="";th.append(im);}else th.append("Aucune");$("p-rm").hidden=!cu;
+  $("p-pick").disabled=readOnly;$("p-rm").disabled=readOnly;$("p-file").disabled=readOnly;$("p-del").disabled=readOnly;
   loadGameArt($("p-bg"), g.n, false);$("panel").style.setProperty("--game-accent","#34343a");
-  seg("p-st",ST,normalizeStatus(g.s),i=>{g.s=i;storeLocal();if(SRV){clearTimeout(putT);putNow();}panelEditing=false;renderPanel();render();},true);seg("p-co",CO,g.c,i=>{g.c=i;save();panelEditing=false;renderPanel();render();},false);
+  if(panelEditing){
+    if(!panelEditInitialized||!panelDraft){panelDraft=panelDraft||readPanelDraft(g);fillPanelEditFields(panelDraft);panelEditInitialized=true;}
+    syncPanelEditState(readOnly);
+  }else{panelDraft=null;panelEditInitialized=false;}
   const sg=sessGame(),mine=sg&&sg.id===g.id,row=$("p-sess");row.textContent="";
   const launchMeta=metaCache.get(ckey(g.n)),steamId=String(launchMeta?.appId||"").match(/^\d{1,10}$/),metaLoading=!launchMeta&&SRV&&!metaFailed.has(ckey(g.n));let launch;
   if(steamId){launch=document.createElement("a");launch.href="steam://run/"+steamId[0];launch.target="_blank";launch.rel="noopener noreferrer";launch.title="Lancer "+g.n+" avec Steam";}
@@ -2339,7 +2589,7 @@ function renderPanel() {
   overview.textContent = excerpt;
   overview.hidden = moreOpen || !excerpt || description === "Aucune information trouvée pour ce jeu.";
   const failed=!SRV||metaFailed.has(ckey(g.n));$("p-more").hidden=!moreOpen;const moreBtn=$("p-more-btn");moreBtn.setAttribute("aria-expanded",String(moreOpen));moreBtn.hidden=meta ? meta.source==="Aucune source" && overview.hidden && !moreOpen : failed;moreBtn.closest(".more-area").hidden=moreBtn.hidden && overview.hidden;moreBtn.disabled=!meta;moreBtn.classList.toggle("loading",!meta&&!failed);moreBtn.textContent=meta?(moreOpen?"Masquer les infos":"En savoir plus"):failed?"Informations indisponibles":"Chargement des informations…";if(meta)renderMeta(g,meta);fetchMeta(g);
-  if(document.activeElement!==$("p-h")&&document.activeElement!==$("p-m")){$("p-h").value=Math.floor(g.m/60);$("p-m").value=g.m%60;}renderTrophies(g);tick();
+  renderTrophies(g);tick();
 }
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const launcherLayer = $("op-game-layer");
@@ -2361,8 +2611,8 @@ function openLauncherPanel(id, onReturn) {
   launcherLayer.showModal();
   openPanel(id);
 }
-launcherLayer.addEventListener("cancel", event => { event.preventDefault(); closePanel(); });
-launcherLayer.addEventListener("click", event => { if (event.target === launcherLayer) closePanel(); });
+launcherLayer.addEventListener("cancel", event => { event.preventDefault(); requestClosePanel(); });
+launcherLayer.addEventListener("click", event => { if (event.target === launcherLayer) requestClosePanel(); });
 const tileOf = id => launcherLayer.open ? null : document.querySelector(`.tile[data-id="${id}"]`);
 function flip(t, p) {
   const a = t.getBoundingClientRect(), b = p.getBoundingClientRect();
@@ -2372,7 +2622,59 @@ function persistRecap(){storeLocal();if(SRV)fetch("/api/recap",{method:"PUT",hea
 function recordOpened(game){const at=Date.now();S.recap={...S.recap,lastOpened:{name:game.n,at,scrollTop:document.getElementById("app").scrollTop||window.scrollY||0},gameStats:{...(S.recap.gameStats||{}),[ckey(game.n)]:{minutes:Math.max(0,Number(game.m)||0),lastOpened:at}}};persistRecap();}
 function recordResume(game,at=Date.now()){const item={name:game.n,at},recent=[item,...(S.recap.recent||[]).filter(x=>ckey(x.name)!==ckey(game.n))].slice(0,20);S.recap={...S.recap,lastOpened:{name:game.n,at,scrollTop:document.getElementById("app").scrollTop||window.scrollY||0},recent,gameStats:{...(S.recap.gameStats||{}),[ckey(game.n)]:{minutes:Math.max(0,Number(game.m)||0),lastOpened:at}}};persistRecap();}
 function removeResume(game){S.recap.recent=(S.recap.recent||[]).filter(x=>ckey(x.name)!==ckey(game.n));persistRecap();renderGrid();toast(`${game.n} retiré de « Reprendre »`);}
-let closeSeq = 0, panelEditing = false, closeTileAnim = null, closingId = null, deferredGridRender = false;
+let closeSeq = 0, panelEditing = false, panelDirty = false, panelSaving = false, panelEditInitialized = false, panelDraft = null, closeTileAnim = null, closingId = null, deferredGridRender = false;
+let panelOpenAnim = null, panelCloseAnim = null, panelCloseTimer = 0;
+let panelBackgroundNodes = [];
+const bridgeExpected = location.protocol === "http:" || location.protocol === "https:";
+let bridgeOnline = false;
+function panelReadOnly() { return bridgeExpected && !bridgeOnline; }
+function setBridgeOnline(value) {
+  const next = Boolean(value);
+  if (bridgeOnline === next) return;
+  bridgeOnline = next;
+  if (openId !== null) renderPanel();
+}
+function setPanelBackgroundInert(on) {
+  if (on) {
+    if (panelBackgroundNodes.length) return;
+    panelBackgroundNodes = ["app", "home-screen", "films-screen", "launcher-screen"]
+      .map(id => document.getElementById(id))
+      .filter(node => node && !node.contains($("panel")) && !node.inert);
+    panelBackgroundNodes.forEach(node => { node.dataset.orbitInert = "1"; node.inert = true; });
+    return;
+  }
+  panelBackgroundNodes.forEach(node => { if (node.dataset.orbitInert) { delete node.dataset.orbitInert; node.inert = false; } });
+  panelBackgroundNodes = [];
+}
+function panelFocusables() {
+  const panel = $("panel");
+  const selector = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  return [...panel.querySelectorAll(selector)].filter(element => element.getClientRects().length > 0 && !element.closest("[hidden]"));
+}
+function trapPanelFocus(event) {
+  if (event.key !== "Tab") return;
+  const panel = $("panel"), focusables = panelFocusables();
+  if (!focusables.length) { event.preventDefault(); panel.focus({ preventScroll: true }); return; }
+  const first = focusables[0], last = focusables[focusables.length - 1], active = document.activeElement;
+  if (event.shiftKey && (active === first || !panel.contains(active))) { event.preventDefault(); last.focus({ preventScroll: true }); }
+  else if (!event.shiftKey && (active === last || !panel.contains(active))) { event.preventDefault(); first.focus({ preventScroll: true }); }
+}
+function requestClosePanel() {
+  if (panelSaving) { toast("Enregistrement en cours…"); return false; }
+  if (panelEditing && panelDirty && !window.confirm("Fermer la fiche et abandonner les modifications non enregistrées ?")) return false;
+  panelEditing = false; panelDirty = false; panelSaving = false; panelDraft = null; panelEditInitialized = false;
+  closePanel();
+  return true;
+}
+$("panel").addEventListener("keydown", trapPanelFocus);
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape" || openId === null) return;
+  if (document.querySelector("dialog[open]:not(#op-game-layer)")) return;
+  if (launcherLayer.open) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  requestClosePanel();
+}, true);
 const stopAnims = p => p.getAnimations({ subtree: true }).forEach(x => x.cancel());
 function resetPanelStyles(p) {
   try { stopAnims(p); } catch (e) {}
@@ -2380,46 +2682,67 @@ function resetPanelStyles(p) {
   [...p.children].forEach(c => { c.style.removeProperty("opacity"); c.style.removeProperty("transform"); });
 }
 function openPanel(id) {
-  const seq = ++closeSeq; panelEditing = false; trophyExpanded = false; trophyOpenApp = "";
+  const seq = ++closeSeq;
+  panelEditing = false; panelDirty = false; panelSaving = false; panelDraft = null; panelEditInitialized = false;
+  trophyExpanded = false; trophyOpenApp = "";
   closingId = null; document.documentElement.classList.remove("panel-closing");
-  if (closeTileAnim) { closeTileAnim.cancel(); closeTileAnim = null; }
+  clearTimeout(panelCloseTimer); panelCloseTimer = 0;
+  if (panelCloseAnim) { try { panelCloseAnim.cancel(); } catch (e) {} panelCloseAnim = null; }
+  if (panelOpenAnim) { try { panelOpenAnim.cancel(); } catch (e) {} panelOpenAnim = null; }
+  if (closeTileAnim) { try { closeTileAnim.cancel(); } catch (e) {} closeTileAnim = null; }
   document.querySelectorAll(".tile").forEach(x => { x.style.visibility = ""; x.style.opacity = ""; });
   $("p-more").hidden = true;
   openId = id;
   const openedGame=S.games.find(x=>x.id===id);if(openedGame)recordOpened(openedGame);
+  const p = $("panel");
+  p.inert = false;
   renderPanel();
-  const p = $("panel"), t = tileOf(id);
+  const t = tileOf(id);
   resetPanelStyles(p);
   if (!launcherLayer.open) $("veil").classList.add("on");
   p.classList.add("on"); p.setAttribute("aria-hidden", "false");
+  setPanelBackgroundInert(true);
   p.scrollTop = 0;
   if (t && reduce) t.style.visibility = "hidden";
   if (t && !reduce) try {
     const from = flip(t, p);
     p.style.transformOrigin = "top left";
-    p.animate([{ transform: from, opacity: 0, offset: 0 }, { opacity: 1, offset: .25 }, { transform: "none", opacity: 1, offset: 1 }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)", fill: "both" });
-    setTimeout(() => { const t3 = tileOf(id); if (closeSeq === seq && openId === id && t3) t3.style.visibility = "hidden"; }, 70);
-    setTimeout(() => { if (closeSeq === seq && openId === id) resetPanelStyles(p); }, 400);
+    panelOpenAnim = p.animate([{ transform: from, opacity: 0, offset: 0 }, { opacity: 1, offset: .25 }, { transform: "none", opacity: 1, offset: 1 }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)", fill: "both" });
+    panelOpenAnim.onfinish = () => {
+      if (closeSeq !== seq || openId !== id) return;
+      resetPanelStyles(p);
+      panelOpenAnim = null;
+    };
+    requestAnimationFrame(() => {
+      if (closeSeq !== seq || openId !== id) return;
+      const t3 = tileOf(id); if (t3) t3.style.visibility = "hidden";
+    });
   } catch (e) { resetPanelStyles(p); if (t) t.style.visibility = "hidden"; }
-  setTimeout(() => { if (closeSeq === seq) $("p-close").focus({ preventScroll: true }); }, 60);
+  requestAnimationFrame(() => { if (closeSeq === seq) $("p-close").focus({ preventScroll: true }); });
 }
 function closePanel() {
   const id = openId; if (id === null) return; openId = null;
   const seq = ++closeSeq;
+  panelEditing = false; panelDirty = false; panelSaving = false; panelDraft = null; panelEditInitialized = false;
+  clearTimeout(panelCloseTimer); panelCloseTimer = 0;
+  if (panelOpenAnim) { try { panelOpenAnim.cancel(); } catch (e) {} panelOpenAnim = null; }
   const p = $("panel"), t = tileOf(id);
   $("veil").classList.remove("on"); p.style.pointerEvents = "none";
   let finished = false;
   const done = () => {
     if (closeSeq !== seq || finished) return;
     finished = true;
+    clearTimeout(panelCloseTimer); panelCloseTimer = 0;
+    if (panelCloseAnim) { try { panelCloseAnim.cancel(); } catch (e) {} panelCloseAnim = null; }
     const oldTile = tileOf(id), oldRect = oldTile ? oldTile.getBoundingClientRect() : null;
     if (oldTile) { oldTile.style.opacity = ""; oldTile.style.visibility = ""; }
-    if (closeTileAnim) { closeTileAnim.cancel(); closeTileAnim = null; }
+    if (closeTileAnim) { try { closeTileAnim.cancel(); } catch (e) {} closeTileAnim = null; }
     // Cache la fiche avant de remettre ses styles à zéro : ainsi, même si le
     // navigateur peint entre deux étapes, elle ne peut pas réapparaître au centre.
-    p.classList.remove("on"); p.setAttribute("aria-hidden", "true");
+    p.classList.remove("on"); p.setAttribute("aria-hidden", "true"); p.inert = true;
     resetPanelStyles(p);
     closingId = null;
+    setPanelBackgroundInert(false);
     if (deferredGridRender) { deferredGridRender = false; renderGrid(); }
     const t2 = tileOf(id);
     if (t2) {
@@ -2430,47 +2753,59 @@ function closePanel() {
         const follow = t2.animate([{ transform: from }, { transform: "none" }], { duration: 170, easing: "ease-out" });
         follow.onfinish = () => { document.documentElement.classList.remove("panel-closing"); };
       } else document.documentElement.classList.remove("panel-closing");
-      t2.focus({ preventScroll: true });
+      if (!restoreLauncher) t2.focus({ preventScroll: true });
     } else document.documentElement.classList.remove("panel-closing");
     if (restoreLauncher) {
       const restore = restoreLauncher;
       restoreLauncher = null;
       restore();
-    }
+    } else if (!t2) $("q")?.focus({ preventScroll: true });
   };
   if (t && !reduce) {
     closingId = id; document.documentElement.classList.add("panel-closing");
     try {
-      // flip() calcule les coordonnées comme si l'origine était en haut à gauche.
-      // Après l'ouverture, la remise à zéro conservait parfois l'origine centrée :
-      // l'animation de retour partait alors vers une mauvaise position.
-      // Annule toute animation d'ouverture encore active avant de mesurer.
-      // Sinon les deux animations peuvent se remplacer à des moments différents.
+      // Une seule animation de fermeture, terminée par son événement natif.
+      // Le minuteur n'est qu'un filet de sécurité si le navigateur l'annule.
       stopAnims(p);
       p.style.transform = "none"; p.style.opacity = "1";
       p.style.transformOrigin = "top left";
       const f = flip(t, p);
-      const an = p.animate([{ transform: "none", opacity: 1, offset: 0 }, { opacity: 1, offset: .35 }, { transform: f, opacity: 0, offset: 1 }], { duration: 300, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
-      setTimeout(() => {
-        if (closeSeq !== seq) return;
-        const target = tileOf(id); if (!target) return;
-        target.style.visibility = "visible"; target.style.opacity = "0";
-        closeTileAnim = target.animate([{ opacity: "0" }, { opacity: "1" }], { duration: 170, easing: "ease-out", fill: "both" });
-      }, 110);
-      an.onfinish = done; setTimeout(done, 520);
-    } catch (e) { if (closeTileAnim) { closeTileAnim.cancel(); closeTileAnim = null; } if (t) t.style.opacity = ""; done(); }
+      t.style.visibility = "visible"; t.style.opacity = "0";
+      closeTileAnim = t.animate([{ opacity: "0" }, { opacity: "1" }], { duration: 170, easing: "ease-out", fill: "both", delay: 80 });
+      panelCloseAnim = p.animate([{ transform: "none", opacity: 1, offset: 0 }, { opacity: 1, offset: .35 }, { transform: f, opacity: 0, offset: 1 }], { duration: 300, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
+      panelCloseAnim.onfinish = done;
+      panelCloseTimer = setTimeout(done, 520);
+    } catch (e) {
+      if (closeTileAnim) { try { closeTileAnim.cancel(); } catch (error) {} closeTileAnim = null; }
+      if (t) t.style.opacity = "";
+      done();
+    }
   } else done();
 }
-$("p-edit-toggle").onclick=()=>{panelEditing=!panelEditing;renderPanel();};
+$("p-copy-title").onclick=async()=>{
+  const g=S.games.find(x=>x.id===openId);if(!g)return;
+  try{await navigator.clipboard.writeText(g.n);toast("Titre copié");}
+  catch(e){const area=document.createElement("textarea");area.value=g.n;area.setAttribute("readonly","");area.style.position="fixed";area.style.opacity="0";document.body.append(area);area.select();let ok=false;try{ok=document.execCommand("copy");}catch(error){}area.remove();toast(ok?"Titre copié":"Copie impossible");}
+};
+$("p-edit-toggle").onclick=()=>{if(panelEditing)exitPanelEditing(false);else beginPanelEditing();};
+$("p-cancel").onclick=()=>exitPanelEditing(false);
+$("p-save").onclick=savePanelEdits;
+$("p-edit").addEventListener("input",event=>{const target=event.target;if(!target||target.id==="p-rename"||target.id==="p-file")return;if(target.closest("button"))return;markPanelDirty();});
+$("p-edit").addEventListener("change",event=>{const target=event.target;if(!target||target.id==="p-rename"||target.id==="p-file")return;markPanelDirty();});
+$("p-edit").addEventListener("keydown",event=>{if((event.ctrlKey||event.metaKey)&&event.key==="Enter"){event.preventDefault();savePanelEdits();}});
 $("p-more-btn").onclick=()=>{if($("p-more-btn").disabled)return;const b=$("p-more");b.hidden=!b.hidden;renderPanel();};
 $("p-trophy-refresh").onclick=()=>{const game=S.games.find(item=>item.id===openId),appId=game?trophySteamApp(game):"";if(appId)loadTrophies(appId,true);};
 $("p-trophy-more").onclick=()=>{trophyExpanded=!trophyExpanded;const game=S.games.find(item=>item.id===openId);if(game)renderTrophies(game);};
 $("p-pick").onclick = () => $("p-file").click();
 $("p-file").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; const g = S.games.find(x => x.id === openId); if (!f || !g) return;
+  if (panelReadOnly()) { toast("Mode lecture seule : jaquette non modifiée"); return; }
   const ok = await setCover(g, f); renderGrid(); renderPanel(); toast(ok ? (SRV ? "Jaquette enregistrée sur le PC" : "Jaquette gardée jusqu'à la fermeture de la page") : "Image impossible à enregistrer");
 };
-$("p-rm").onclick = async () => { const g = S.games.find(x => x.id === openId); if (!g) return; const ok = await removeCover(g); if (!ok) return toast("Jaquette impossible à retirer"); renderGrid(); renderPanel(); toast("Jaquette retirée"); };
+$("p-rm").onclick = async () => {
+  if (panelReadOnly()) { toast("Mode lecture seule : jaquette non modifiée"); return; }
+  const g = S.games.find(x => x.id === openId); if (!g) return; const ok = await removeCover(g); if (!ok) return toast("Jaquette impossible à retirer"); renderGrid(); renderPanel(); toast("Jaquette retirée");
+};
 async function bulkCovers(files) {
   let ok = 0, miss = 0;
   for (const f of files) {
@@ -2487,6 +2822,7 @@ document.addEventListener("dragleave", e => { if (!e.relatedTarget) clearDrop();
 document.addEventListener("drop", async e => {
   if (!isFiles(e)) return; e.preventDefault(); clearDrop();
   const files = [...e.dataTransfer.files].filter(f => f.type.startsWith("image/")); if (!files.length) return;
+  if (panelReadOnly()) { toast("Mode lecture seule : jaquette non modifiée"); return; }
   const t = e.target.closest && e.target.closest(".tile"), id = t ? (S.games.find(game => String(game.id) === String(t.dataset.id))?.id ?? t.dataset.id) : (files.length === 1 && openId !== null ? openId : null);
   const g = id === null ? null : S.games.find(x => x.id === id);
   if (g && files.length === 1) { const ok = await setCover(g, files[0]); renderGrid(); if (openId !== null) renderPanel(); toast(ok ? "Jaquette enregistrée" : "Image illisible"); }
@@ -2495,19 +2831,16 @@ document.addEventListener("drop", async e => {
 document.addEventListener("paste", async e => {
   if (openId === null) return;
   const f = [...(e.clipboardData ? e.clipboardData.files : [])].find(x => x.type.startsWith("image/")); if (!f) return;
+  if (panelReadOnly()) { e.preventDefault(); toast("Mode lecture seule : jaquette non modifiée"); return; }
   e.preventDefault(); const g = S.games.find(x => x.id === openId); if (!g) return;
   const ok = await setCover(g, f); renderGrid(); renderPanel(); toast(ok ? "Jaquette collée" : "Image illisible");
 });
-$("p-close").onclick = closePanel; $("veil").onclick = closePanel;
-$("p-set").onclick = () => {
-  const g = S.games.find(x => x.id === openId); if (!g) return;
-  const h = Math.max(0, parseInt($("p-h").value, 10) || 0), m = Math.max(0, parseInt($("p-m").value, 10) || 0);
-  g.manualDelta=(g.manualDelta||0)+(h*60+m-g.m); g.m = h * 60 + m; save(); panelEditing=false; renderPanel(); renderSub(); renderGrid(); toast("Temps enregistré");
-};
+$("p-close").onclick = requestClosePanel; $("veil").onclick = requestClosePanel;
 $("p-rename-set").onclick = async () => {
   const g = S.games.find(x => x.id === openId); if (!g) return;
   const name = $("p-rename").value.trim();
   if (!name || name === g.n) { toast("Aucun changement de nom."); return; }
+  if (panelReadOnly()) { toast("Mode lecture seule : renommage impossible"); return; }
   if (!(SRV && S.schemaVersion === 2)) { toast("Renommage disponible après la migration v2."); return; }
   $("p-rename-set").disabled = true;
   try {
@@ -2517,8 +2850,11 @@ $("p-rename-set").onclick = async () => {
     await refreshSessionState();
     render(); renderPanel();
     toast("Jeu renommé · sessions et favoris conservés");
-  } catch (error) { toast(error.message || "Renommage impossible"); }
-  finally { $("p-rename-set").disabled = !(SRV && S.schemaVersion === 2); }
+  } catch (error) {
+    if (error?.name === "TypeError") setBridgeOnline(false);
+    toast(error.message || "Renommage impossible");
+  }
+  finally { $("p-rename-set").disabled = panelReadOnly() || panelSaving || !(SRV && S.schemaVersion === 2); }
 };
 let gameUndoData = null, gameUndoTimer = 0;
 const gameUndoBar = $("game-undo"), gameUndoText = $("game-undo-text");
@@ -2541,6 +2877,7 @@ $("game-undo-button").addEventListener("click", async () => {
   } catch (error) { toast(error.message || "Restauration impossible"); }
 });
 $("p-del").onclick = async function () {
+  if (panelReadOnly()) { toast("Mode lecture seule : suppression impossible"); return; }
   if (!this.dataset.sure) { this.dataset.sure = "1"; this.textContent = "Confirmer la suppression"; setTimeout(() => { delete this.dataset.sure; this.textContent = "Supprimer ce jeu"; }, 3000); return; }
   delete this.dataset.sure; this.textContent = "Supprimer ce jeu";
   const game = S.games.find(x => x.id === openId); if (!game) return;
@@ -2617,7 +2954,6 @@ $("type").onchange = e => { fq.type = ["games", "apps", "all"].includes(e.target
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("add-dialog").hidden) { closeAddDialog(); return; }
-  if (e.key === "Escape" && openId !== null) { e.preventDefault(); e.stopImmediatePropagation(); closePanel(); return; }
   if (openId !== null) return;
   const t = document.activeElement;
   if (!t || !t.classList || !t.classList.contains("tile")) return;
@@ -2714,7 +3050,9 @@ render();
 
 /* Mode pont Discord : actif seulement quand la page est servie par bridge.js */
 function putNow() {
-  return fetch("/api/state", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ games: S.games.map(({ id, n, name, kind, s, c, m, t, firstPlayed, manualDelta, rating, review, tags, platforms, ownership }) => ({ id, n, name: name || n, kind, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0, rating, review, tags, platforms, ownership })), sessions: S.sessions || [], favorites: S.favorites || [], profiles: S.profiles || [], activeProfileId: S.activeProfileId }) }).catch(() => {});
+  return fetch("/api/state", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ games: S.games.map(({ id, n, name, kind, s, c, m, t, firstPlayed, manualDelta, rating, review, tags, platforms, ownership, format, store, purchaseDate, startDate, endDate, importedMinutes, personalNote, detailsVersion }) => ({ id, n, name: name || n, kind, s, c, m, manualDelta, t: t || 0, firstPlayed: firstPlayed || 0, rating, review, tags, platforms, ownership, format, store, purchaseDate, startDate, endDate, importedMinutes, personalNote, detailsVersion })), sessions: S.sessions || [], favorites: S.favorites || [], profiles: S.profiles || [], activeProfileId: S.activeProfileId }) })
+    .then(response => { if (response.ok) setBridgeOnline(true); return response; })
+    .catch(() => { setBridgeOnline(false); });
 }
 function pushSoon() { if (!SRV || applying) return; clearTimeout(putT); putT = setTimeout(putNow, 400); }
 function applyServer(st, first) {
@@ -2722,12 +3060,46 @@ function applyServer(st, first) {
   applying = true;
   try {
     const old = new Map(S.games.map(g => [ckey(g.n), g.id]));
+    const serverDetails = st.playDetails && typeof st.playDetails === "object" ? st.playDetails : {};
     S.schemaVersion = Number(st.schemaVersion) || S.schemaVersion || 1;
     S.games = st.games.map(g => {
       const name = String(g.name || g.n || "");
       const serverId = typeof g.id === "string" && g.id ? g.id : null;
       const localId = old.has(ckey(name)) ? old.get(ckey(name)) : nextId++;
-      return { id: serverId || localId, n: name, name, kind: g.kind === "app" ? "app" : "game", s: normalizeStatus(g.s), c: g.c, m: g.m, manualDelta:g.manualDelta||0, t: g.t || 0, firstPlayed: g.firstPlayed || 0 };
+      const detail = serverDetails[ckey(name)] || {};
+      // La fiche du jeu est prioritaire dès detailsVersion 2. Avant la
+      // migration P1-03, une valeur vide reprend l'ancienne valeur de
+      // playDetails. Un effacement explicite porte le marqueur 2.
+      const legacy = Number(g.detailsVersion) !== 2;
+      const gameText = (key, detailKey) => {
+        const value = typeof g[key] === "string" ? g[key] : "";
+        if (value.trim() || !legacy || typeof detail[detailKey] !== "string") return value;
+        return detail[detailKey];
+      };
+      const gameList = (key, detailKey) => {
+        const value = Array.isArray(g[key]) ? [...g[key]] : [];
+        if (value.length || !legacy || !Array.isArray(detail[detailKey])) return value;
+        return [...detail[detailKey]];
+      };
+      const ownRating = Number(g.rating);
+      const ratingValue = Number.isFinite(ownRating) && ownRating > 0 ? Math.max(0, Math.min(5, ownRating)) : Math.max(0, Math.min(5, legacy ? (Number(detail.rating) || 0) : (Number.isFinite(ownRating) ? ownRating : 0)));
+      return {
+        id: serverId || localId, n: name, name, kind: g.kind === "app" ? "app" : "game",
+        s: normalizeStatus(g.s), c: g.c, m: g.m, manualDelta: g.manualDelta || 0, t: g.t || 0, firstPlayed: g.firstPlayed || 0,
+        rating: ratingValue,
+        review: gameText("review", "review"),
+        tags: gameList("tags", "collections"),
+        platforms: gameList("platforms", "platforms"),
+        ownership: gameText("ownership", "ownership"),
+        format: gameText("format", "format"),
+        store: gameText("store", "store"),
+        purchaseDate: gameText("purchaseDate", "purchaseDate"),
+        startDate: gameText("startDate", "startDate"),
+        endDate: gameText("endDate", "endDate"),
+        importedMinutes: Math.max(0, Math.round(Number(g.importedMinutes) || 0)),
+        personalNote: gameText("personalNote", "note"),
+        detailsVersion: Number(g.detailsVersion) || 1
+      };
     });
     const previousSession=S.session?{id:S.session.id,start:S.session.start}:null;
     const sg = st.session ? (S.games.find(g => String(g.id) === String(st.session.gameId)) || S.games.find(g => ckey(g.n) === ckey(st.session.name))) : null;
@@ -2892,7 +3264,31 @@ sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionM
     try { const saved = await window.tracker.loadLibrary(); if (Array.isArray(saved?.games)) applyServer(saved, false); }
     catch (error) { console.warn('Chargement local Orbit impossible'); }
   }
-  let connected = false;
+  let connected = false, events = null, retryTimer = 0;
+  function scheduleReconnect(delay = 2500) {
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(connect, delay);
+  }
+  function openEvents() {
+    if (events) return;
+    events = new EventSource('/api/events');
+    events.addEventListener("cinema-viewing",event=>{
+      window.orbitViewing=JSON.parse(event.data);
+      window.dispatchEvent(new Event("orbit:viewing"));
+    });
+    events.addEventListener("session-saved",event=>{
+      const s=JSON.parse(event.data),mins=Math.floor(s.durationMs/60000);
+      toast("Session enregistrée · "+s.game+" · "+(mins?fmt(mins):"moins d’une minute")+" · "+new Date(s.end).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}));
+    });
+    events.onmessage = e => { try { applyServer(JSON.parse(e.data), false); } catch (error) { console.warn('Mise à jour Orbit impossible'); } };
+    events.onerror = () => {
+      const source = events; events = null;
+      try { source?.close(); } catch (error) {}
+      connected = false;
+      setBridgeOnline(false);
+      scheduleReconnect();
+    };
+  }
   async function connect() {
     if (connected) return;
     try {
@@ -2901,19 +3297,15 @@ sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionM
       const st = await r.json();
       if (!Array.isArray(st.games)) throw new Error('Bibliothèque invalide');
       applyServer(st, false); SRV = true; connected = true;
+      setBridgeOnline(true);
       loadTrophySummaries();
-      const es = new EventSource('/api/events');
-      es.addEventListener("cinema-viewing",event=>{
-        window.orbitViewing=JSON.parse(event.data);
-        window.dispatchEvent(new Event("orbit:viewing"));
-      });
-      es.addEventListener("session-saved",event=>{
-        const s=JSON.parse(event.data),mins=Math.floor(s.durationMs/60000);
-        toast("Session enregistrée · "+s.game+" · "+(mins?fmt(mins):"moins d’une minute")+" · "+new Date(s.end).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}));
-      });
-      es.onmessage = e => { try { applyServer(JSON.parse(e.data), false); } catch (error) { console.warn('Mise à jour Orbit impossible'); } };
+      openEvents();
       await migrateLegacyCovers();
-    } catch (error) { setTimeout(connect, 2500); }
+    } catch (error) {
+      connected = false;
+      setBridgeOnline(false);
+      scheduleReconnect();
+    }
   }
   connect();
 })();
@@ -3202,8 +3594,8 @@ sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionM
   let shellRegistry=null,shellMounted=null,shellSwitchTask=Promise.resolve();
   const shellContext=initial=>({root:document.documentElement,home,library,app:document.getElementById("app"),screen:launcherScreen.classList.contains("on")?"launcher":filmsScreen.classList.contains("on")?"films":library.classList.contains("on")?"library":"home",initial,data:()=>({games:S.games,favorites:S.favorites,profiles:S.profiles,activeProfileId:S.activeProfileId,preferences:{theme:themeBoot.theme,accent:themeBoot.accent}}),actions:{
     openSection:id=>{const section=sections.find(x=>x.id===id);if(section?.destination==="library")showScreen("library");else if(section?.destination==="films")showScreen("films");else if(section?.destination==="launcher")showScreen("launcher");else if(id==="settings")openSettings();},
-    goHome:()=>{if(openId!==null)closePanel();showScreen("home");},
-    back:()=>{if(openId!==null)closePanel();else showScreen("home");},
+    goHome:()=>{if(openId!==null&&!requestClosePanel())return;showScreen("home");},
+    back:()=>{if(openId!==null){if(requestClosePanel())showScreen("home");}else showScreen("home");},
     openLibrary:()=>showScreen("library"),
     openSettings,
     search:value=>{$("q").value=String(value||"");fq.q=$("q").value;renderGrid();},
@@ -3410,7 +3802,7 @@ sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionM
       if(filmDialog.open) filmDialog.close();
       if(filmDetail?.dialog.open)filmDetail.dialog.close();
       if(settingsOpen)closeSettings();
-      if(openId!==null)closePanel();
+      if(openId!==null)requestClosePanel();
     }
     mountActivity({stats:async()=>{
         try {
@@ -3485,7 +3877,7 @@ sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionM
   const centerMenuCard=card=>card?.scrollIntoView({block:"nearest",inline:"center",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
   cards.forEach(card=>card.addEventListener("focus",()=>centerMenuCard(card)));
   home.addEventListener("keydown",e=>{if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key))return;const i=cards.indexOf(document.activeElement);if(i<0)return;const cols=matchMedia("(max-width:760px)").matches?2:matchMedia("(max-width:1050px)").matches?3:6;let next=i;if(e.key==="ArrowLeft")next=Math.max(0,i-1);if(e.key==="ArrowRight")next=Math.min(cards.length-1,i+1);if(e.key==="ArrowUp")next=Math.max(0,i-cols);if(e.key==="ArrowDown")next=Math.min(cards.length-1,i+cols);e.preventDefault();cards[next].focus();centerMenuCard(cards[next]);});
-  document.getElementById("home-back").addEventListener("click",()=>{if(openId!==null)closePanel();playThemeSound("back");showScreen("home");});
+  document.getElementById("home-back").addEventListener("click",()=>{if(openId!==null&&!requestClosePanel())return;playThemeSound("back");showScreen("home");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(library.classList.contains("on")||filmsScreen.classList.contains("on")||launcherScreen.classList.contains("on"))&&openId===null){playThemeSound("back");showScreen("home");}});
   function focusDirectional(direction){
     const scope=$("orbit-stats")?.open?$("orbit-stats"):filmDialog.open?filmDialog:filmDetail?.dialog.open?filmDetail.dialog:settingsOpen?settingsDrawer:openId!==null?$("panel"):launcherScreen.classList.contains("on")?launcherScreen:filmsScreen.classList.contains("on")?filmsScreen:library.classList.contains("on")?library:home;
@@ -3497,7 +3889,7 @@ sessionManagerDialog.addEventListener("click",event=>{if(event.target===sessionM
     if(next){next.focus({preventScroll:true});if(scope===home)centerMenuCard(next);else next.scrollIntoView({block:"nearest",inline:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});}
   }
   document.addEventListener("keydown",event=>{if((!library.classList.contains("on")&&!filmsScreen.classList.contains("on")&&!launcherScreen.classList.contains("on"))||!/^Arrow(Left|Right|Up|Down)$/.test(event.key)||event.target.matches("input,textarea,select,[contenteditable=true]"))return;event.preventDefault();focusDirectional(event.key.slice(5).toLowerCase());});
-  let gamepadLatch=new Set();const gamepadTimer=setInterval(()=>{if(!navigator.getGamepads)return;const pads=[...navigator.getGamepads()].filter(Boolean),pressed=new Set();for(const pad of pads){const held=(button)=>!!pad.buttons?.[button]?.pressed,axes=pad.axes||[];if(held(12)||axes[1]<-.65)pressed.add("up");if(held(13)||axes[1]>.65)pressed.add("down");if(held(14)||axes[0]<-.65)pressed.add("left");if(held(15)||axes[0]>.65)pressed.add("right");if(held(0))pressed.add("accept");if(held(1))pressed.add("back");}for(const key of pressed)if(!gamepadLatch.has(key)){if(key==="accept")document.activeElement?.click?.();else if(key==="back"){if($("orbit-stats")?.open)$("orbit-stats").close();else if(filmDialog.open)filmDialog.close();else if(filmDetail?.dialog.open)filmDetail.dialog.close();else if(settingsOpen)closeSettings();else if(openId!==null)closePanel();else if(library.classList.contains("on")||filmsScreen.classList.contains("on")||launcherScreen.classList.contains("on"))showScreen("home");}else focusDirectional(key);}gamepadLatch=pressed;},100);
+  let gamepadLatch=new Set();const gamepadTimer=setInterval(()=>{if(!navigator.getGamepads)return;const pads=[...navigator.getGamepads()].filter(Boolean),pressed=new Set();for(const pad of pads){const held=(button)=>!!pad.buttons?.[button]?.pressed,axes=pad.axes||[];if(held(12)||axes[1]<-.65)pressed.add("up");if(held(13)||axes[1]>.65)pressed.add("down");if(held(14)||axes[0]<-.65)pressed.add("left");if(held(15)||axes[0]>.65)pressed.add("right");if(held(0))pressed.add("accept");if(held(1))pressed.add("back");}for(const key of pressed)if(!gamepadLatch.has(key)){if(key==="accept")document.activeElement?.click?.();else if(key==="back"){if($("orbit-stats")?.open)$("orbit-stats").close();else if(filmDialog.open)filmDialog.close();else if(filmDetail?.dialog.open)filmDetail.dialog.close();else if(settingsOpen)closeSettings();else if(openId!==null){if(requestClosePanel())showScreen("home");}else if(library.classList.contains("on")||filmsScreen.classList.contains("on")||launcherScreen.classList.contains("on"))showScreen("home");}else focusDirectional(key);}gamepadLatch=pressed;},100);
   window.addEventListener("pagehide",()=>clearInterval(gamepadTimer),{once:true});
   let introDone=false,introPreviewing=false,introPreviewTimer=0;const finishIntro=()=>{if(introDone)return;introDone=true;intro.classList.add("out");setTimeout(()=>{intro.hidden=true;settingsButton.hidden=false;const first=cards.find(card=>card.dataset.active==="true");first?.focus({preventScroll:true});centerMenuCard(first);},Math.max(250,+themeBoot.current().animations.screenDurationMs||340));};
   const finishIntroPreview=()=>{if(!introPreviewing)return;introPreviewing=false;clearTimeout(introPreviewTimer);intro.classList.add("out");setTimeout(()=>{intro.hidden=true;settingsButton.hidden=false;},Math.max(250,+themeBoot.current().animations.screenDurationMs||340));};

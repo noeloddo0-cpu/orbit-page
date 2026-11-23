@@ -321,6 +321,8 @@ function newGame(name, status = 2) {
       id: nextGameId(clean), name: clean, n: clean, kind: "game", status, s: normalizeStatus(status),
       completion: 0, c: 0, minutes: 0, m: 0, manualDelta: 0, firstPlayedAt: 0, firstPlayed: 0,
       lastPlayedAt: 0, t: 0, rating: 0, review: "", tags: [], platforms: [], ownership: "",
+      format: "", store: "", purchaseDate: "", startDate: "", endDate: "",
+      importedMinutes: 0, personalNote: "", detailsVersion: 2,
       createdAt: Date.now(), updatedAt: Date.now()
     };
   }
@@ -368,6 +370,20 @@ function timestamp(value) {
   if (Number.isFinite(number) && number > 0) return number;
   const parsed = Date.parse(String(value ?? ""));
   return Number.isFinite(parsed) ? parsed : NaN;
+}
+function normalizeDateValue(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return "";
+  const date = new Date(text + "T00:00:00Z");
+  return Number.isFinite(+date) && date.toISOString().slice(0, 10) === text ? text : "";
+}
+function normalizeDateStrict(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return undefined;
+  const date = new Date(text + "T00:00:00Z");
+  return Number.isFinite(+date) && date.toISOString().slice(0, 10) === text ? text : undefined;
 }
 function sessionConflicts(candidate, excludeId = null) {
   const start = Number(candidate.start), end = sessionEnd(candidate);
@@ -528,7 +544,25 @@ function playDetailsIndex() {
     const installedId = installed.names.get(key) || (installed.ids.has(m.localSteamId) ? m.localSteamId : null);
     const steamAppId = installedId || m.appId || m.localSteamId || null;
     const steamInfo = steamAppId ? steamTimes.get(String(steamAppId)) : null;
-    const value = { ...m.playDetails, psnMinutes: psnReference[key], installedId, steamAppId,
+    const details = m.playDetails || {};
+    // La fiche du jeu est la source de vérité dès detailsVersion 2. Les
+    // anciennes valeurs de playDetails restent un repli pour les données
+    // migrées avant P1-03, tant qu'un enregistrement explicite n'a pas eu lieu.
+    const legacy = Number(g.detailsVersion) !== 2;
+    const gameRating = Number(g.rating);
+    const rating = legacy && (!Number.isFinite(gameRating) || gameRating === 0) ? (Number(details.rating) || 0) : (Number.isFinite(gameRating) ? gameRating : 0);
+    const collections = Array.isArray(g.tags) && g.tags.length ? g.tags : (legacy && Array.isArray(details.collections) ? details.collections : (Array.isArray(g.tags) ? g.tags : []));
+    const platforms = Array.isArray(g.platforms) && g.platforms.length ? g.platforms : (legacy && Array.isArray(details.platforms) ? details.platforms : (Array.isArray(g.platforms) ? g.platforms : []));
+    const note = typeof g.personalNote === "string" && g.personalNote.trim() ? g.personalNote : (legacy ? (details.note || "") : "");
+    const review = typeof g.review === "string" && g.review.trim() ? g.review : (legacy ? (details.review || "") : "");
+    const value = { ...details,
+      kind: g.kind === "app" ? "app" : "game",
+      note,
+      collections,
+      platforms,
+      rating,
+      review,
+      psnMinutes: psnReference[key], installedId, steamAppId,
       steamMinutes: steamInfo?.minutes || 0, steamLastPlayed: steamInfo?.lastPlayed || 0 };
     entries.push([key, value]);
     if (g.id) entries.push(["id:" + g.id, value]);
@@ -1789,8 +1823,23 @@ http.createServer(async (req, res) => {
       if (!validTags(fields.collections) || !validTags(fields.platforms)) return json(400, {error: '20 noms maximum, 60 caractères par nom.'});
       const rating = Math.max(0, Math.min(5, Number(fields.rating) || 0));
       const review = typeof fields.review === 'string' ? fields.review.trim().slice(0, 500) : '';
+      const collections = [...new Set(fields.collections.map(t=>t.trim()))];
+      const platforms = [...new Set(fields.platforms.map(t=>t.trim()))];
+      const note = fields.note.trim().slice(0, 2000);
       const previous = (state.meta[key] || {}).playDetails || {};
-      savePlayMeta(key, {playDetails: {...previous, kind: fields.kind, note: fields.note, collections: [...new Set(fields.collections.map(t=>t.trim()))], platforms: [...new Set(fields.platforms.map(t=>t.trim()))], rating, review}});
+      if (game) {
+        game.kind = fields.kind;
+        game.rating = rating;
+        game.review = review;
+        game.tags = collections;
+        game.platforms = platforms;
+        game.personalNote = note;
+        game.detailsVersion = 2;
+        game.updatedAt = Date.now();
+        if (!writeLibrary()) return json(500, {error: 'Écriture de la bibliothèque impossible.'});
+      }
+      savePlayMeta(key, {playDetails: {...previous, kind: fields.kind, note, collections, platforms, rating, review}});
+      broadcast();
       return json(200, {ok: true, gameId: game.id || null});
     } catch { return json(400, {error: 'Impossible d’enregistrer la fiche.'}); }
   }
@@ -2350,22 +2399,129 @@ http.createServer(async (req, res) => {
     if (req.method === "GET") return json(200, { game });
     if (req.method === "PATCH") {
       try {
-        const b = JSON.parse(await body(req, 24000));
-        if (b.name === undefined && b.n === undefined && b.status === undefined && b.s === undefined) return json(400, { error: "aucune modification" });
-        if (b.name !== undefined || b.n !== undefined) {
-          const name = String(b.name || b.n || "").trim().slice(0, 200);
-          if (!name) return json(400, { error: "nom invalide" });
-          const duplicate = state.games.find(other => other.id !== game.id && ckey(other.name || other.n) === ckey(name));
+        const b = JSON.parse(await body(req, 64000));
+        const has = key => Object.hasOwn(b, key);
+        const fields = ["name", "n", "status", "s", "kind", "completion", "c", "rating", "review", "tags", "platforms", "ownership", "format", "store", "purchaseDate", "startDate", "endDate", "minutes", "m", "importedMinutes", "personalNote"];
+        if (!fields.some(has)) return json(400, { error: "aucune modification" });
+        const fail = (error, field) => json(400, field ? { error, field } : { error });
+
+        let nextName;
+        if (has("name") || has("n")) {
+          nextName = String(b.name ?? b.n ?? "").trim().slice(0, 200);
+          if (!nextName) return fail("nom invalide", "name");
+          const duplicate = state.games.find(other => other.id !== game.id && ckey(other.name || other.n) === ckey(nextName));
           if (duplicate) return json(409, { error: "un autre jeu porte déjà ce nom", game: duplicate });
-          const oldName = game.name || game.n;
-          game.name = name; game.n = name; game.updatedAt = Date.now();
-          if (game.kind !== "app" && game.kind !== "game") game.kind = "game";
+        }
+        let nextKind;
+        if (has("kind")) {
+          if (!["game", "app"].includes(b.kind)) return fail("type invalide", "kind");
+          nextKind = b.kind;
+        }
+        let nextStatus;
+        if (has("status") || has("s")) {
+          const raw = b.status ?? b.s;
+          if (!Number.isInteger(Number(raw)) || Number(raw) < 0 || Number(raw) > 5) return fail("statut invalide", "status");
+          nextStatus = normalizeStatus(raw);
+        }
+        let nextCompletion;
+        if (has("completion") || has("c")) {
+          const raw = Number(b.completion ?? b.c);
+          if (![0, 1, 2].includes(raw)) return fail("complétion invalide", "completion");
+          nextCompletion = raw;
+        }
+        let nextRating;
+        if (has("rating")) {
+          const raw = Number(b.rating);
+          if (!Number.isFinite(raw) || raw < 0 || raw > 5) return fail("note invalide", "rating");
+          nextRating = Math.round(raw * 2) / 2;
+        }
+        let nextReview;
+        if (has("review")) {
+          if (typeof b.review !== "string") return fail("critique invalide", "review");
+          nextReview = b.review.trim().slice(0, 500);
+        }
+        const detailList = (value, field) => {
+          if (!Array.isArray(value)) return { error: fail("liste invalide", field) };
+          if (value.length > 20 || value.some(entry => typeof entry !== "string" || !entry.trim() || entry.length > 60)) {
+            return { error: fail("20 noms maximum, 60 caractères par nom", field) };
+          }
+          return { value: [...new Set(value.map(entry => entry.trim()))].slice(0, 20) };
+        };
+        let nextTags, nextPlatforms;
+        if (has("tags")) {
+          const parsed = detailList(b.tags, "tags");
+          if (parsed.error) return parsed.error;
+          nextTags = parsed.value;
+        }
+        if (has("platforms")) {
+          const parsed = detailList(b.platforms, "platforms");
+          if (parsed.error) return parsed.error;
+          nextPlatforms = parsed.value;
+        }
+        let nextOwnership, nextFormat, nextStore;
+        if (has("ownership")) {
+          if (typeof b.ownership !== "string") return fail("possession invalide", "ownership");
+          nextOwnership = b.ownership.trim().slice(0, 100);
+        }
+        if (has("format")) {
+          if (typeof b.format !== "string") return fail("format invalide", "format");
+          nextFormat = b.format.trim().slice(0, 60);
+        }
+        if (has("store")) {
+          if (typeof b.store !== "string") return fail("boutique invalide", "store");
+          nextStore = b.store.trim().slice(0, 80);
+        }
+        let nextPurchaseDate, nextStartDate, nextEndDate;
+        const dateField = (key, label) => {
+          const normalized = normalizeDateStrict(b[key]);
+          if (normalized === undefined) return { error: fail(label + " invalide (AAAA-MM-JJ)", key) };
+          return { value: normalized };
+        };
+        if (has("purchaseDate")) {
+          const parsed = dateField("purchaseDate", "date d’achat");
+          if (parsed.error) return parsed.error;
+          nextPurchaseDate = parsed.value;
+        }
+        if (has("startDate")) {
+          const parsed = dateField("startDate", "date de début");
+          if (parsed.error) return parsed.error;
+          nextStartDate = parsed.value;
+        }
+        if (has("endDate")) {
+          const parsed = dateField("endDate", "date de fin");
+          if (parsed.error) return parsed.error;
+          nextEndDate = parsed.value;
+        }
+        const finalStart = nextStartDate !== undefined ? nextStartDate : normalizeDateValue(game.startDate);
+        const finalEnd = nextEndDate !== undefined ? nextEndDate : normalizeDateValue(game.endDate);
+        if (finalStart && finalEnd && finalStart > finalEnd) return fail("la date de fin doit être après la date de début", "endDate");
+        let nextMinutes;
+        if (has("minutes") || has("m")) {
+          const raw = Number(b.minutes ?? b.m);
+          if (!Number.isFinite(raw) || raw < 0 || raw > 100000000) return fail("temps invalide", "minutes");
+          nextMinutes = Math.round(raw);
+        }
+        let nextImportedMinutes;
+        if (has("importedMinutes")) {
+          const raw = Number(b.importedMinutes);
+          if (!Number.isFinite(raw) || raw < 0 || raw > 100000000) return fail("temps importé invalide", "importedMinutes");
+          nextImportedMinutes = Math.round(raw);
+        }
+        let nextPersonalNote;
+        if (has("personalNote")) {
+          if (typeof b.personalNote !== "string") return fail("note personnelle invalide", "personalNote");
+          nextPersonalNote = b.personalNote.trim().slice(0, 2000);
+        }
+
+        const oldName = game.name || game.n;
+        if (nextName && ckey(nextName) !== ckey(oldName)) {
+          game.name = nextName; game.n = nextName;
           state.metaAliases[metaKey(oldName)] = game.id;
-          state.metaAliases[metaKey(name)] = game.id;
-          syncMetaTitle(game, oldName, name);
-          if (state.session?.gameId === game.id) state.session.name = name;
-          state.sessions = state.sessions.map(session => session.gameId === game.id ? { ...session, game: name } : session);
-          const renamed = value => ckey(value) === ckey(oldName) ? name : value;
+          state.metaAliases[metaKey(nextName)] = game.id;
+          syncMetaTitle(game, oldName, nextName);
+          if (state.session?.gameId === game.id) state.session.name = nextName;
+          state.sessions = state.sessions.map(session => session.gameId === game.id ? { ...session, game: nextName } : session);
+          const renamed = value => ckey(value) === ckey(oldName) ? nextName : value;
           if (recap?.lastOpened?.name) recap.lastOpened.name = renamed(recap.lastOpened.name);
           if (Array.isArray(recap?.recent)) recap.recent = recap.recent.map(entry => entry?.name ? { ...entry, name: renamed(entry.name) } : entry);
           if (Array.isArray(recap?.queue)) recap.queue = recap.queue.map(renamed);
@@ -2376,8 +2532,38 @@ http.createServer(async (req, res) => {
           }
           saveRecap();
         }
-        if (b.status !== undefined || b.s !== undefined) {
-          game.status = normalizeStatus(b.status ?? b.s); game.s = game.status; game.updatedAt = Date.now();
+        if (nextKind !== undefined) game.kind = nextKind;
+        if (nextStatus !== undefined) { game.status = nextStatus; game.s = nextStatus; }
+        if (nextCompletion !== undefined) { game.completion = nextCompletion; game.c = nextCompletion; }
+        if (nextRating !== undefined) game.rating = nextRating;
+        if (nextReview !== undefined) game.review = nextReview;
+        if (nextTags !== undefined) game.tags = nextTags;
+        if (nextPlatforms !== undefined) game.platforms = nextPlatforms;
+        if (nextOwnership !== undefined) game.ownership = nextOwnership;
+        if (nextFormat !== undefined) game.format = nextFormat;
+        if (nextStore !== undefined) game.store = nextStore;
+        if (nextPurchaseDate !== undefined) game.purchaseDate = nextPurchaseDate;
+        if (nextStartDate !== undefined) game.startDate = nextStartDate;
+        if (nextEndDate !== undefined) game.endDate = nextEndDate;
+        if (nextMinutes !== undefined) {
+          const previousMinutes = Math.max(0, Math.round(Number(game.minutes ?? game.m) || 0));
+          game.manualDelta = (Number(game.manualDelta) || 0) + nextMinutes - previousMinutes;
+          game.minutes = nextMinutes; game.m = nextMinutes;
+        }
+        if (nextImportedMinutes !== undefined) game.importedMinutes = nextImportedMinutes;
+        if (nextPersonalNote !== undefined) game.personalNote = nextPersonalNote;
+        game.updatedAt = Date.now();
+
+        const detailChanges = {};
+        if (nextKind !== undefined) detailChanges.kind = game.kind;
+        if (nextRating !== undefined) detailChanges.rating = game.rating;
+        if (nextReview !== undefined) detailChanges.review = game.review;
+        if (nextTags !== undefined) detailChanges.collections = game.tags;
+        if (nextPlatforms !== undefined) detailChanges.platforms = game.platforms;
+        if (nextPersonalNote !== undefined) detailChanges.note = game.personalNote;
+        if (Object.keys(detailChanges).length) {
+          game.detailsVersion = 2;
+          setGameMeta(game, { title: game.name || game.n, playDetails: { ...(gameMeta(game).playDetails || {}), ...detailChanges } });
         }
         if (!writeLibrary()) return json(500, { error: "écriture impossible" });
         saveMeta(); broadcast();
@@ -2436,6 +2622,9 @@ http.createServer(async (req, res) => {
           const firstPlayedAt = Math.max(0, Number(raw.firstPlayedAt ?? raw.firstPlayed ?? prior?.firstPlayedAt ?? prior?.firstPlayed) || 0);
           const lastPlayedAt = Math.max(0, Number(raw.lastPlayedAt ?? raw.t ?? prior?.lastPlayedAt ?? prior?.t) || 0);
           const kind = raw.kind === "app" || raw.kind === "game" ? raw.kind : (prior?.kind === "app" ? "app" : "game");
+          const sendsDetails = ["rating", "review", "tags", "platforms", "ownership", "format", "store", "purchaseDate", "startDate", "endDate", "importedMinutes", "personalNote"]
+            .some(key => Object.hasOwn(raw, key));
+          const detailsVersion = sendsDetails || Number(prior?.detailsVersion) === 2 ? 2 : (prior?.detailsVersion || 1);
           const game = {
             ...prior,
             id, name, n: name, kind, status, s: status, completion, c: completion,
@@ -2446,6 +2635,14 @@ http.createServer(async (req, res) => {
             tags: cleanList(raw.tags ?? prior?.tags),
             platforms: cleanList(raw.platforms ?? prior?.platforms),
             ownership: String(raw.ownership ?? prior?.ownership ?? "").slice(0, 100),
+            format: String(raw.format ?? prior?.format ?? "").trim().slice(0, 60),
+            store: String(raw.store ?? prior?.store ?? "").trim().slice(0, 80),
+            purchaseDate: normalizeDateValue(raw.purchaseDate ?? prior?.purchaseDate) || "",
+            startDate: normalizeDateValue(raw.startDate ?? prior?.startDate) || "",
+            endDate: normalizeDateValue(raw.endDate ?? prior?.endDate) || "",
+            importedMinutes: Math.max(0, Math.round(Number(raw.importedMinutes ?? prior?.importedMinutes) || 0)),
+            personalNote: String(raw.personalNote ?? prior?.personalNote ?? "").slice(0, 2000),
+            detailsVersion,
             createdAt: Math.max(0, Number(prior?.createdAt) || Number(raw.createdAt) || now),
             updatedAt: now
           };

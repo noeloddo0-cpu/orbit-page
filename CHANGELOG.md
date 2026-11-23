@@ -2,6 +2,26 @@
 
 Les notes sont orientées usage. Les données personnelles ne sont jamais incluses dans ce fichier.
 
+## 1.0.34 — 23 novembre 2026
+
+### Fiche jeu complète et accessible
+
+- La fiche jeu distingue désormais une **vue lecture** et une **vue édition** : type, note, critique, note personnelle, tags, plateformes possédées, possession numérique ou physique, format, boutique, dates d’achat, de début et de fin, et temps importé.
+- Tous les champs sont enregistrés dans `library.json`, relus après rechargement et reflétés immédiatement dans **Ma fiche Orbit Play**.
+- Le bouton **Enregistrer** reste explicite ; **Ctrl+Entrée** enregistre au clavier. Un brouillon et un indicateur signalent les modifications non enregistrées, et la fermeture demande confirmation avant de les perdre.
+- Le panneau piège le focus, rend le fond `inert` et se ferme avec **Échap** sans laisser le focus derrière lui.
+- Si le pont HTTP n’est plus joignable, la fiche passe en **lecture seule** et se reconnecte automatiquement ; le mode fichier local reste éditable.
+- Les fiches migrées restent lisibles grâce au miroir `meta.playDetails`. Le marqueur `detailsVersion=2` évite de ressusciter une ancienne valeur effacée volontairement.
+- Les statuts historiques ne sont pas migrés en masse et **Neutre** reste réservé à un choix explicite.
+- L’ouverture et la fermeture rapides de plusieurs fiches ne laissent ni écran noir ni tuile fantôme : les animations sont finalisées une seule fois, avec un filet de sécurité.
+
+### Qualité
+
+- **39 tests sur 39** réussis, dont la persistance complète après redémarrage, l’effacement volontaire, les validations, le miroir `playDetails`, `PUT /api/state` et le renommage sans perte.
+- Validation navigateur : enregistrement au clavier, rechargement, renommage aller-retour, focus piégé, garde des modifications, lecture seule après arrêt du pont, reconnexion automatique et cinq ouvertures/fermetures rapides.
+- Rendu vérifié sur les thèmes **Papier**, **OLED** et **Chambre noire** : libellés lisibles, champs contrastés et aucun débordement horizontal.
+- Lint : 0 erreur (3 avertissements préexistants dans `launcher.js`) ; formatage vérifié.
+
 ## 1.0.33 — 23 novembre 2026
 
 ### Centre de santé des données
